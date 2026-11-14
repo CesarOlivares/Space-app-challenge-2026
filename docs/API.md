@@ -183,6 +183,26 @@ Serie temporal para la línea de tiempo y la animación. Parámetros: `days` (po
 
 `horizon_deg` es la elevación del horizonte en el azimut del cuerpo en cada instante, margen incluido. Con horizonte esférico es constante; con terreno cambia con el azimut, y el cuerpo es visible cuando `elevation_deg` la supera.
 
+### `GET /api/sites/{sitio}/best-dates?date=…&days=…&step_hours=…`
+
+Mejores fechas de aterrizaje de un sitio (RF-18). Evalúa una fecha cada `step_hours` (por defecto 6, entre 1 y 48) durante `days` (por defecto 30, máximo 60) desde `date`, y devuelve las `limit` mejores (por defecto 5, máximo 20): primero las viables, ordenadas por puntaje global y, ante empate, la más temprana. Acepta los parámetros del puntaje. Máximo 400 fechas por consulta.
+
+`GET /api/sites/im-2/best-dates?date=2026-12-15T00:00:00Z&days=30&step_hours=6`
+
+```json
+{
+  "site": {"id": "im-2", "…": "…"},
+  "start": "2026-12-15T00:00:00Z",
+  "days": 30.0,
+  "step_hours": 6.0,
+  "evaluated": 121,
+  "results": [
+    {"site_id": "im-2", "date": "2026-12-15T06:00:00Z", "viable": true,
+     "scores": {"energy": 100.0, "communication": 100.0, "total": 100.0}, "sun": {"…": "…"}, "earth": {"…": "…"}}
+  ]
+}
+```
+
 ### `POST /api/compare`
 
 Compara de 2 a 4 escenarios sitio-fecha. Cada resultado tiene el mismo formato que `/sky`, en el orden recibido. Los parámetros del puntaje van en la consulta.

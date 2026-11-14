@@ -875,3 +875,150 @@ select {
   stroke-dasharray: 2 2;
   opacity: 0.8;
 }
+
+/* Modo simple y modo técnico */
+
+body.mode-simple .tech-only,
+body:not(.mode-simple) .simple-only {
+  display: none !important;
+}
+
+.title-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.segmented {
+  display: inline-flex;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  overflow: hidden;
+  margin-bottom: 10px;
+}
+
+.segmented.wide {
+  display: flex;
+}
+
+.segmented button {
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  padding: 4px 10px;
+}
+
+.segmented button[aria-pressed="true"] {
+  background: #1d4f73;
+  font-weight: 600;
+}
+
+button.small {
+  flex: none;
+  padding: 3px 8px;
+  font-size: 0.78rem;
+}
+
+.plain {
+  margin-top: 10px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: rgba(86, 180, 233, 0.08);
+  border: 1px solid rgba(86, 180, 233, 0.25);
+}
+
+.plain ul {
+  margin: 0;
+  padding-left: 18px;
+}
+
+.plain li + li {
+  margin-top: 6px;
+}
+
+.learn p {
+  margin: 8px 0 0;
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+.list-tools {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin: 4px 14px 8px;
+}
+
+.list-tools .list-hint {
+  margin: 0;
+}
+
+.status + .reason,
+.sub .reason {
+  display: block;
+  color: var(--bad);
+  font-size: 0.75rem;
+}
+
+.best-dates > button {
+  width: 100%;
+}
+
+.best-list {
+  margin: 8px 0 0;
+  padding-left: 20px;
+  font-size: 0.85rem;
+}
+
+.best-list li {
+  margin: 6px 0;
+}
+
+.best-list li > span {
+  display: inline-block;
+  min-width: 70%;
+}
+
+.best-list small {
+  display: block;
+  color: var(--muted);
+}
+
+.best-list button {
+  float: right;
+  flex: none;
+}
+
+.credits {
+  border-top: 1px solid var(--border);
+  border-bottom: 0;
+}
+
+.mobile-only {
+  display: none;
+}
+
+@media (max-width: 760px) {
+  .mobile-only {
+    display: block;
+    width: 100%;
+    margin-top: 8px;
+  }
+
+  body:not(.more-open) #more-controls {
+    display: none;
+  }
+
+  #sidebar {
+    max-height: 32vh;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    scroll-behavior: auto !important;
+    transition: none !important;
+  }
+}

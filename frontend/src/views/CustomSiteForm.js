@@ -1,5 +1,7 @@
 // Formulario para agregar un sitio por coordenadas.
 
+import { t } from "../i18n.js";
+
 export class CustomSiteForm {
   constructor(form, { onAdd }) {
     this.form = form;
@@ -10,7 +12,7 @@ export class CustomSiteForm {
       const lat = Number(data.get("lat"));
       const lon = Number(data.get("lon"));
       if (!(lat >= -90 && lat <= 90) || !(lon >= -180 && lon <= 180)) {
-        this.#setError("Latitud entre −90 y 90, longitud este entre −180 y 180.");
+        this.#setError(t("custom.rangeError"));
         return;
       }
       this.#setError("");

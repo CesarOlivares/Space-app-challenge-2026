@@ -4,11 +4,11 @@ from datetime import datetime
 
 from fastapi import APIRouter, Depends, Query
 
-from app.controllers.deps import fine_config, get_catalog, get_ephemeris, landing_date, resolve_site
+from app.controllers.deps import coarse_config, fine_config, get_catalog, get_ephemeris, landing_date, resolve_site
 from app.controllers.serializers import at_offset, evaluation_json, interval_json, iso, site_json
 from app.models.ephemeris import BODIES, Ephemeris
 from app.models.horizon import horizon_for
-from app.models.scoring import ScoringConfig, evaluate
+from app.models.scoring import ScoringConfig, best_dates, evaluate
 from app.models.site import Site
 from app.models.windows import visibility_intervals
 
@@ -75,4 +75,28 @@ def timeline(
         "step_hours": step_hours,
         "times": [at_offset(track.start, h) for h in track.hours.tolist()],
         **series,
+    }
+
+
+@router.get("/{site_ref}/best-dates")
+def best_landing_dates(
+    site_ref: str,
+    date: datetime = Depends(landing_date),
+    days: float = Query(30.0, gt=0, le=60, description="Cuántos días buscar desde `date`"),
+    step_hours: float = Query(6.0, ge=1, le=48, description="Separación entre fechas candidatas"),
+    limit: int = Query(5, ge=1, le=20),
+    config: ScoringConfig = Depends(coarse_config),
+    ephemeris: Ephemeris = Depends(get_ephemeris),
+    catalog: dict[str, Site] = Depends(get_catalog),
+) -> dict:
+    """Mejores fechas de aterrizaje de un sitio dentro de un rango (RF-18)."""
+    site = resolve_site(site_ref, catalog)
+    evaluated, results = best_dates(ephemeris, site, date, days, step_hours, config, limit)
+    return {
+        "site": site_json(site),
+        "start": iso(date),
+        "days": days,
+        "step_hours": step_hours,
+        "evaluated": evaluated,
+        "results": [evaluation_json(r, detailed=False) for r in results],
     }

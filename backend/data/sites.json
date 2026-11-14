@@ -5,6 +5,7 @@
     {
       "id": "apollo-11",
       "name": "Apollo 11 — Mar de la Tranquilidad",
+      "name_en": "Apollo 11 — Sea of Tranquility",
       "mission": "Apollo 11",
       "agency": "NASA",
       "country": "Estados Unidos",
@@ -22,6 +23,7 @@
     {
       "id": "apollo-12",
       "name": "Apollo 12 — Océano de las Tormentas",
+      "name_en": "Apollo 12 — Ocean of Storms",
       "mission": "Apollo 12",
       "agency": "NASA",
       "country": "Estados Unidos",
@@ -39,6 +41,7 @@
     {
       "id": "apollo-14",
       "name": "Apollo 14 — Fra Mauro",
+      "name_en": "Apollo 14 — Fra Mauro",
       "mission": "Apollo 14",
       "agency": "NASA",
       "country": "Estados Unidos",
@@ -56,6 +59,7 @@
     {
       "id": "apollo-15",
       "name": "Apollo 15 — Hadley-Apeninos",
+      "name_en": "Apollo 15 — Hadley–Apennine",
       "mission": "Apollo 15",
       "agency": "NASA",
       "country": "Estados Unidos",
@@ -73,6 +77,7 @@
     {
       "id": "apollo-16",
       "name": "Apollo 16 — Descartes",
+      "name_en": "Apollo 16 — Descartes",
       "mission": "Apollo 16",
       "agency": "NASA",
       "country": "Estados Unidos",
@@ -90,6 +95,7 @@
     {
       "id": "apollo-17",
       "name": "Apollo 17 — Taurus-Littrow",
+      "name_en": "Apollo 17 — Taurus–Littrow",
       "mission": "Apollo 17",
       "agency": "NASA",
       "country": "Estados Unidos",
@@ -107,6 +113,7 @@
     {
       "id": "surveyor-7",
       "name": "Surveyor 7 — Tycho",
+      "name_en": "Surveyor 7 — Tycho",
       "mission": "Surveyor 7",
       "agency": "NASA",
       "country": "Estados Unidos",
@@ -124,6 +131,7 @@
     {
       "id": "luna-17",
       "name": "Luna 17 (Lunojod 1) — Mar de las Lluvias",
+      "name_en": "Luna 17 (Lunokhod 1) — Sea of Rains",
       "mission": "Luna 17",
       "agency": "Programa Luna",
       "country": "Unión Soviética",
@@ -141,6 +149,7 @@
     {
       "id": "luna-24",
       "name": "Luna 24 — Mar de las Crisis",
+      "name_en": "Luna 24 — Sea of Crises",
       "mission": "Luna 24",
       "agency": "Programa Luna",
       "country": "Unión Soviética",
@@ -158,6 +167,7 @@
     {
       "id": "change-3",
       "name": "Chang'e 3 — Mar de las Lluvias",
+      "name_en": "Chang'e 3 — Sea of Rains",
       "mission": "Chang'e 3",
       "agency": "CNSA",
       "country": "China",
@@ -175,6 +185,7 @@
     {
       "id": "change-4",
       "name": "Chang'e 4 — Cráter Von Kármán (cara oculta)",
+      "name_en": "Chang'e 4 — Von Kármán crater (far side)",
       "mission": "Chang'e 4",
       "agency": "CNSA",
       "country": "China",
@@ -185,6 +196,7 @@
       "elevation_m": -5927,
       "precision": "lander",
       "notes": "Cara oculta: la Tierra nunca es visible; la comunicación requiere satélite de relevo.",
+      "notes_en": "Far side: Earth is never visible; communication requires a relay satellite.",
       "source": {
         "name": "LROC — Topographic Map of the Chang'e 4 Site",
         "url": "https://www.lroc.asu.edu/images/1100"
@@ -193,6 +205,7 @@
     {
       "id": "change-5",
       "name": "Chang'e 5 — Mons Rümker",
+      "name_en": "Chang'e 5 — Mons Rümker",
       "mission": "Chang'e 5",
       "agency": "CNSA",
       "country": "China",
@@ -210,6 +223,7 @@
     {
       "id": "change-6",
       "name": "Chang'e 6 — Cuenca Polo Sur-Aitken (cara oculta)",
+      "name_en": "Chang'e 6 — South Pole–Aitken basin (far side)",
       "mission": "Chang'e 6",
       "agency": "CNSA",
       "country": "China",
@@ -220,6 +234,7 @@
       "elevation_m": -5256,
       "precision": "lander",
       "notes": "Cara oculta: la Tierra nunca es visible; la comunicación requiere satélite de relevo.",
+      "notes_en": "Far side: Earth is never visible; communication requires a relay satellite.",
       "source": {
         "name": "LROC — First Look: Chang'e 6",
         "url": "https://lroc.im-ldi.com/images/1374"
@@ -228,6 +243,7 @@
     {
       "id": "chandrayaan-3",
       "name": "Chandrayaan-3 — Statio Shiv Shakti",
+      "name_en": "Chandrayaan-3 — Statio Shiv Shakti",
       "mission": "Chandrayaan-3",
       "agency": "ISRO",
       "country": "India",
@@ -245,6 +261,7 @@
     {
       "id": "slim",
       "name": "SLIM — Cráter Shioli",
+      "name_en": "SLIM — Shioli crater",
       "mission": "SLIM",
       "agency": "JAXA",
       "country": "Japón",
@@ -262,6 +279,7 @@
     {
       "id": "im-1",
       "name": "IM-1 Odysseus — Malapert A",
+      "name_en": "IM-1 Odysseus — Malapert A",
       "mission": "IM-1 (CLPS)",
       "agency": "Intuitive Machines / NASA CLPS",
       "country": "Estados Unidos",
@@ -279,6 +297,7 @@
     {
       "id": "blue-ghost-m1",
       "name": "Blue Ghost M1 — Mons Latreille, Mar de las Crisis",
+      "name_en": "Blue Ghost M1 — Mons Latreille, Sea of Crises",
       "mission": "Blue Ghost Mission 1 (CLPS)",
       "agency": "Firefly Aerospace / NASA CLPS",
       "country": "Estados Unidos",
@@ -296,6 +315,7 @@
     {
       "id": "im-2",
       "name": "IM-2 Athena — Mons Mouton",
+      "name_en": "IM-2 Athena — Mons Mouton",
       "mission": "IM-2 (CLPS)",
       "agency": "Intuitive Machines / NASA CLPS",
       "country": "Estados Unidos",
@@ -313,6 +333,7 @@
     {
       "id": "mons-mouton",
       "name": "Mons Mouton (región candidata Artemis III)",
+      "name_en": "Mons Mouton (Artemis III candidate region)",
       "mission": "Artemis III (candidato)",
       "agency": "NASA",
       "country": "Estados Unidos",
@@ -323,6 +344,7 @@
       "elevation_m": null,
       "precision": "centro_de_rasgo",
       "notes": "Centro del rasgo según la IAU; la región candidata real abarca ~15 × 15 km.",
+      "notes_en": "Feature center according to the IAU; the actual candidate region spans ~15 × 15 km.",
       "source": {
         "name": "USGS Gazetteer of Planetary Nomenclature — Mons Mouton",
         "url": "https://planetarynames.wr.usgs.gov/Feature/16070"
@@ -331,6 +353,7 @@
     {
       "id": "mons-malapert",
       "name": "Mons Malapert (región candidata Artemis III)",
+      "name_en": "Mons Malapert (Artemis III candidate region)",
       "mission": "Artemis III (candidato)",
       "agency": "NASA",
       "country": "Estados Unidos",
@@ -341,6 +364,7 @@
       "elevation_m": null,
       "precision": "centro_de_rasgo",
       "notes": "Centro del rasgo según la IAU; corresponde a la región candidata Malapert Massif.",
+      "notes_en": "Feature center according to the IAU; corresponds to the Malapert Massif candidate region.",
       "source": {
         "name": "USGS Gazetteer of Planetary Nomenclature — Mons Malapert",
         "url": "https://planetarynames.wr.usgs.gov/Feature/16338"
@@ -349,6 +373,7 @@
     {
       "id": "shackleton-ridge",
       "name": "Cresta Shackleton–de Gerlache (borde de Shackleton)",
+      "name_en": "Shackleton–de Gerlache ridge (Shackleton rim)",
       "mission": "Referencia de iluminación del polo sur",
       "agency": "NASA LRO",
       "country": null,
@@ -359,6 +384,7 @@
       "elevation_m": null,
       "precision": "punto_de_interes",
       "notes": "Intersección de la cresta con el borde del cráter Shackleton; partes de la cresta están iluminadas hasta ~90 % del tiempo.",
+      "notes_en": "Where the ridge meets the rim of Shackleton crater; parts of the ridge are lit up to ~90% of the time.",
       "source": {
         "name": "LROC — Islands in the Dark",
         "url": "https://www.lroc.asu.edu/images/1105"
@@ -367,6 +393,7 @@
     {
       "id": "change-7",
       "name": "Chang'e 7 — Borde de Shackleton (objetivo)",
+      "name_en": "Chang'e 7 — Shackleton rim (target)",
       "mission": "Chang'e 7",
       "agency": "CNSA",
       "country": "China",
@@ -377,6 +404,7 @@
       "elevation_m": null,
       "precision": "aproximada",
       "notes": "Sitio preferido no anunciado oficialmente; coordenada de fuente secundaria (Wikipedia). Actualizar cuando la CNSA publique el sitio.",
+      "notes_en": "Preferred site not officially announced; coordinate from a secondary source (Wikipedia). Update when CNSA publishes the site.",
       "source": {
         "name": "Wikipedia — Chang'e 7 (fuente secundaria)",
         "url": "https://en.wikipedia.org/wiki/Chang%27e_7"

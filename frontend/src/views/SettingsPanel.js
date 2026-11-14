@@ -1,5 +1,7 @@
 // Ajustes del puntaje: pesos, ventana de misión, márgenes y orientación de paneles.
 
+import { onLangChange, t } from "../i18n.js";
+
 export const DEFAULT_CONFIG = {
   weightEnergy: 0.5,
   windowDays: 14,
@@ -25,6 +27,12 @@ export class SettingsPanel {
       onChange({ ...this.config });
     });
     this.#write(DEFAULT_CONFIG);
+    onLangChange(() => this.#showWeights());
+  }
+
+  // Aplica una configuración (p. ej. leída de la URL) sin avisar el cambio.
+  setConfig(config) {
+    this.#write({ ...DEFAULT_CONFIG, ...config });
   }
 
   #read() {
@@ -55,7 +63,7 @@ export class SettingsPanel {
 
   #showWeights() {
     const e = Math.round(this.config.weightEnergy * 100);
-    this.weightOutput.textContent = `Energía ${e} % · Comunicación ${100 - e} %`;
+    this.weightOutput.textContent = t("settings.weights", { energy: e, communication: 100 - e });
   }
 }
 

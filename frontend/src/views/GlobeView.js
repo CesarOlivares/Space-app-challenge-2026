@@ -6,6 +6,9 @@ const TEXTURES = "public/textures";
 const MARKER_ALTITUDE = 1.004; // radios lunares; apenas sobre la superficie
 const DEFAULT_DISTANCE = 3.7;
 // Casi bajo el polo; la pequeña componente z evita la singularidad de OrbitControls.
+// Con "reducir movimiento" activo en el sistema, la cámara salta en vez de volar.
+const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
+
 const SOUTH_POLE_DIRECTION = new THREE.Vector3(0, -1, 0.03).normalize();
 
 // Coordenadas lunares (ME, longitud este) → escena. El eje +y es el polo norte
@@ -197,7 +200,7 @@ export class GlobeView {
       to: direction,
       toDistance: distance,
       start: null,
-      durationMs,
+      durationMs: reducedMotion.matches ? 0 : durationMs,
     };
   }
 
@@ -205,7 +208,7 @@ export class GlobeView {
     const t = this.transition;
     if (!t) return;
     t.start ??= time;
-    const k = Math.min(1, (time - t.start) / t.durationMs);
+    const k = t.durationMs ? Math.min(1, (time - t.start) / t.durationMs) : 1;
     const ease = k < 0.5 ? 2 * k * k : 1 - (-2 * k + 2) ** 2 / 2;
     const fromDir = t.from.clone().normalize();
     const angle = fromDir.angleTo(t.to);

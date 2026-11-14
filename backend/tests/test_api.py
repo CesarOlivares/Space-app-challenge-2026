@@ -85,6 +85,24 @@ def test_illumination(client):
     assert {"lat", "lon"} == data["subearth"].keys()
 
 
+def test_mejores_fechas(client):
+    start = time.perf_counter()
+    data = client.get("/api/sites/im-2/best-dates", params={"date": DATE, "days": 30, "step_hours": 6}).json()
+    elapsed = time.perf_counter() - start
+    assert data["evaluated"] == 121
+    results = data["results"]
+    assert len(results) == 5
+    totals = [r["scores"]["total"] for r in results if r["viable"]]
+    assert totals == sorted(totals, reverse=True)
+    assert results[0]["viable"]
+    assert elapsed < 5
+
+
+def test_mejores_fechas_limita_candidatos(client):
+    response = client.get("/api/sites/im-2/best-dates", params={"days": 60, "step_hours": 1})
+    assert response.status_code == 422
+
+
 def test_compare(client):
     body = {"scenarios": [{"site": "im-2", "date": DATE},
                           {"site": "-89.5,120", "date": "2027-01-10T00:00:00Z"}]}

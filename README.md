@@ -35,6 +35,14 @@ Una vez descargados los datos, la aplicación funciona sin conexión a internet.
 
 Opcional: `./run.sh data --dem` descarga además el modelo de elevación polar de LOLA (116 MB). Solo hace falta para recalcular las máscaras de horizonte (`./run.sh horizons`) o para que las coordenadas personalizadas del polo sur usen el relieve real.
 
+## Uso rápido
+
+- **Simple / Técnico:** el modo simple explica cada resultado en lenguaje llano; el técnico muestra métricas, ventanas y ajustes del puntaje.
+- **ES / EN:** idioma de la interfaz.
+- **Copiar enlace:** la dirección guarda la fecha, el sitio elegido, los ajustes, los sitios personalizados y la comparación; al abrirla se reproduce el mismo escenario.
+- **Exportar CSV:** puntajes de todos los sitios para la fecha actual.
+- **Mejores fechas:** en el detalle de un sitio, busca las mejores fechas de aterrizaje de los próximos 30 días.
+
 ## Pruebas
 
 ```bash

@@ -4,6 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Lunar Site Explorer</title>
+    <meta name="description" content="Compare lunar landing sites and dates by sunlight and direct-to-Earth visibility." />
     <link rel="stylesheet" href="src/styles.css" />
     <script type="importmap">
       {
@@ -14,127 +15,160 @@
       }
     </script>
   </head>
-  <body>
-    <canvas id="globe" aria-label="Globo lunar con los sitios de aterrizaje"></canvas>
+  <body class="mode-simple">
+    <canvas id="globe" data-i18n-attr="aria-label: app.globe"></canvas>
 
     <div id="left">
       <header id="controls" class="panel">
-        <h1>Lunar Site Explorer</h1>
-        <label for="date-input">Fecha de aterrizaje (UTC)</label>
+        <div class="title-row">
+          <h1>Lunar Site Explorer</h1>
+          <div class="segmented" role="group" data-i18n-attr="aria-label: controls.langGroup">
+            <button type="button" data-lang="es" aria-pressed="true" lang="es">ES</button>
+            <button type="button" data-lang="en" aria-pressed="false" lang="en">EN</button>
+          </div>
+        </div>
+        <div class="segmented wide" role="group" data-i18n-attr="aria-label: controls.modeGroup">
+          <button type="button" data-mode="simple" aria-pressed="true" data-i18n="controls.simple">Simple</button>
+          <button type="button" data-mode="tecnico" aria-pressed="false" data-i18n="controls.technical">Técnico</button>
+        </div>
+
+        <label for="date-input" data-i18n="controls.date">Fecha de aterrizaje (UTC)</label>
         <input id="date-input" type="datetime-local" step="3600" />
-        <div class="buttons" role="group" aria-label="Mover la fecha">
+        <div class="buttons" role="group" data-i18n-attr="aria-label: controls.shiftGroup">
           <button type="button" data-shift-days="-7">−7 d</button>
           <button type="button" data-shift-days="-1">−1 d</button>
-          <button type="button" id="date-now">Ahora</button>
+          <button type="button" id="date-now" data-i18n="controls.now">Ahora</button>
           <button type="button" data-shift-days="1">+1 d</button>
           <button type="button" data-shift-days="7">+7 d</button>
         </div>
-        <div class="buttons play" role="group" aria-label="Animación">
+        <button type="button" id="more-toggle" class="mobile-only" aria-expanded="false" aria-controls="more-controls" data-i18n="controls.more">Más controles</button>
+        <div id="more-controls">
+        <div class="buttons play" role="group" data-i18n-attr="aria-label: controls.playGroup">
           <button type="button" id="play" aria-pressed="false">▶ Animar</button>
-          <label class="inline">Paso
+          <label class="inline"><span data-i18n="controls.step">Paso</span>
             <select id="play-speed">
               <option value="2">2 h</option>
               <option value="6" selected>6 h</option>
               <option value="12">12 h</option>
-              <option value="24">1 día</option>
+              <option value="24" data-i18n="controls.oneDay">1 día</option>
             </select>
           </label>
         </div>
-        <div class="buttons" role="group" aria-label="Vista">
-          <button type="button" data-view="near-side">Vista desde la Tierra</button>
-          <button type="button" data-view="south-pole">Polo sur</button>
+        <div class="buttons" role="group" data-i18n-attr="aria-label: controls.viewGroup">
+          <button type="button" data-view="near-side" data-i18n="controls.nearSide">Vista desde la Tierra</button>
+          <button type="button" data-view="south-pole" data-i18n="controls.southPole">Polo sur</button>
+        </div>
+        <div class="buttons">
+          <button type="button" id="copy-link" data-i18n="controls.copyLink">Copiar enlace</button>
+        </div>
         </div>
         <p id="status" role="status">Conectando…</p>
 
-        <section id="compare-bar" hidden aria-label="Comparación">
+        <section id="compare-bar" hidden data-i18n-attr="aria-label: compare.region">
           <p class="compare-count"></p>
           <ul class="compare-items"></ul>
           <div class="buttons">
-            <button type="button" data-action="open-compare" class="primary">Comparar</button>
-            <button type="button" data-action="clear-compare">Vaciar</button>
+            <button type="button" data-action="open-compare" class="primary" data-i18n="compare.open">Comparar</button>
+            <button type="button" data-action="clear-compare" data-i18n="compare.clear">Vaciar</button>
           </div>
         </section>
       </header>
 
       <section id="detail" class="panel" hidden aria-labelledby="detail-title">
         <div class="detail-header">
-          <h2 class="detail-title" id="detail-title"></h2>
-          <button type="button" class="detail-close" aria-label="Cerrar detalle">✕</button>
+          <h2 class="detail-title" id="detail-title" aria-live="polite"></h2>
+          <button type="button" class="detail-close" data-i18n-attr="aria-label: detail.close">✕</button>
         </div>
         <div class="detail-body"></div>
       </section>
     </div>
 
     <aside id="sidebar" class="panel">
-      <section class="legend" aria-label="Cómo leer los puntos">
-        <h2>Cómo leer los puntos</h2>
+      <section class="legend" data-i18n-attr="aria-label: legend.title">
+        <h2 data-i18n="legend.title">Cómo leer los puntos</h2>
         <dl>
           <dt><span class="legend-size"><i></i><i></i><i></i></span></dt>
-          <dd><b>Tamaño</b>: puntaje global</dd>
+          <dd data-i18n="legend.size"></dd>
           <dt><span class="legend-glow"></span></dt>
-          <dd><b>Brillo</b>: energía (luz solar en <span id="legend-days">14</span> días)</dd>
+          <dd id="legend-glow" data-i18n="legend.glow" data-i18n-params='{"days": 14}'></dd>
           <dt><span class="swatch" style="--c: var(--comm-high)"></span></dt>
-          <dd><b>Celeste</b>: Tierra visible casi siempre (≥ 95 %)</dd>
+          <dd data-i18n="legend.high"></dd>
           <dt><span class="swatch" style="--c: var(--comm-mid)"></span></dt>
-          <dd><b>Naranja</b>: Tierra visible parte del tiempo</dd>
+          <dd data-i18n="legend.mid"></dd>
           <dt><span class="swatch" style="--c: var(--comm-low)"></span></dt>
-          <dd><b>Bermellón</b>: Tierra visible menos de la mitad</dd>
+          <dd data-i18n="legend.low"></dd>
           <dt><span class="swatch" style="--c: var(--off)"></span></dt>
-          <dd><b>Gris</b>: no viable, Sol o Tierra bajo el horizonte al aterrizar</dd>
+          <dd data-i18n="legend.off"></dd>
         </dl>
       </section>
 
-      <details class="custom">
-        <summary>Agregar coordenadas</summary>
-        <form id="custom-site" novalidate>
-          <div class="fields">
-            <label>Latitud<input name="lat" type="number" step="any" min="-90" max="90" placeholder="-89.45" required /></label>
-            <label>Longitud este<input name="lon" type="number" step="any" min="-180" max="180" placeholder="137.3" required /></label>
-          </div>
-          <label>Nombre (opcional)<input name="name" type="text" maxlength="60" placeholder="Mi sitio" /></label>
-          <p class="form-error" role="alert" hidden></p>
-          <button type="submit" class="primary">Agregar al globo</button>
-        </form>
+      <details class="custom learn simple-open">
+        <summary data-i18n="learn.title">¿Por qué es difícil elegir dónde aterrizar?</summary>
+        <p data-i18n="learn.p1"></p>
+        <p data-i18n="learn.p2"></p>
+        <p data-i18n="learn.p3"></p>
+        <p data-i18n="learn.p4"></p>
       </details>
 
       <details class="custom">
-        <summary>Ajustes del puntaje</summary>
+        <summary data-i18n="custom.summary">Agregar coordenadas</summary>
+        <form id="custom-site" novalidate>
+          <div class="fields">
+            <label><span data-i18n="custom.lat">Latitud</span><input name="lat" type="number" step="any" min="-90" max="90" placeholder="-89.45" required /></label>
+            <label><span data-i18n="custom.lon">Longitud este</span><input name="lon" type="number" step="any" min="-180" max="180" placeholder="137.3" required /></label>
+          </div>
+          <label><span data-i18n="custom.name">Nombre (opcional)</span><input name="name" type="text" maxlength="60" data-i18n-attr="placeholder: custom.namePlaceholder" /></label>
+          <p class="form-error" role="alert" hidden></p>
+          <button type="submit" class="primary" data-i18n="custom.submit">Agregar al globo</button>
+        </form>
+      </details>
+
+      <details class="custom tech-only">
+        <summary data-i18n="settings.summary">Ajustes del puntaje</summary>
         <form id="settings">
-          <label>Peso de cada criterio
+          <label><span data-i18n="settings.weight">Peso de cada criterio</span>
             <input name="weight" type="range" min="0" max="100" step="5" aria-describedby="weight-output" />
           </label>
           <output id="weight-output" class="caption"></output>
-          <label>Paneles solares
+          <label><span data-i18n="settings.panels">Paneles solares</span>
             <select name="panel">
-              <option value="tiempo">Solo tiempo de luz (sin orientación)</option>
-              <option value="horizontal">Horizontales: rinden más con el Sol alto</option>
-              <option value="vertical">Verticales que siguen al Sol (módulos polares)</option>
+              <option value="tiempo" data-i18n="settings.panelTime"></option>
+              <option value="horizontal" data-i18n="settings.panelHorizontal"></option>
+              <option value="vertical" data-i18n="settings.panelVertical"></option>
             </select>
           </label>
           <div class="fields">
-            <label>Ventana (días)<input name="window" type="number" min="1" max="30" step="1" /></label>
+            <label><span data-i18n="settings.window">Ventana (días)</span><input name="window" type="number" min="1" max="30" step="1" /></label>
             <span></span>
-            <label>Sol mínimo (°)<input name="sun-margin" type="number" min="0" max="20" step="0.5" /></label>
-            <label>Tierra mínima (°)<input name="earth-margin" type="number" min="0" max="20" step="0.5" /></label>
+            <label><span data-i18n="settings.sunMargin">Sol mínimo (°)</span><input name="sun-margin" type="number" min="0" max="20" step="0.5" /></label>
+            <label><span data-i18n="settings.earthMargin">Tierra mínima (°)</span><input name="earth-margin" type="number" min="0" max="20" step="0.5" /></label>
           </div>
-          <p class="caption">Los márgenes exigen esa elevación para contar al Sol o a la Tierra como visibles (p. ej. para despejar una antena).</p>
-          <button type="button" data-action="reset">Restablecer</button>
+          <p class="caption" data-i18n="settings.marginHelp"></p>
+          <button type="button" data-action="reset" data-i18n="settings.reset">Restablecer</button>
         </form>
       </details>
 
       <div class="list-header">
-        <h2>Sitios</h2>
-        <label><input type="checkbox" id="filter-south-pole" /> Solo polo sur</label>
+        <h2 data-i18n="list.title">Sitios</h2>
+        <label><input type="checkbox" id="filter-south-pole" /> <span data-i18n="list.southOnly">Solo polo sur</span></label>
       </div>
-      <p class="list-hint">Puntaje global · E energía · C comunicación (0–100)</p>
+      <div class="list-tools">
+        <p class="list-hint" data-i18n="list.hint"></p>
+        <button type="button" id="export-csv" class="small" data-i18n="list.csv">Exportar CSV</button>
+      </div>
       <ol id="site-list"></ol>
+
+      <details class="custom credits">
+        <summary data-i18n="credits.title">Créditos y fuentes</summary>
+        <p class="caption" data-i18n="credits.body"></p>
+      </details>
     </aside>
 
     <div id="compare" class="overlay" hidden role="dialog" aria-modal="true" aria-labelledby="compare-title">
       <div class="panel compare-panel">
         <div class="detail-header">
-          <h2 id="compare-title">Comparación de escenarios</h2>
-          <button type="button" class="compare-close" aria-label="Cerrar comparación">✕</button>
+          <h2 id="compare-title" data-i18n="compare.title">Comparación de escenarios</h2>
+          <button type="button" class="compare-close" data-i18n-attr="aria-label: compare.close">✕</button>
         </div>
         <div class="compare-content"></div>
       </div>

@@ -2,6 +2,7 @@
 // franjas con las ventanas de luz y de contacto, y un cursor para recorrerla.
 
 import { formatUtc } from "../format.js";
+import { t } from "../i18n.js";
 import { elevationRange } from "./SkyView.js";
 
 const SVG_NS = "http://www.w3.org/2000/svg";
@@ -35,11 +36,11 @@ export function renderTimeline(container, timeline, { onScrub = () => {} } = {})
     viewBox: `0 0 ${WIDTH} ${HEIGHT}`,
     class: "timeline",
     role: "img",
-    "aria-label": "Elevación del Sol y la Tierra durante la ventana de misión",
+    "aria-label": t("timeline.aria"),
   });
 
   // Franjas de visibilidad: arriba la luz solar, debajo el contacto con la Tierra.
-  [["sun", 0, "Luz"], ["earth", STRIP + 2, "Contacto"]].forEach(([body, offset, label]) => {
+  [["sun", 0, t("timeline.light")], ["earth", STRIP + 2, t("timeline.contact")]].forEach(([body, offset, label]) => {
     svg.append(el("rect", { x: 0, y: offset, width: WIDTH, height: STRIP, class: "strip-bg" }));
     for (const w of timeline[body].windows) {
       const x0 = x(toHours(w.start));
@@ -92,9 +93,7 @@ export function renderTimeline(container, timeline, { onScrub = () => {} } = {})
 
   const readout = document.createElement("p");
   readout.className = "caption timeline-readout";
-  const idle = (timeline.sun.horizon === "terreno"
-    ? "Punteado: el relieve en la dirección de cada cuerpo; es visible cuando su línea va por encima. "
-    : "") + "Pasa el cursor o el dedo por el gráfico para ver cada momento.";
+  const idle = (timeline.sun.horizon === "terreno" ? t("timeline.terrainHelp") : "") + t("timeline.idle");
   readout.textContent = idle;
 
   const hit = el("rect", { x: 0, y: 0, width: WIDTH, height: HEIGHT, fill: "transparent" });
@@ -115,7 +114,9 @@ export function renderTimeline(container, timeline, { onScrub = () => {} } = {})
     earthDot.setAttribute("cy", y(earth));
     cursor.setAttribute("visibility", "visible");
     const day = Math.floor(hours[index] / 24);
-    readout.textContent = `Día ${day} · ${formatUtc(timeline.times[index])} — Sol ${sun.toFixed(1)}° · Tierra ${earth.toFixed(1)}°`;
+    readout.textContent = t("timeline.readout", {
+      day, date: formatUtc(timeline.times[index]), sun: sun.toFixed(1), earth: earth.toFixed(1),
+    });
     onScrub(index);
   };
   svg.addEventListener("pointermove", scrub);

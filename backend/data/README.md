@@ -25,6 +25,7 @@ Sistema de coordenadas: Mean Earth/Polar Axis (ME), el mismo de LROC, LOLA y JPL
 |---|---|---|---|
 | `id` | texto | Sí | Identificador único en minúsculas con guiones, usado en la URL de la API |
 | `name` | texto | Sí | Nombre visible |
+| `name_en` | texto | No | Nombre en inglés (interfaz en inglés) |
 | `mission` | texto | Sí | Misión o programa |
 | `agency` | texto | Sí | Agencia o empresa |
 | `country` | texto o `null` | Sí | País; `null` para puntos de referencia sin misión |
@@ -35,6 +36,7 @@ Sistema de coordenadas: Mean Earth/Polar Axis (ME), el mismo de LROC, LOLA y JPL
 | `elevation_m` | número o `null` | Sí | Elevación respecto de la esfera de 1737,4 km, según la fuente |
 | `precision` | ver abajo | Sí | Qué tan exacta es la coordenada |
 | `notes` | texto | No | Aclaraciones para el usuario |
+| `notes_en` | texto | No | Aclaraciones en inglés |
 | `source.name` | texto | Sí | Fuente de la coordenada |
 | `source.url` | texto | Sí | Enlace a la fuente |
 

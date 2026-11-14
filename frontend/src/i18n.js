@@ -1,0 +1,464 @@
+// Textos de la interfaz en español e inglés (RNF-12).
+//
+//   t("clave", { parametro })   texto traducido; "{parametro}" se reemplaza
+//   data-i18n="clave"            en el HTML: textContent del elemento
+//   data-i18n-attr="aria-label:clave; placeholder:otra"   atributos
+
+const STRINGS = {
+  es: {
+    locale: "es",
+    "app.globe": "Globo lunar con los sitios de aterrizaje",
+    "controls.date": "Fecha de aterrizaje (UTC)",
+    "controls.shiftGroup": "Mover la fecha",
+    "controls.now": "Ahora",
+    "controls.playGroup": "Animación",
+    "controls.play": "▶ Animar",
+    "controls.pause": "⏸ Pausar",
+    "controls.step": "Paso",
+    "controls.oneDay": "1 día",
+    "controls.viewGroup": "Vista",
+    "controls.nearSide": "Vista desde la Tierra",
+    "controls.southPole": "Polo sur",
+    "controls.modeGroup": "Nivel de detalle",
+    "controls.simple": "Simple",
+    "controls.technical": "Técnico",
+    "controls.langGroup": "Idioma",
+    "controls.copyLink": "Copiar enlace",
+    "controls.more": "Más controles",
+    "controls.less": "Menos controles",
+    "controls.linkCopied": "Enlace copiado: comparte este escenario",
+    "controls.linkFailed": "No se pudo copiar; copia la dirección del navegador",
+
+    "status.connecting": "Conectando…",
+    "status.computing": "Calculando…",
+    "status.viable": "{viable} de {total} sitios viables",
+    "status.error": "Error: {message}",
+    "status.offline": "No se pudo conectar con el servidor: {message}",
+
+    "legend.title": "Cómo leer los puntos",
+    "legend.size": "<b>Tamaño</b>: puntaje global",
+    "legend.glow": "<b>Brillo</b>: energía (luz solar en {days} días)",
+    "legend.high": "<b>Celeste</b>: Tierra visible casi siempre (≥ 95 %)",
+    "legend.mid": "<b>Naranja</b>: Tierra visible parte del tiempo",
+    "legend.low": "<b>Bermellón</b>: Tierra visible menos de la mitad",
+    "legend.off": "<b>Gris</b>: no viable, Sol o Tierra no visibles al aterrizar",
+
+    "learn.title": "¿Por qué es difícil elegir dónde aterrizar?",
+    "learn.p1": "La Luna no tiene atmósfera: el cielo es negro incluso de día y las sombras son totales. Si el Sol no llega a los paneles, no hay energía.",
+    "learn.p2": "Un día lunar dura unos 29,5 días terrestres: cerca de dos semanas de luz y dos de noche, a más de 100 °C bajo cero.",
+    "learn.p3": "En el polo sur el Sol nunca sube más de unos pocos grados. La luz llega rasante, así que una montaña a decenas de kilómetros puede dejar un sitio a oscuras.",
+    "learn.p4": "La Luna muestra siempre la misma cara a la Tierra. Desde la cara oculta la Tierra no se ve nunca y hace falta un satélite de relevo; cerca del polo, la Tierra se asoma y se esconde por el bamboleo (libración) de la Luna.",
+
+    "custom.summary": "Agregar coordenadas",
+    "custom.lat": "Latitud",
+    "custom.lon": "Longitud este",
+    "custom.name": "Nombre (opcional)",
+    "custom.namePlaceholder": "Mi sitio",
+    "custom.submit": "Agregar al globo",
+    "custom.rangeError": "Latitud entre −90 y 90, longitud este entre −180 y 180.",
+    "custom.defaultName": "Sitio personalizado ({lat}°, {lon}°)",
+
+    "settings.summary": "Ajustes del puntaje",
+    "settings.weight": "Peso de cada criterio",
+    "settings.weights": "Energía {energy} % · Comunicación {communication} %",
+    "settings.panels": "Paneles solares",
+    "settings.panelTime": "Solo tiempo de luz (sin orientación)",
+    "settings.panelHorizontal": "Horizontales: rinden más con el Sol alto",
+    "settings.panelVertical": "Verticales que siguen al Sol (módulos polares)",
+    "settings.window": "Ventana (días)",
+    "settings.sunMargin": "Sol mínimo (°)",
+    "settings.earthMargin": "Tierra mínima (°)",
+    "settings.marginHelp": "Los márgenes exigen esa elevación para contar al Sol o a la Tierra como visibles (p. ej. para despejar una antena).",
+    "settings.reset": "Restablecer",
+
+    "list.title": "Sitios",
+    "list.southOnly": "Solo polo sur",
+    "list.hint": "Puntaje global · E energía · C comunicación (0–100)",
+    "list.csv": "Exportar CSV",
+    "list.energyShort": "E",
+    "list.commShort": "C",
+    "category.historico": "Histórico",
+    "category.reciente": "Reciente",
+    "category.candidato": "Candidato",
+    "category.personalizado": "Personalizado",
+
+    "verdict.viable": "Viable",
+    "verdict.notViable": "No viable",
+    "verdict.viableAt": "Viable al aterrizar el {date}",
+    "verdict.notViableBecause": "No viable al aterrizar: {reason}",
+    "verdict.viableTooltip": "Viable al aterrizar",
+    "reason.sunBlocked": "Sol tapado por el relieve",
+    "reason.sunBelow": "Sol bajo el horizonte",
+    "reason.earthBlocked": "Tierra tapada por el relieve",
+    "reason.earthBelow": "Tierra bajo el horizonte",
+
+    "tooltip.scores": "Puntaje {total} · Energía {energy} · Comunicación {communication}",
+    "tooltip.bodies": "Sol {sun}° · Tierra {earth}°",
+
+    "body.sun": "Sol",
+    "body.earth": "Tierra",
+    "count.sunSet": "Ocaso solar en {duration}",
+    "count.earthSet": "Ocaso terrestre en {duration}",
+    "count.sunRise": "Salida del Sol en {duration}",
+    "count.earthRise": "Salida de la Tierra en {duration}",
+    "count.sunNoSet": "El Sol no se pone",
+    "count.earthNoSet": "La Tierra no se pone",
+    "count.sunNoRise": "El Sol no sale",
+    "count.earthNoRise": "La Tierra no sale",
+    "count.inWindow": "en los {days} días de la ventana",
+    "count.hiddenAtLanding": "No visible al aterrizar · {date}",
+
+    "precision.lander": "Posición del módulo medida en imágenes de LRO.",
+    "precision.punto_de_interes": "Punto de interés publicado por LROC.",
+    "precision.centro_de_rasgo": "Centro del rasgo según la IAU: representa una región, no un punto de aterrizaje.",
+    "precision.aproximada": "Coordenada aproximada de fuente secundaria.",
+    "precision.personalizada": "Coordenadas ingresadas por el usuario.",
+
+    "detail.close": "Cerrar detalle",
+    "detail.error": "No se pudo cargar el detalle: {message}",
+    "detail.plainTitle": "En pocas palabras",
+    "detail.sky": "Cielo desde el sitio",
+    "detail.skyCaption": "Posición al aterrizar y trayectoria durante {days} días (un punto por día).",
+    "detail.horizonSphere": "Horizonte esférico: no hay datos de relieve para este sitio (solo los hay al sur de 80° S).",
+    "detail.horizonTerrain": "Horizonte con el relieve real ({source}, {km} km a la redonda, observador a {height} m). La línea punteada marca 0°.",
+    "detail.timeline": "Línea de tiempo",
+    "detail.score": "Puntaje",
+    "detail.energy": "Energía",
+    "detail.communication": "Comunicación",
+    "detail.total": "Global",
+    "detail.energyHint": "Luz solar durante la ventana y continuidad desde el aterrizaje",
+    "detail.communicationHint": "Fracción de la ventana con la Tierra visible",
+    "detail.totalHint": "Promedio ponderado de energía y comunicación",
+    "detail.metrics": "Métricas en {days} días",
+    "detail.elevationLanding": "Elevación al aterrizar",
+    "detail.azimuthLanding": "Azimut al aterrizar",
+    "detail.maxElevation": "Elevación máxima",
+    "detail.visibleHours": "Horas visible",
+    "detail.visibleFraction": "Fracción visible",
+    "detail.sunWindows": "Ventanas de luz solar",
+    "detail.earthWindows": "Ventanas de comunicación directa",
+    "detail.noWindows": "Ninguna en la ventana",
+    "detail.fromLanding": "desde el aterrizaje",
+    "detail.beyondWindow": "más allá de la ventana",
+    "detail.moreWindows": "y {count} más",
+    "detail.addCompare": "Agregar a comparación",
+    "detail.inCompare": "En la comparación",
+    "detail.compareFull": "Máximo 4 escenarios",
+    "detail.remove": "Quitar sitio",
+    "detail.source": "Fuente de la coordenada: {source}",
+    "detail.bestTitle": "Mejores fechas cercanas",
+    "detail.bestSearch": "Buscar en los próximos {days} días",
+    "detail.bestSearching": "Buscando entre {count} fechas…",
+    "detail.bestHelp": "Evalúa una fecha cada {step} h y ordena primero las viables por puntaje.",
+    "detail.bestUse": "Usar",
+    "detail.bestNone": "Ninguna fecha viable en los próximos {days} días.",
+    "detail.bestError": "No se pudo buscar: {message}",
+    "detail.bestScore": "puntaje {score}",
+
+    "plain.sunAll": "El Sol estará sobre el horizonte durante toda la misión ({days} días): energía asegurada.",
+    "plain.sunSets": "Habrá luz solar durante {duration}; después llega la noche lunar y los paneles dejan de generar.",
+    "plain.sunBlocked": "El Sol está {elevation}° sobre el horizonte, pero el relieve lo tapa: los paneles quedan a la sombra {when}.",
+    "plain.sunNight": "Es de noche en el sitio: el Sol está {elevation}° bajo el horizonte y sale {when}.",
+    "plain.inDuration": "durante {duration}",
+    "plain.inTime": "en {duration}",
+    "plain.notInMission": "durante toda la misión",
+    "plain.notThisMission": "después de la misión",
+    "plain.lowSun": "El Sol nunca sube más de {max}°: la luz llega rasante, por eso el relieve cercano importa tanto.",
+    "plain.earthAll": "La Tierra se ve todo el tiempo: se puede hablar directo con el control de misión.",
+    "plain.earthSets": "Se puede hablar directo con la Tierra durante {duration}; después se oculta tras el horizonte.",
+    "plain.earthNever": "La Tierra no se ve desde aquí durante la misión: hace falta un satélite de relevo para comunicarse.",
+    "plain.earthLater": "La Tierra todavía no se ve; aparece en {duration}.",
+
+    "sky.aria": "Cielo desde el sitio: Sol a {sun}° y Tierra a {earth}° de elevación",
+    "sky.north": "N",
+    "sky.east": "E",
+    "sky.south": "S",
+    "sky.west": "O",
+    "timeline.aria": "Elevación del Sol y la Tierra durante la ventana de misión",
+    "timeline.light": "Luz",
+    "timeline.contact": "Contacto",
+    "timeline.terrainHelp": "Punteado: el relieve en la dirección de cada cuerpo; es visible cuando su línea va por encima. ",
+    "timeline.idle": "Pasa el cursor o el dedo por el gráfico para ver cada momento.",
+    "timeline.readout": "Día {day} · {date} — Sol {sun}° · Tierra {earth}°",
+
+    "compare.region": "Comparación",
+    "compare.title": "Comparación de escenarios",
+    "compare.close": "Cerrar comparación",
+    "compare.open": "Comparar",
+    "compare.clear": "Vaciar",
+    "compare.count": "{count} de {max} en la comparación",
+    "compare.needMore": " · agrega otro sitio o fecha",
+    "compare.computing": "Calculando…",
+    "compare.error": "No se pudo comparar: {message}",
+    "compare.remove": "Quitar",
+    "compare.removeAria": "Quitar {name} de la comparación",
+    "compare.best": "(mejor)",
+    "compare.caption": "Resaltado: mejor valor de cada fila. Ventana de misión de {days} días desde cada aterrizaje.",
+    "compare.total": "Puntaje global",
+    "compare.sunElevation": "Elevación del Sol",
+    "compare.lightUntilSet": "Horas de luz hasta el ocaso",
+    "compare.lightInWindow": "Horas de luz en la ventana",
+    "compare.earthElevation": "Elevación de la Tierra",
+    "compare.contactUntilSet": "Contacto hasta el ocaso terrestre",
+    "compare.contactInWindow": "Horas de contacto en la ventana",
+    "compare.noSet": "No se pone",
+
+    "credits.title": "Créditos y fuentes",
+    "credits.body": "Efemérides: JPL/NAIF (DE440), validadas con JPL Horizons. Relieve: LOLA (LRO, NASA/GSFC, PDS Geosciences). Textura: LROC (NASA/GSFC/Arizona State University), vía NASA SVS. Coordenadas: LROC, NASA y el Gazetteer de la IAU/USGS. Proyecto para el NASA Space Apps Challenge 2026.",
+
+    "csv.headers": "id,nombre,categoria,lat,lon,fecha_utc,viable,puntaje,energia,comunicacion,sol_elevacion,sol_azimut,sol_visible,tierra_elevacion,tierra_azimut,tierra_visible,ventana_dias,paneles,peso_energia",
+  },
+
+  en: {
+    locale: "en-GB",
+    "app.globe": "Lunar globe with landing sites",
+    "controls.date": "Landing date (UTC)",
+    "controls.shiftGroup": "Move the date",
+    "controls.now": "Now",
+    "controls.playGroup": "Animation",
+    "controls.play": "▶ Animate",
+    "controls.pause": "⏸ Pause",
+    "controls.step": "Step",
+    "controls.oneDay": "1 day",
+    "controls.viewGroup": "View",
+    "controls.nearSide": "View from Earth",
+    "controls.southPole": "South pole",
+    "controls.modeGroup": "Level of detail",
+    "controls.simple": "Simple",
+    "controls.technical": "Technical",
+    "controls.langGroup": "Language",
+    "controls.copyLink": "Copy link",
+    "controls.more": "More controls",
+    "controls.less": "Fewer controls",
+    "controls.linkCopied": "Link copied: share this scenario",
+    "controls.linkFailed": "Could not copy; copy the browser address instead",
+
+    "status.connecting": "Connecting…",
+    "status.computing": "Computing…",
+    "status.viable": "{viable} of {total} sites viable",
+    "status.error": "Error: {message}",
+    "status.offline": "Could not reach the server: {message}",
+
+    "legend.title": "How to read the dots",
+    "legend.size": "<b>Size</b>: overall score",
+    "legend.glow": "<b>Glow</b>: energy (sunlight over {days} days)",
+    "legend.high": "<b>Sky blue</b>: Earth visible almost always (≥ 95%)",
+    "legend.mid": "<b>Orange</b>: Earth visible part of the time",
+    "legend.low": "<b>Vermilion</b>: Earth visible less than half the time",
+    "legend.off": "<b>Gray</b>: not viable, Sun or Earth not visible at landing",
+
+    "learn.title": "Why is choosing a landing site so hard?",
+    "learn.p1": "The Moon has no atmosphere: the sky is black even in daytime and shadows are total. If sunlight doesn't reach the panels, there is no power.",
+    "learn.p2": "A lunar day lasts about 29.5 Earth days: roughly two weeks of light and two of night, at more than 100 °C below zero.",
+    "learn.p3": "At the south pole the Sun never rises more than a few degrees. Light arrives at a grazing angle, so a mountain tens of kilometers away can leave a site in darkness.",
+    "learn.p4": "The Moon always shows the same face to Earth. From the far side Earth is never visible and a relay satellite is needed; near the pole, Earth peeks over the horizon and hides again because of the Moon's wobble (libration).",
+
+    "custom.summary": "Add coordinates",
+    "custom.lat": "Latitude",
+    "custom.lon": "East longitude",
+    "custom.name": "Name (optional)",
+    "custom.namePlaceholder": "My site",
+    "custom.submit": "Add to globe",
+    "custom.rangeError": "Latitude between −90 and 90, east longitude between −180 and 180.",
+    "custom.defaultName": "Custom site ({lat}°, {lon}°)",
+
+    "settings.summary": "Scoring settings",
+    "settings.weight": "Weight of each criterion",
+    "settings.weights": "Energy {energy}% · Communication {communication}%",
+    "settings.panels": "Solar panels",
+    "settings.panelTime": "Hours of sunlight only (no orientation)",
+    "settings.panelHorizontal": "Horizontal: best with a high Sun",
+    "settings.panelVertical": "Vertical, Sun-tracking (polar landers)",
+    "settings.window": "Window (days)",
+    "settings.sunMargin": "Minimum Sun (°)",
+    "settings.earthMargin": "Minimum Earth (°)",
+    "settings.marginHelp": "Margins require that elevation before the Sun or Earth counts as visible (e.g. to clear an antenna).",
+    "settings.reset": "Reset",
+
+    "list.title": "Sites",
+    "list.southOnly": "South pole only",
+    "list.hint": "Overall score · E energy · C communication (0–100)",
+    "list.csv": "Export CSV",
+    "list.energyShort": "E",
+    "list.commShort": "C",
+    "category.historico": "Historic",
+    "category.reciente": "Recent",
+    "category.candidato": "Candidate",
+    "category.personalizado": "Custom",
+
+    "verdict.viable": "Viable",
+    "verdict.notViable": "Not viable",
+    "verdict.viableAt": "Viable for landing on {date}",
+    "verdict.notViableBecause": "Not viable at landing: {reason}",
+    "verdict.viableTooltip": "Viable at landing",
+    "reason.sunBlocked": "Sun blocked by terrain",
+    "reason.sunBelow": "Sun below the horizon",
+    "reason.earthBlocked": "Earth blocked by terrain",
+    "reason.earthBelow": "Earth below the horizon",
+
+    "tooltip.scores": "Score {total} · Energy {energy} · Communication {communication}",
+    "tooltip.bodies": "Sun {sun}° · Earth {earth}°",
+
+    "body.sun": "Sun",
+    "body.earth": "Earth",
+    "count.sunSet": "Sunset in {duration}",
+    "count.earthSet": "Earthset in {duration}",
+    "count.sunRise": "Sunrise in {duration}",
+    "count.earthRise": "Earthrise in {duration}",
+    "count.sunNoSet": "The Sun does not set",
+    "count.earthNoSet": "Earth does not set",
+    "count.sunNoRise": "The Sun does not rise",
+    "count.earthNoRise": "Earth does not rise",
+    "count.inWindow": "within the {days}-day window",
+    "count.hiddenAtLanding": "Not visible at landing · {date}",
+
+    "precision.lander": "Lander position measured in LRO images.",
+    "precision.punto_de_interes": "Point of interest published by LROC.",
+    "precision.centro_de_rasgo": "Feature center according to the IAU: it represents a region, not a landing point.",
+    "precision.aproximada": "Approximate coordinate from a secondary source.",
+    "precision.personalizada": "Coordinates entered by the user.",
+
+    "detail.close": "Close details",
+    "detail.error": "Could not load details: {message}",
+    "detail.plainTitle": "In a nutshell",
+    "detail.sky": "Sky from the site",
+    "detail.skyCaption": "Position at landing and path over {days} days (one dot per day).",
+    "detail.horizonSphere": "Spherical horizon: no terrain data for this site (only available south of 80° S).",
+    "detail.horizonTerrain": "Horizon with real terrain ({source}, {km} km around, observer at {height} m). The dotted line marks 0°.",
+    "detail.timeline": "Timeline",
+    "detail.score": "Score",
+    "detail.energy": "Energy",
+    "detail.communication": "Communication",
+    "detail.total": "Overall",
+    "detail.energyHint": "Sunlight during the window and continuity from landing",
+    "detail.communicationHint": "Fraction of the window with Earth visible",
+    "detail.totalHint": "Weighted average of energy and communication",
+    "detail.metrics": "Metrics over {days} days",
+    "detail.elevationLanding": "Elevation at landing",
+    "detail.azimuthLanding": "Azimuth at landing",
+    "detail.maxElevation": "Maximum elevation",
+    "detail.visibleHours": "Hours visible",
+    "detail.visibleFraction": "Fraction visible",
+    "detail.sunWindows": "Sunlight windows",
+    "detail.earthWindows": "Direct-to-Earth windows",
+    "detail.noWindows": "None within the window",
+    "detail.fromLanding": "from landing",
+    "detail.beyondWindow": "beyond the window",
+    "detail.moreWindows": "and {count} more",
+    "detail.addCompare": "Add to comparison",
+    "detail.inCompare": "In the comparison",
+    "detail.compareFull": "Maximum 4 scenarios",
+    "detail.remove": "Remove site",
+    "detail.source": "Coordinate source: {source}",
+    "detail.bestTitle": "Best nearby dates",
+    "detail.bestSearch": "Search the next {days} days",
+    "detail.bestSearching": "Searching {count} dates…",
+    "detail.bestHelp": "Evaluates one date every {step} h and ranks viable dates first, by score.",
+    "detail.bestUse": "Use",
+    "detail.bestNone": "No viable date in the next {days} days.",
+    "detail.bestError": "Could not search: {message}",
+    "detail.bestScore": "score {score}",
+
+    "plain.sunAll": "The Sun will stay above the horizon for the whole mission ({days} days): power is assured.",
+    "plain.sunSets": "There will be sunlight for {duration}; then the lunar night begins and the panels stop producing power.",
+    "plain.sunBlocked": "The Sun is {elevation}° above the horizon, but terrain blocks it: the panels stay in shadow {when}.",
+    "plain.sunNight": "It is night at the site: the Sun is {elevation}° below the horizon and rises {when}.",
+    "plain.inDuration": "for {duration}",
+    "plain.inTime": "in {duration}",
+    "plain.notInMission": "for the whole mission",
+    "plain.notThisMission": "after the mission",
+    "plain.lowSun": "The Sun never rises above {max}°: light arrives at a grazing angle, which is why nearby terrain matters so much.",
+    "plain.earthAll": "Earth is visible the whole time: the lander can talk directly to mission control.",
+    "plain.earthSets": "Direct contact with Earth is possible for {duration}; then Earth sets behind the horizon.",
+    "plain.earthNever": "Earth is not visible from here during the mission: a relay satellite is needed to communicate.",
+    "plain.earthLater": "Earth is not visible yet; it appears in {duration}.",
+
+    "sky.aria": "Sky from the site: Sun at {sun}° and Earth at {earth}° elevation",
+    "sky.north": "N",
+    "sky.east": "E",
+    "sky.south": "S",
+    "sky.west": "W",
+    "timeline.aria": "Sun and Earth elevation during the mission window",
+    "timeline.light": "Light",
+    "timeline.contact": "Contact",
+    "timeline.terrainHelp": "Dotted: terrain in each body's direction; the body is visible when its line runs above it. ",
+    "timeline.idle": "Move the cursor or your finger over the chart to inspect each moment.",
+    "timeline.readout": "Day {day} · {date} — Sun {sun}° · Earth {earth}°",
+
+    "compare.region": "Comparison",
+    "compare.title": "Scenario comparison",
+    "compare.close": "Close comparison",
+    "compare.open": "Compare",
+    "compare.clear": "Clear",
+    "compare.count": "{count} of {max} in the comparison",
+    "compare.needMore": " · add another site or date",
+    "compare.computing": "Computing…",
+    "compare.error": "Could not compare: {message}",
+    "compare.remove": "Remove",
+    "compare.removeAria": "Remove {name} from the comparison",
+    "compare.best": "(best)",
+    "compare.caption": "Highlighted: best value in each row. {days}-day mission window from each landing.",
+    "compare.total": "Overall score",
+    "compare.sunElevation": "Sun elevation",
+    "compare.lightUntilSet": "Hours of light until sunset",
+    "compare.lightInWindow": "Hours of light in the window",
+    "compare.earthElevation": "Earth elevation",
+    "compare.contactUntilSet": "Contact until Earthset",
+    "compare.contactInWindow": "Hours of contact in the window",
+    "compare.noSet": "Does not set",
+
+    "credits.title": "Credits and sources",
+    "credits.body": "Ephemerides: JPL/NAIF (DE440), validated against JPL Horizons. Terrain: LOLA (LRO, NASA/GSFC, PDS Geosciences). Texture: LROC (NASA/GSFC/Arizona State University), via NASA SVS. Coordinates: LROC, NASA and the IAU/USGS Gazetteer. Built for the NASA Space Apps Challenge 2026.",
+
+    "csv.headers": "id,name,category,lat,lon,date_utc,viable,score,energy,communication,sun_elevation,sun_azimuth,sun_visible,earth_elevation,earth_azimuth,earth_visible,window_days,panels,energy_weight",
+  },
+};
+
+export const LANGUAGES = Object.keys(STRINGS);
+
+let current = "es";
+const listeners = new Set();
+
+export function t(key, params = {}) {
+  const text = STRINGS[current][key] ?? STRINGS.es[key] ?? key;
+  return text.replace(/\{(\w+)\}/g, (match, name) => (name in params ? params[name] : match));
+}
+
+export function getLang() {
+  return current;
+}
+
+export function setLang(lang) {
+  if (!STRINGS[lang]) return;
+  current = lang;
+  document.documentElement.lang = lang;
+  translateDom(document);
+  for (const listener of listeners) listener(lang);
+}
+
+export function onLangChange(listener) {
+  listeners.add(listener);
+}
+
+// Textos fijos del HTML. Las claves de leyenda contienen <b>, por eso innerHTML
+// (los textos son nuestros, no del usuario).
+export function translateDom(root) {
+  for (const el of root.querySelectorAll("[data-i18n]")) {
+    const params = el.dataset.i18nParams ? JSON.parse(el.dataset.i18nParams) : {};
+    el.innerHTML = t(el.dataset.i18n, params);
+  }
+  for (const el of root.querySelectorAll("[data-i18n-attr]")) {
+    for (const pair of el.dataset.i18nAttr.split(";")) {
+      const [attr, key] = pair.split(":").map((s) => s.trim());
+      if (attr && key) el.setAttribute(attr, t(key));
+    }
+  }
+}
+
+export function siteName(site) {
+  return (current === "en" && site.name_en) || site.name;
+}
+
+export function siteNotes(site) {
+  return (current === "en" && site.notes_en) || site.notes;
+}
