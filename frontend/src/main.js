@@ -18,6 +18,7 @@ import { readUrlState, writeUrlState } from "./urlState.js";
 import { CompareView } from "./views/CompareView.js";
 import { Controls } from "./views/Controls.js";
 import { CustomSiteForm } from "./views/CustomSiteForm.js";
+import { IntroView } from "./views/IntroView.js";
 import { BEST_DATES_DAYS, BEST_DATES_STEP_HOURS, DetailPanel } from "./views/DetailPanel.js";
 import { GlobeView } from "./views/GlobeView.js";
 import { SettingsPanel, DEFAULT_CONFIG } from "./views/SettingsPanel.js";
@@ -177,10 +178,26 @@ const settings = new SettingsPanel(document.getElementById("settings"), {
 
 new ResizeObserver(() => globe.refreshLayout()).observe(leftColumn);
 
+// Intro: el gancho se muestra la primera vez (o con ?intro); "Iniciar" y "Saltar" recuerdan que ya se vio.
+const intro = new IntroView(document.getElementById("sec-intro"), {
+  markSeen: () => stored.set("introSeen", "1"),
+  navigate: () => router.go("explorar"),
+});
+const forceHook = new URLSearchParams(window.location.search).has("intro");
+let introShown = false;
+
 // Tres partes: intro, vista general y comparación. Fuera de la vista general se pausa el globo y
 // la animación del tiempo, y se oculta el tooltip.
 const router = createRouter({
+  // Quien ya vio la intro abre directo en la vista general; "Inicio" (#intro) siempre la muestra.
+  defaultSection: () => (stored.get("introSeen") ? "explorar" : "intro"),
   onChange: (section, previous) => {
+    if (section === "intro") {
+      intro.show({ hook: !introShown && (forceHook || !stored.get("introSeen")) });
+      introShown = true;
+    } else {
+      intro.hide();
+    }
     globe.setActive(section === "explorar");
     // Al entrar desde la intro se escribe el escenario; en la carga inicial lo hace start(), después de leer la URL.
     if (previous === "intro") syncUrl();

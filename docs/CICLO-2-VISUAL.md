@@ -12,7 +12,7 @@ Se actualiza al subir cada fase. Rama de trabajo: `ciclo-2-visual`.
 |---|---|---|
 | V0 Sistema visual | Hecha (falta la revisión del equipo, V-05) | `frontend/src/design-system.css`, `icons.js`, `design-system.html` |
 | V1 Tres partes | Hecha | `frontend/src/router.js`, `index.html` |
-| V2 Intro | **En curso** | `frontend/src/views/IntroView.js`, `frontend/src/intro.css` |
+| V2 Intro | Hecha | `frontend/src/views/IntroView.js`, `frontend/src/intro.css` |
 | V3 Globo en alta resolución | Libre | `frontend/src/views/GlobeView.js`, `scripts/download_data.py` |
 | V4 Relieve del polo sur | Libre (después de V3) | archivo nuevo |
 | V5 Rediseño de la vista general | Libre | `frontend/src/views/*`, `styles.css` |
@@ -123,10 +123,23 @@ Igual que en el ciclo 1: cada fase en su rama, con verificación antes de cerrar
 
 | ✓ | ID | Tarea | Verificación |
 |---|---|---|---|
-| [ ] | V-09 | Pregunta gancho sola en pantalla y luego el nombre y el botón de inicio | Revisión del equipo sobre el texto de la pregunta |
-| [ ] | V-10 | Tres datos ancla con fuente visible (p. ej. día lunar, Sol rasante en el polo, cara oculta) | Cada cifra con su fuente verificada |
-| [ ] | V-11 | Fondo con el kit (estrellas y trayectoria) y transición en iris hacia la vista general | La transición no tapa texto; con *reducir movimiento* es un corte simple |
-| [ ] | V-12 | Opción "saltar intro" y recordar que ya se vio | Volver a abrir la app no obliga a ver la intro |
+| [x] | V-09 | Pregunta gancho sola en pantalla y luego el nombre y el botón de inicio | Revisión del equipo sobre el texto de la pregunta |
+| [x] | V-10 | Tres datos ancla con fuente visible (p. ej. día lunar, Sol rasante en el polo, cara oculta) | Cada cifra con su fuente verificada |
+| [x] | V-11 | Fondo con el kit (estrellas y trayectoria) y transición en iris hacia la vista general | La transición no tapa texto; con *reducir movimiento* es un corte simple |
+| [x] | V-12 | Opción "saltar intro" y recordar que ya se vio | Volver a abrir la app no obliga a ver la intro |
+
+**Decisiones de V2:**
+- **Gancho:** *"¿Dónde y cuándo conviene aterrizar en la Luna?"* sola en pantalla unos 3,6 s (o hasta tocar la pantalla o apretar Enter, espacio, → o Esc); luego el nombre, la bajada y el botón **Iniciar**.
+- **Tres datos con fuente** (verificados el 2026-11-14):
+  - **29,5 días**, el día lunar completo: período sinódico de 29,53 d en la [ficha de la Luna de la NASA](https://nssdc.gsfc.nasa.gov/planetary/factsheet/moonfact.html).
+  - **1,5°**, lo máximo que sube el Sol sobre el horizonte en los polos: [NASA Scientific Visualization Studio](https://svs.gsfc.nasa.gov/5229/). Vale para terreno plano; con relieve la luz puede quedar tapada (es lo que modela la app).
+  - **295 °C**, diferencia día-noche en el ecuador: la misma ficha da 95 K a 390 K, es decir, −178 °C a +117 °C. *(Una cifra de memoria, −173/+127 °C, resultó incorrecta al verificarla.)*
+- **Cierre de la intro:** "Cada sitio y cada fecha cambian la respuesta."
+- **Iris:** "Iniciar" cierra y abre un anillo de acento (el ícono `ring` marca el centro); "Saltar intro" va directo.
+- **Recordar:** al iniciar o saltar se guarda `introSeen` en el navegador; quien ya la vio abre directo en la vista general. "Inicio" siempre muestra la portada, sin repetir el gancho. **`/?intro` vuelve a mostrar el gancho** (útil para la demo y para revisar el diseño).
+- **Nada decorativo toca un texto:** el motivo y el texto son celdas distintas de una grilla, y las estrellas se ubican evitando cada texto (medido en escritorio y teléfono, en español e inglés: 0 superposiciones).
+- **Uso del kit en la intro:** `stars` (fondo), `trajectory` (motivo giratorio), `ring` (iris), `chevrons` (botón, saltar e indicador), `brackets` (rótulo), `sparkDiamond` (encabezado de datos).
+- **Reducir movimiento:** sin gancho, contadores, giro, titileo ni iris; todo aparece en su estado final.
 
 ### V3 — Globo en alta resolución con relieve · P1
 

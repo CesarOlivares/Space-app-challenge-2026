@@ -8,6 +8,7 @@
     <link rel="preload" href="fonts/archivo-var.woff2" as="font" type="font/woff2" crossorigin />
     <link rel="stylesheet" href="src/design-system.css" />
     <link rel="stylesheet" href="src/styles.css" />
+    <link rel="stylesheet" href="src/intro.css" />
     <script type="importmap">
       {
         "imports": {
@@ -35,13 +36,60 @@
     </nav>
 
     <main>
-      <!-- 01 · Intro. Provisoria: V2 la reemplaza por el gancho, los datos ancla y la transición. -->
+      <!-- 01 · Intro: gancho → nombre y botón de inicio → tres datos con fuente. Ver views/IntroView.js e intro.css. -->
       <section id="sec-intro" class="page page--intro" hidden aria-labelledby="intro-title">
-        <div class="intro-inner">
-          <p class="eyebrow"><span class="icon" data-icon="brackets"></span> <span data-i18n="intro.eyebrow">NASA Space Apps Challenge 2026</span></p>
-          <h1 id="intro-title" class="display intro-title" tabindex="-1">Lunar Site Explorer</h1>
-          <p class="intro-lead" data-i18n="intro.lead"></p>
-          <a class="btn btn--primary" href="#explorar"><span data-i18n="intro.start">Iniciar</span> <span class="icon" data-icon="chevrons"></span></a>
+        <div class="scene scene--hero" data-stage="title">
+          <div class="stars" aria-hidden="true"></div>
+          <a class="skip" href="#explorar" data-intro-skip data-avoid><span data-i18n="intro.skip">Saltar intro</span> <span class="icon" data-icon="chevrons"></span></a>
+          <p class="hook display"><span class="hook-text" data-avoid data-i18n="intro.hook"></span></p>
+          <div class="hero">
+            <div class="hero-text">
+              <p class="eyebrow" data-avoid><span class="icon" data-icon="brackets"></span> <span data-i18n="intro.eyebrow">NASA Space Apps Challenge 2026</span></p>
+              <h1 id="intro-title" class="display intro-title" tabindex="-1" data-avoid>Lunar Site Explorer</h1>
+              <p class="intro-lead" data-avoid data-i18n="intro.lead"></p>
+              <div class="hero-actions">
+                <a class="btn btn--primary" href="#explorar" data-intro-start><span data-i18n="intro.start">Iniciar</span> <span class="icon" data-icon="chevrons"></span></a>
+              </div>
+            </div>
+            <div class="hero-motif" aria-hidden="true" data-avoid><span class="icon" data-icon="trajectory"></span></div>
+          </div>
+          <a class="scroll-cue" href="#intro-facts" data-intro-more data-avoid><span data-i18n="intro.why">Por qué es difícil elegir</span> <span class="icon" data-icon="chevrons"></span></a>
+        </div>
+
+        <div class="scene scene--facts" id="intro-facts">
+          <div class="stars" aria-hidden="true"></div>
+          <div class="scene-inner">
+            <div class="section-head" data-avoid>
+              <span class="section-head__num">01</span>
+              <h2 class="section-head__title" data-i18n="intro.factsTitle">Tres datos que lo explican</h2>
+              <span class="section-head__rule"></span>
+              <span class="icon" data-icon="sparkDiamond"></span>
+            </div>
+            <div class="facts">
+              <article class="fact anchor" data-avoid>
+                <span class="eyebrow" data-i18n="intro.f1.scale">Tiempo</span>
+                <span class="anchor__value"><span class="num" data-target="29.5" data-decimals="1">29,5</span><span class="anchor__unit" data-i18n="intro.f1.unit">días</span></span>
+                <span class="anchor__label" data-i18n="intro.f1.text"></span>
+                <span class="anchor__source"><span data-i18n="intro.source">Fuente</span>: <a href="https://nssdc.gsfc.nasa.gov/planetary/factsheet/moonfact.html" target="_blank" rel="noopener">NASA, Moon Fact Sheet</a></span>
+              </article>
+              <article class="fact anchor" data-avoid>
+                <span class="eyebrow" data-i18n="intro.f2.scale">Luz</span>
+                <span class="anchor__value"><span class="num" data-target="1.5" data-decimals="1">1,5</span><span class="anchor__unit">°</span></span>
+                <span class="anchor__label" data-i18n="intro.f2.text"></span>
+                <span class="anchor__source"><span data-i18n="intro.source">Fuente</span>: <a href="https://svs.gsfc.nasa.gov/5229/" target="_blank" rel="noopener">NASA, Scientific Visualization Studio</a></span>
+              </article>
+              <article class="fact anchor" data-avoid>
+                <span class="eyebrow" data-i18n="intro.f3.scale">Temperatura</span>
+                <span class="anchor__value"><span class="num" data-target="295" data-decimals="0">295</span><span class="anchor__unit">°C</span></span>
+                <span class="anchor__label" data-i18n="intro.f3.text"></span>
+                <span class="anchor__source"><span data-i18n="intro.source">Fuente</span>: <a href="https://nssdc.gsfc.nasa.gov/planetary/factsheet/moonfact.html" target="_blank" rel="noopener">NASA, Moon Fact Sheet</a></span>
+              </article>
+            </div>
+            <p class="punch display" data-avoid data-i18n="intro.punch"></p>
+            <div class="hero-actions">
+              <a class="btn btn--primary" href="#explorar" data-intro-start data-avoid><span data-i18n="intro.start">Iniciar</span> <span class="icon" data-icon="chevrons"></span></a>
+            </div>
+          </div>
         </div>
       </section>
 

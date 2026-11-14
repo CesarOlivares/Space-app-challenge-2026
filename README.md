@@ -38,6 +38,7 @@ Opcional: `./run.sh data --dem` descarga además el modelo de elevación polar d
 
 ## Uso rápido
 
+- **Intro:** se muestra la primera vez y luego se recuerda; `/?intro` la vuelve a mostrar con el gancho.
 - **Tres partes**, con barra de navegación: `#intro` (01), `#explorar` (02) y `#comparar` (03). Una dirección con un escenario compartido abre directo en la vista general.
 
 - **Simple / Técnico:** el modo simple explica cada resultado en lenguaje llano; el técnico muestra métricas, ventanas y ajustes del puntaje.

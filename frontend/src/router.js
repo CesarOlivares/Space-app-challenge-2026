@@ -13,14 +13,17 @@ export const SECTIONS = ["intro", "explorar", "comparar"];
 // así siguen funcionando los enlaces del ciclo 1, que no traían hash.
 const SCENARIO_PARAMS = ["date", "site", "cmp", "custom", "we", "win", "sm", "em", "panel"];
 
-export function sectionFromUrl(location = window.location) {
+// `fallback` es la sección cuando la dirección no dice nada (la intro la primera vez; la vista
+// general si el visitante ya la vio). `?intro` fuerza la intro, p. ej. para volver a ver el gancho.
+export function sectionFromUrl(location = window.location, fallback = "intro") {
   const fromHash = location.hash.slice(1);
   if (SECTIONS.includes(fromHash)) return fromHash;
   const params = new URLSearchParams(location.search);
-  return SCENARIO_PARAMS.some((key) => params.has(key)) ? "explorar" : "intro";
+  if (params.has("intro")) return "intro";
+  return SCENARIO_PARAMS.some((key) => params.has(key)) ? "explorar" : fallback;
 }
 
-export function createRouter({ onChange = () => {} } = {}) {
+export function createRouter({ onChange = () => {}, defaultSection = () => "intro" } = {}) {
   const pages = Object.fromEntries(SECTIONS.map((name) => [name, document.getElementById(`sec-${name}`)]));
   const links = document.querySelectorAll("[data-nav]");
   let current = null;
@@ -51,7 +54,7 @@ export function createRouter({ onChange = () => {} } = {}) {
   window.addEventListener("popstate", fromHash);
 
   // Estado inicial: sin hash válido se deduce de la URL y se escribe sin crear una entrada nueva.
-  const initial = sectionFromUrl();
+  const initial = sectionFromUrl(window.location, defaultSection());
   if (window.location.hash.slice(1) !== initial) {
     window.history.replaceState(null, "", `${window.location.pathname}${window.location.search}#${initial}`);
   }

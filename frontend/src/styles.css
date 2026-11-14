@@ -1124,8 +1124,7 @@ a.btn {
   text-decoration: none;
 }
 
-/* Intro y comparación (provisorias): ocupan la pantalla bajo la barra. */
-.page--intro,
+/* Comparación (provisoria): ocupa la pantalla bajo la barra. La intro tiene su propio archivo (intro.css). */
 .page--compare {
   position: fixed;
   inset: var(--nav-h) 0 0 0;
@@ -1135,27 +1134,10 @@ a.btn {
   overflow-y: auto;
 }
 
-.intro-inner,
 .page-inner {
   display: grid;
   gap: var(--space-5);
   width: min(760px, 100%);
-}
-
-.intro-inner {
-  justify-items: start;
-}
-
-.intro-title {
-  margin: 0;
-  font-size: var(--fs-hero);
-}
-
-.intro-lead {
-  margin: 0;
-  max-width: 52ch;
-  color: var(--ink-muted);
-  font-size: 1.1rem;
 }
 
 .page--compare .hud-frame p {
