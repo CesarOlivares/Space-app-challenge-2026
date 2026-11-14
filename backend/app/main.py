@@ -5,6 +5,8 @@ from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 
+from fastapi.middleware.gzip import GZipMiddleware
+
 from app.controllers import health, illumination, scores, sites
 from app.models.ephemeris import Ephemeris
 from app.models.site import load_catalog
@@ -23,6 +25,7 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(title="Lunar Site Explorer", lifespan=lifespan)
+app.add_middleware(GZipMiddleware, minimum_size=1000)
 
 
 @app.middleware("http")

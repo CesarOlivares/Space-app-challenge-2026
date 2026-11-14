@@ -4,6 +4,8 @@
  * mission window duration, horizon margins, and solar panel orientation.
  */
 
+import { onLangChange, t } from "../i18n.js";
+
 /**
  * Default mission scoring configuration.
  * @type {{
@@ -66,6 +68,12 @@ export class SettingsPanel {
       onChange({ ...this.config });
     });
     this.#write(DEFAULT_CONFIG);
+    onLangChange(() => this.#showOutputs());
+  }
+
+  // Aplica una configuración (p. ej. leída de la URL) sin avisar el cambio.
+  setConfig(config) {
+    this.#write({ ...DEFAULT_CONFIG, ...config });
   }
 
   /**
@@ -116,7 +124,7 @@ export class SettingsPanel {
    */
   #showOutputs() {
     const e = Math.round(this.config.weightEnergy * 100);
-    this.weightOutput.textContent = `Energía ${e} % · Comunicación ${100 - e} %`;
+    this.weightOutput.textContent = t("settings.weights", { energy: e, communication: 100 - e });
     if (this.terrainWeightOutput) {
       this.terrainWeightOutput.textContent = `Peso terreno ${this.config.weightTerrain.toFixed(1)}×`;
     }

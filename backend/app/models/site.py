@@ -28,6 +28,8 @@ class Site:
     source_name: str | None = None
     source_url: str | None = None
     terrain: TerrainMetrics | None = None
+    name_en: str | None = None
+    notes_en: str | None = None
 
     @classmethod
     def from_dict(cls, data: dict) -> Site:
@@ -52,6 +54,8 @@ class Site:
             source_name=source.get("name"),
             source_url=source.get("url"),
             terrain=evaluate_terrain(lat, lon, site_data=data),
+            name_en=data.get("name_en"),
+            notes_en=data.get("notes_en"),
         )
 
 

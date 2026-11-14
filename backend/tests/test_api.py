@@ -86,6 +86,24 @@ def test_illumination(client):
     assert {"lat", "lon"} == data["subearth"].keys()
 
 
+def test_mejores_fechas(client):
+    start = time.perf_counter()
+    data = client.get("/api/sites/im-2/best-dates", params={"date": DATE, "days": 30, "step_hours": 6}).json()
+    elapsed = time.perf_counter() - start
+    assert data["evaluated"] == 121
+    results = data["results"]
+    assert len(results) == 5
+    totals = [r["scores"]["total"] for r in results if r["viable"]]
+    assert totals == sorted(totals, reverse=True)
+    assert results[0]["viable"]
+    assert elapsed < 5
+
+
+def test_mejores_fechas_limita_candidatos(client):
+    response = client.get("/api/sites/im-2/best-dates", params={"days": 60, "step_hours": 1})
+    assert response.status_code == 422
+
+
 def test_compare(client):
     body = {"scenarios": [{"site": "im-2", "date": DATE},
                           {"site": "-89.5,120", "date": "2027-01-10T00:00:00Z"}]}
@@ -110,3 +128,69 @@ def test_errores_de_entrada_claros(client, method, url, kwargs, status):
     response = getattr(client, method)(url, **kwargs)
     assert response.status_code == status
     assert response.json()["detail"]
+
+
+def test_terrain_cutout_im2_json(client):
+    res = client.get("/api/sites/im-2/terrain", params={"size": 64, "step": 1})
+    assert res.status_code == 200
+    assert "public, max-age=86400, immutable" in res.headers.get("Cache-Control", "")
+    data = res.json()
+    assert data["site"]["id"] == "im-2"
+    assert data["grid"]["width"] == 64
+    assert data["grid"]["height"] == 64
+    assert len(data["elevations_m"]) == 64 * 64
+    assert len(data["slopes_deg"]) == 64 * 64
+    assert data["grid"]["min_elevation_m"] <= data["grid"]["max_elevation_m"]
+    assert 0 <= data["grid"]["safe_landing_fraction"] <= 1.0
+
+
+def test_terrain_cutout_base64(client):
+    res = client.get("/api/sites/im-2/terrain", params={"size": 32, "format": "base64"})
+    assert res.status_code == 200
+    data = res.json()
+    assert "elevations_b64" in data
+    assert "slopes_b64" in data
+
+
+def test_terrain_cutout_binary(client):
+    res = client.get("/api/sites/im-2/terrain", params={"size": 32, "format": "binary"})
+    assert res.status_code == 200
+    assert res.headers["Content-Type"] == "application/octet-stream"
+    assert res.headers["X-Grid-Width"] == "32"
+    assert len(res.content) == 32 * 32 * 4  # 32x32 float32
+
+
+def test_terrain_cutout_ecuador_error(client):
+    # Apollo 11 está en el ecuador, fuera del DEM polar LOLA
+    res = client.get("/api/sites/apollo-11/terrain")
+    assert res.status_code == 422
+    assert "fuera de la cobertura del DEM polar" in res.json()["detail"]
+
+
+def test_scores_matrix_periodo(client):
+    res = client.get("/api/scores/matrix", params={"start": DATE, "days": 10, "step_hours": 24})
+    assert res.status_code == 200
+    data = res.json()
+    assert len(data["dates"]) == 11
+    assert len(data["sites"]) == 22
+    for site_entry in data["sites"]:
+        assert len(site_entry["series"]) == 11
+        first_point = site_entry["series"][0]
+        assert "viable" in first_point
+        assert "total" in first_point
+        assert "energy" in first_point
+        assert "communication" in first_point
+
+
+def test_scores_matrix_filtrado_sitios(client):
+    res = client.get("/api/scores/matrix", params={"start": DATE, "days": 5, "step_hours": 24, "sites": "im-2,apollo-11"})
+    assert res.status_code == 200
+    data = res.json()
+    assert [s["id"] for s in data["sites"]] == ["im-2", "apollo-11"]
+
+
+def test_gzip_compression(client):
+    # Solicitando gzip para una respuesta grande (> 1000 bytes)
+    res = client.get("/api/scores/matrix", params={"start": DATE, "days": 30, "step_hours": 12}, headers={"Accept-Encoding": "gzip"})
+    assert res.status_code == 200
+    assert res.headers.get("Content-Encoding") == "gzip"

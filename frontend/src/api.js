@@ -86,6 +86,12 @@ export function fetchTerrainPatch(ref, size = 25) {
   return request(`/api/sites/${encodeURIComponent(ref)}/patch`, { params: { size } });
 }
 
+export function fetchBestDates(ref, date, config, { days, stepHours }) {
+  return request(`/api/sites/${encodeURIComponent(ref)}/best-dates`, {
+    params: { date: isoUtc(date), days, step_hours: stepHours, limit: 5, ...configParams(config) },
+  });
+}
+
 /**
  * Compares 2 to 4 site-date scenarios with full illumination and topography metrics.
  * Includes `weight_terrain` and `max_slope_deg` via `configParams(config)`.
@@ -98,4 +104,23 @@ export function fetchComparison(scenarios, config) {
     params: configParams(config),
     body: { scenarios: scenarios.map((s) => ({ site: s.ref, date: isoUtc(s.date) })) },
   });
+}
+
+export function fetchTerrainCutout(ref, { size = 128, step = 1, format = "json", includeSlopes = true } = {}) {
+  return request(`/api/sites/${encodeURIComponent(ref)}/terrain`, {
+    params: { size, step, format, include_slopes: includeSlopes },
+  });
+}
+
+export function fetchScoresMatrix(startDate, { days = 30, stepHours = 12, sites = null, config = {} } = {}) {
+  const params = {
+    start: isoUtc(startDate),
+    days,
+    step_hours: stepHours,
+    ...configParams(config),
+  };
+  if (sites && sites.length) {
+    params.sites = sites.join(",");
+  }
+  return request("/api/scores/matrix", { params });
 }

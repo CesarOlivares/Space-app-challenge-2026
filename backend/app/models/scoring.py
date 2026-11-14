@@ -20,7 +20,7 @@ el Sol y la Tierra están sobre el horizonte.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, timedelta
 from functools import lru_cache
 
 import numpy as np
@@ -364,3 +364,25 @@ def evaluate_all(ephemeris: Ephemeris, sites: tuple[Site, ...], landing: datetim
                  config: ScoringConfig = ScoringConfig()) -> tuple[SiteEvaluation, ...]:
     """Evalúa varios sitios para una fecha; el resultado queda en caché por (sitios, fecha, config)."""
     return tuple(evaluate(ephemeris, site, landing, config) for site in sites)
+
+
+MAX_CANDIDATES = 400
+
+
+def best_dates(ephemeris: Ephemeris, site: Site, start: datetime, days: float, step_hours: float,
+               config: ScoringConfig = ScoringConfig(), limit: int = 5) -> tuple[int, list[SiteEvaluation]]:
+    """Evalúa fechas de aterrizaje cada `step_hours` durante `days` desde `start`.
+
+    Devuelve (cantidad evaluada, las `limit` mejores): primero las viables y,
+    entre ellas, las de mayor puntaje global; ante empate, la más temprana.
+    """
+    count = int(days * 24 / step_hours) + 1
+    if count > MAX_CANDIDATES:
+        raise ValueError(f"demasiadas fechas a evaluar ({count}); máximo {MAX_CANDIDATES}: "
+                         "reduce 'days' o aumenta 'step_hours'")
+    candidates = [
+        evaluate(ephemeris, site, start + timedelta(hours=i * step_hours), config)
+        for i in range(count)
+    ]
+    ranked = sorted(candidates, key=lambda r: (not r.viable, -round(r.total, 1), r.landing))
+    return count, ranked[:limit]

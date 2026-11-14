@@ -1,6 +1,11 @@
 // Controlador del frontend: mantiene el estado y conecta la API con las vistas.
+//
+// Flujo: portada (#intro, la Luna enorme y un saludo) → "Comenzar" aleja la cámara hasta ver la Luna
+// entera con solo los puntos (#explorar). Ahí se elige un sitio (aparece su ficha) o varios (aparece
+// el botón Comparar). La configuración vive en el panel del engranaje.
 
 import {
+  fetchBestDates,
   fetchComparison,
   fetchIllumination,
   fetchScores,
@@ -8,25 +13,41 @@ import {
   fetchSky,
   fetchTerrainPatch,
   fetchTimeline,
+  isoUtc,
 } from "./api.js";
-import { formatUtc, siteRef } from "./format.js";
+import { siteRef } from "./format.js";
+import { hydrateIcons } from "./icons.js";
+import { getLang, LANGUAGES, onLangChange, setLang, siteName, t } from "./i18n.js";
+import { createRouter } from "./router.js";
+import { readUrlState, writeUrlState } from "./urlState.js";
 import { CompareView } from "./views/CompareView.js";
 import { Controls } from "./views/Controls.js";
 import { CustomSiteForm } from "./views/CustomSiteForm.js";
-import { DetailPanel } from "./views/DetailPanel.js";
+import { BEST_DATES_DAYS, BEST_DATES_STEP_HOURS, DetailPanel } from "./views/DetailPanel.js";
+import { exploreViewsFor, getExploreView, registerExploreView, StageHost } from "./views/exploreViews.js";
 import { GlobeView } from "./views/GlobeView.js";
+import { HeroView } from "./views/HeroView.js";
 import { SettingsPanel, DEFAULT_CONFIG } from "./views/SettingsPanel.js";
+import { SiteCard } from "./views/SiteCard.js";
 import { SiteList } from "./views/SiteList.js";
 import { notViableReason } from "./views/encoding.js";
+import { registerTerrain } from "./views/terrain/index.js";
 
-const MAX_COMPARE = 4;
-const WIDE = 760;
+hydrateIcons();
+
+const MAX_SELECTED = 4; // la comparación admite de 2 a 4 sitios
+const MODES = ["simple", "tecnico"];
+const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 const statusEl = document.getElementById("status");
 const tooltip = document.getElementById("tooltip");
-const leftColumn = document.getElementById("left");
-const sidebar = document.getElementById("sidebar");
-const compareBar = document.getElementById("compare-bar");
+const drawer = document.getElementById("drawer");
+const gear = document.getElementById("gear");
+const legendCard = document.getElementById("legend-card");
+const legendToggle = document.getElementById("legend-toggle");
+const selbar = document.getElementById("selbar");
+const explore = document.getElementById("sec-explorar");
 
 /**
  * Global application state.
@@ -57,16 +78,46 @@ const state = {
   illumination: null,
   date: null,
   config: { ...DEFAULT_CONFIG },
+  mode: "simple",
   playing: false,
-  selectedId: null,
-  compare: [], // [{ ref, date, name }]
+  selected: [], // ids elegidos, en orden de elección (máximo MAX_SELECTED)
+  selectedId: null, // el último elegido: el de la ficha y el detalle
+  detailOpen: false,
+  current: null, // { id, sky, timeline } del sitio activo
+  status: { key: "status.connecting", params: {}, kind: "" },
   request: 0,
   detailRequest: 0,
 };
 
-function setStatus(text, kind = "") {
-  statusEl.textContent = text;
+// Preferencias del visitante: si el navegador bloquea el almacenamiento, se usan los valores por defecto.
+const stored = {
+  get(key) {
+    try { return localStorage.getItem(key); } catch { return null; }
+  },
+  set(key, value) {
+    try { localStorage.setItem(key, value); } catch { /* sin almacenamiento */ }
+  },
+};
+
+function setStatus(key, params = {}, kind = "") {
+  state.status = { key, params, kind };
+  statusEl.textContent = t(key, params);
   statusEl.dataset.kind = kind;
+}
+
+function syncUrl() {
+  // En la portada la dirección queda limpia (#intro); el escenario se escribe al entrar a la app.
+  if (document.body.dataset.section === "intro") return;
+  writeUrlState({
+    date: state.date,
+    selected: state.selected.map(siteRef),
+    mode: state.mode,
+    lang: getLang(),
+    config: state.config,
+    custom: [...state.sites.values()]
+      .filter((s) => s.category === "personalizado")
+      .map((s) => ({ lat: s.lat, lon: s.lon, name: s.userName ?? "" })),
+  });
 }
 
 /**
@@ -84,13 +135,15 @@ function showTooltip(id, x, y) {
   }
   const { total, energy, communication, terrain } = score.scores;
   const slopeDeg = score.topography?.slope_deg;
-  const terrainText = terrain != null ? ` · Terreno ${Math.round(terrain)}` : "";
-  const slopeText = slopeDeg != null ? ` · Pendiente ${slopeDeg.toFixed(1)}°` : "";
-  const verdict = score.viable ? "Viable al aterrizar" : `No viable: ${notViableReason(score)}`;
+  const terrainText = terrain != null ? ` · T ${Math.round(terrain)}` : "";
+  const slopeText = slopeDeg != null ? ` · ${slopeDeg.toFixed(1)}°` : "";
+  const verdict = score.viable
+    ? t("verdict.viableTooltip")
+    : t("verdict.notViableBecause", { reason: notViableReason(score) });
   tooltip.replaceChildren(...[
-    ["strong", site.name],
-    ["span", `Puntaje ${Math.round(total)} · Energía ${Math.round(energy)} · Comunicación ${Math.round(communication)}${terrainText}`],
-    ["span", `Sol ${score.sun.elevation_deg.toFixed(1)}° · Tierra ${score.earth.elevation_deg.toFixed(1)}°${slopeText}`],
+    ["strong", siteName(site)],
+    ["span", `${t("tooltip.scores", { total: Math.round(total), energy: Math.round(energy), communication: Math.round(communication) })}${terrainText}`],
+    ["span", `${t("tooltip.bodies", { sun: score.sun.elevation_deg.toFixed(1), earth: score.earth.elevation_deg.toFixed(1) })}${slopeText}`],
     ["em", verdict],
   ].map(([tag, text]) => Object.assign(document.createElement(tag), { textContent: text })));
   tooltip.hidden = false;
@@ -102,35 +155,48 @@ function showTooltip(id, x, y) {
 
 const globe = new GlobeView(document.getElementById("globe"), {
   onHover: (id, x, y) => showTooltip(id, x, y),
-  onSelect: (id) => select(id),
-  occluded: () => (window.innerWidth > WIDE
-    ? { left: leftColumn.offsetWidth + 16, right: sidebar.offsetWidth + 16 }
-    : { left: 0, right: 0 }),
+  // Sin los archivos de relieve (./run.sh data --no-hires) se avisa y se desactivan los controles.
+  onReliefStatus: (status) => {
+    for (const el of document.querySelectorAll("#relief-on, #relief-ex")) el.disabled = status !== "ready";
+    document.getElementById("relief-note").hidden = status !== "unavailable";
+  },
+  onSelect: (id) => toggleSelect(id),
 });
 
-const list = new SiteList(sidebar, {
-  onSelect: (id) => select(id),
-  onHover: (id) => globe.select(id ?? state.selectedId),
+const list = new SiteList(drawer, {
+  onSelect: (id) => toggleSelect(id),
+  onHover: (id) => globe.setHover(id),
 });
 list.setSites(state.sites);
 
 const detail = new DetailPanel(document.getElementById("detail"), {
-  onClose: () => select(null),
-  onCompare: (id) => addToCompare(id),
+  onClose: () => closeDetail(),
   onRemove: (id) => removeCustomSite(id),
+  onFindBestDates: (id) => findBestDates(id),
+  onUseDate: (date) => {
+    controls.setDate(date);
+    loadDate(date);
+  },
+});
+
+const card = new SiteCard(document.getElementById("sitecard"), {
+  onDetail: () => openDetail(),
+  onRemove: () => deselect(state.selectedId),
+  onOpenView: (id) => openStageView(id),
 });
 
 const compareView = new CompareView(document.getElementById("compare"), {
   onClose: () => compareView.close(),
   onRemove: (index) => {
-    state.compare.splice(index, 1);
-    renderCompareBar();
-    if (state.compare.length < 2) compareView.close();
+    state.selected.splice(index, 1);
+    applySelection();
+    if (state.selected.length < 2) compareView.close();
     else openCompare();
   },
   onOpenSite: (id) => {
     compareView.close();
-    select(id);
+    state.selected = [id];
+    applySelection({ fly: true });
   },
 });
 
@@ -138,12 +204,15 @@ new CustomSiteForm(document.getElementById("custom-site"), {
   onAdd: (lat, lon, name) => addCustomSite(lat, lon, name),
 });
 
-const controls = new Controls(document.getElementById("controls"), {
+const controls = new Controls(explore, {
   onDateChange: (date) => loadDate(date),
-  // Durante la animación solo se actualizan el globo y la lista; el detalle, al pausar.
+  // Durante la animación solo se actualizan el globo y la lista; la ficha, al pausar.
   onPlayChange: (playing) => {
     state.playing = playing;
-    if (!playing && state.selectedId) loadDetail();
+    if (!playing) {
+      syncUrl();
+      if (state.selectedId) loadActive();
+    }
   },
   onView: (view) => {
     if (view === "south-pole") globe.focusSouthPole();
@@ -151,37 +220,230 @@ const controls = new Controls(document.getElementById("controls"), {
   },
 });
 
-new SettingsPanel(document.getElementById("settings"), {
+const settings = new SettingsPanel(document.getElementById("settings"), {
   onChange: (config) => {
     state.config = config;
-    document.getElementById("legend-days").textContent = config.windowDays;
+    updateLegendDays();
     loadDate(state.date);
   },
 });
 
-new ResizeObserver(() => globe.refreshLayout()).observe(leftColumn);
+// Vistas adicionales (topografía, etc.): se abren a pantalla completa sobre el globo.
+const stage = new StageHost(document.getElementById("stage"), {
+  onOpen: () => {
+    globe.setActive(false);
+    document.body.classList.add("stage-open");
+    tooltip.hidden = true;
+  },
+  onClose: () => {
+    document.body.classList.remove("stage-open");
+    globe.setActive(document.body.dataset.section !== "comparar");
+  },
+});
+registerTerrain({ registerExploreView });
 
-// --- Selección y detalle ----------------------------------------------------
-
-function select(id) {
-  state.selectedId = id;
-  globe.select(id);
-  list.select(id);
-  document.body.classList.toggle("detail-open", Boolean(id));
-  if (!id) {
-    detail.close();
-    return;
-  }
-  globe.focusSite(id);
-  loadDetail();
+function stageContext() {
+  const { sky } = state.current ?? {};
+  return { site: sky?.site ?? state.sites.get(state.selectedId), sky, date: state.date, config: state.config, globe };
 }
 
-async function loadDetail() {
+function openStageView(id) {
+  const view = getExploreView(id);
+  if (view && state.current) stage.open(view, stageContext());
+}
+
+// --- Portada y navegación ---------------------------------------------------------
+
+const hero = new HeroView(document.getElementById("sec-intro"), { onStart: () => enterExplore() });
+let entering = false;
+
+// "Comenzar": el texto se va, la cámara se aleja hasta ver la Luna entera y aparecen los puntos.
+async function enterExplore() {
+  if (entering) return;
+  entering = true;
+  stored.set("introSeen", "1");
+  document.body.classList.add("hero-leaving");
+  globe.setFraming("overview", { animate: true, durationMs: 1900 });
+  await sleep(reducedMotion.matches ? 0 : 1100);
+  router.go("explorar");
+  document.body.classList.remove("hero-leaving");
+  entering = false;
+}
+
+// Tres partes: portada, vista general y comparación. En la comparación se pausa el globo.
+const router = createRouter({
+  // Quien ya vio la portada abre directo en la vista general; "Inicio" (#intro) siempre la muestra.
+  defaultSection: () => (stored.get("introSeen") ? "explorar" : "intro"),
+  onChange: (section, previous) => {
+    globe.setActive(section !== "comparar" && !stage.isOpen);
+    if (section === "intro") {
+      globe.setFraming("hero", { animate: previous === "explorar" });
+    } else if (section === "explorar" && !entering) {
+      globe.setFraming("overview", { animate: previous === "intro" });
+    }
+    // Al entrar desde la portada se escribe el escenario; en la carga inicial lo hace start(), después de leer la URL.
+    if (previous === "intro") syncUrl();
+    if (section !== "explorar") {
+      controls.stop();
+      tooltip.hidden = true;
+      setDrawer(false);
+      stage.close();
+    }
+  },
+});
+
+// --- Panel del engranaje y leyenda ---------------------------------------------------
+
+function setDrawer(open) {
+  drawer.hidden = !open;
+  gear.setAttribute("aria-expanded", open);
+  document.body.classList.toggle("drawer-open", open);
+}
+
+function setLegend(open) {
+  legendCard.hidden = !open;
+  legendToggle.setAttribute("aria-expanded", open);
+}
+
+gear.addEventListener("click", () => setDrawer(drawer.hidden));
+document.getElementById("drawer-close").addEventListener("click", () => {
+  setDrawer(false);
+  gear.focus();
+});
+legendToggle.addEventListener("click", () => setLegend(legendCard.hidden));
+document.addEventListener("keydown", (event) => {
+  if (event.key !== "Escape") return;
+  if (!drawer.hidden) setDrawer(false);
+  if (!legendCard.hidden) setLegend(false);
+});
+
+function updateLegendDays() {
+  const legend = document.getElementById("legend-glow");
+  legend.dataset.i18nParams = JSON.stringify({ days: state.config.windowDays });
+  legend.innerHTML = t("legend.glow", { days: state.config.windowDays });
+}
+
+// --- Modo e idioma --------------------------------------------------------------
+
+function applyMode(mode) {
+  state.mode = MODES.includes(mode) ? mode : "simple";
+  document.body.classList.toggle("mode-simple", state.mode === "simple");
+  for (const button of document.querySelectorAll("[data-mode]")) {
+    button.setAttribute("aria-pressed", button.dataset.mode === state.mode);
+  }
+  stored.set("mode", state.mode);
+}
+
+function applyLang(lang) {
+  setLang(LANGUAGES.includes(lang) ? lang : "es");
+  for (const button of document.querySelectorAll("[data-lang]")) {
+    button.setAttribute("aria-pressed", button.dataset.lang === getLang());
+  }
+  stored.set("lang", getLang());
+}
+
+onLangChange(() => {
+  // Los sitios personalizados sin nombre propio usan un nombre generado en el idioma actual.
+  for (const site of state.sites.values()) {
+    if (site.category === "personalizado" && !site.userName) site.name = defaultCustomName(site);
+  }
+  router.refreshTitle();
+  setStatus(state.status.key, state.status.params, state.status.kind);
+  updateLegendDays();
+  hero.render();
+  list.refresh();
+  renderSelection();
+  compareView.refresh();
+  if (state.selectedId) loadActive();
+});
+
+for (const button of document.querySelectorAll("[data-mode]")) {
+  button.addEventListener("click", () => {
+    applyMode(button.dataset.mode);
+    syncUrl();
+  });
+}
+for (const button of document.querySelectorAll("[data-lang]")) {
+  button.addEventListener("click", () => {
+    applyLang(button.dataset.lang);
+    syncUrl();
+  });
+}
+
+// --- Selección: un sitio muestra su ficha; dos o más muestran el botón Comparar ---------
+
+// Elegir o quitar un sitio (clic en un punto o en la lista).
+function toggleSelect(id) {
+  const at = state.selected.indexOf(id);
+  if (at >= 0) {
+    state.selected.splice(at, 1);
+    applySelection();
+  } else {
+    state.selected.push(id);
+    if (state.selected.length > MAX_SELECTED) state.selected.shift(); // el más antiguo sale
+    applySelection({ fly: true });
+  }
+}
+
+function deselect(id) {
+  state.selected = state.selected.filter((x) => x !== id);
+  applySelection();
+}
+
+// `fly`: centrar el último elegido; solo se acerca la cámara si es el único (con varios se deja a la vista el resto).
+function applySelection({ fly = false } = {}) {
+  state.selectedId = state.selected.at(-1) ?? null;
+  globe.setSelection(state.selected);
+  list.setSelection(state.selected);
+  renderSelection();
+  syncUrl();
+  if (!state.selectedId) {
+    card.hide();
+    closeDetail();
+    state.current = null;
+    return;
+  }
+  if (fly) globe.focusSite(state.selectedId, { zoomTo: state.selected.length === 1 ? 2.4 : Infinity });
+  loadActive();
+}
+
+// Barra de abajo: aparece con 2 o más sitios elegidos.
+function renderSelection() {
+  const n = state.selected.length;
+  selbar.hidden = n < 2;
+  document.body.classList.toggle("has-selbar", n >= 2);
+  document.getElementById("sel-compare").textContent = t("sel.compare", { count: n });
+  const chips = document.getElementById("sel-chips");
+  chips.replaceChildren(...state.selected.map((id) => {
+    const site = state.sites.get(id);
+    const name = site ? siteName(site) : id;
+    const li = document.createElement("li");
+    const label = document.createElement("span");
+    label.textContent = name;
+    const remove = document.createElement("button");
+    remove.type = "button";
+    remove.textContent = "✕";
+    remove.setAttribute("aria-label", t("sel.remove", { name }));
+    remove.addEventListener("click", () => deselect(id));
+    li.append(label, remove);
+    return li;
+  }));
+}
+
+document.getElementById("sel-compare").addEventListener("click", () => openCompare());
+document.getElementById("sel-clear").addEventListener("click", () => {
+  state.selected = [];
+  applySelection();
+});
+
+// Ficha (siempre) y detalle (si está abierto) del sitio activo, con los datos de la fecha elegida.
+async function loadActive() {
   const id = state.selectedId;
   const site = state.sites.get(id);
   if (!site) return;
   const request = ++state.detailRequest;
-  detail.showLoading(site);
+  card.showLoading(site);
+  if (state.detailOpen) detail.showLoading(site);
   try {
     const ref = siteRef(id);
     const [sky, timeline, patch] = await Promise.all([
@@ -190,14 +452,44 @@ async function loadDetail() {
       fetchTerrainPatch(ref).catch(() => null),
     ]);
     if (request !== state.detailRequest) return;
-    sky.site.name = site.name; // preserve custom site name
-    detail.render(sky, timeline, {
-      inCompare: state.compare.some((c) => c.ref === ref && c.date.getTime() === state.date.getTime()),
-      compareFull: state.compare.length >= MAX_COMPARE,
-      patch,
-    });
+    sky.site = { ...sky.site, ...site }; // conserva nombres y traducciones del lado del cliente
+    state.current = { id, sky, timeline, patch };
+    card.render(sky, { selectedCount: state.selected.length, views: exploreViewsFor(site) });
+    if (state.detailOpen) detail.render(sky, timeline, { patch });
+    if (stage.isOpen) stage.update(stageContext());
   } catch (error) {
-    if (request === state.detailRequest) detail.showError(`No se pudo cargar el detalle: ${error.message}`);
+    if (request !== state.detailRequest) return;
+    card.showError(error.message);
+    if (state.detailOpen) detail.showError(error.message);
+  }
+}
+
+function openDetail() {
+  if (!state.selectedId) return;
+  state.detailOpen = true;
+  document.body.classList.add("detail-open");
+  const site = state.sites.get(state.selectedId);
+  detail.showLoading(site);
+  if (state.current?.id === state.selectedId) detail.render(state.current.sky, state.current.timeline, { patch: state.current.patch });
+  else loadActive();
+}
+
+function closeDetail() {
+  state.detailOpen = false;
+  document.body.classList.remove("detail-open");
+  detail.close();
+}
+
+async function findBestDates(id) {
+  const count = Math.floor(BEST_DATES_DAYS * 24 / BEST_DATES_STEP_HOURS) + 1;
+  detail.showBestDatesLoading(count);
+  try {
+    const data = await fetchBestDates(siteRef(id), state.date, state.config, {
+      days: BEST_DATES_DAYS, stepHours: BEST_DATES_STEP_HOURS,
+    });
+    if (state.selectedId === id) detail.showBestDates(data);
+  } catch (error) {
+    if (state.selectedId === id) detail.showBestDatesError(error.message);
   }
 }
 
@@ -252,9 +544,14 @@ if (demoSelect) {
 
 // --- Sitios personalizados ------------------------------------------------
 
-async function addCustomSite(lat, lon, name) {
+function defaultCustomName(site) {
+  return t("custom.defaultName", { lat: site.lat.toFixed(4), lon: site.lon.toFixed(4) });
+}
+
+async function addCustomSite(lat, lon, name, { selectIt = true } = {}) {
   const sky = await fetchSky(`${lat},${lon}`, state.date, state.config); // valida y calcula en el servidor
-  const site = { ...sky.site, name: name || sky.site.name };
+  const site = { ...sky.site, userName: name || null };
+  site.name = name || defaultCustomName(site);
   if (!state.sites.has(site.id)) {
     state.sites.set(site.id, site);
     globe.addSites([site]);
@@ -262,7 +559,11 @@ async function addCustomSite(lat, lon, name) {
   state.scores.set(site.id, sky);
   globe.setScores([sky]);
   list.setScores([...state.scores.values()]);
-  select(site.id);
+  if (selectIt) {
+    if (!state.selected.includes(site.id)) toggleSelect(site.id);
+  } else {
+    syncUrl();
+  }
 }
 
 function removeCustomSite(id) {
@@ -270,48 +571,109 @@ function removeCustomSite(id) {
   state.scores.delete(id);
   globe.removeSite(id);
   list.setScores([...state.scores.values()]);
-  select(null);
+  state.selected = state.selected.filter((x) => x !== id);
+  applySelection();
+}
+
+// Un sitio por su referencia: id del catálogo o "lat,lon" (con cualquier cantidad de decimales).
+function siteForRef(ref) {
+  const match = /^(-?[\d.]+),(-?[\d.]+)$/.exec(ref);
+  const id = match ? `custom:${Number(match[1]).toFixed(4)},${Number(match[2]).toFixed(4)}` : ref;
+  return state.sites.get(id);
 }
 
 // --- Comparación ------------------------------------------------------------
 
-function addToCompare(id) {
-  if (state.compare.length >= MAX_COMPARE) return;
-  state.compare.push({ ref: siteRef(id), date: state.date, name: state.sites.get(id).name });
-  renderCompareBar();
-  loadDetail(); // actualiza el botón del panel
-}
-
-function renderCompareBar() {
-  const n = state.compare.length;
-  compareBar.hidden = n === 0;
-  compareBar.querySelector(".compare-count").textContent =
-    `${n} de ${MAX_COMPARE} en la comparación${n < 2 ? " · agrega otro sitio o fecha" : ""}`;
-  compareBar.querySelector(".compare-items").replaceChildren(...state.compare.map((c) =>
-    Object.assign(document.createElement("li"), { textContent: `${c.name} — ${formatUtc(c.date)}` })));
-  compareBar.querySelector("[data-action=open-compare]").disabled = n < 2;
-}
-
 async function openCompare() {
+  if (state.selected.length < 2) return;
   compareView.open();
-  compareView.showMessage("Calculando…");
+  compareView.showMessage(t("compare.computing"));
   try {
-    const data = await fetchComparison(state.compare, state.config);
+    const ids = [...state.selected];
+    const data = await fetchComparison(ids.map((id) => ({ ref: siteRef(id), date: state.date })), state.config);
     data.results.forEach((r, i) => {
-      // Los sitios personalizados conservan el nombre que les dio el usuario.
-      if (r.site.category === "personalizado") r.site.name = state.compare[i].name;
+      const site = state.sites.get(ids[i]);
+      if (site) r.site = { ...r.site, ...site };
     });
     compareView.render(data.results);
   } catch (error) {
-    compareView.showMessage(`No se pudo comparar: ${error.message}`);
+    compareView.showMessage(t("compare.error", { message: error.message }));
   }
 }
 
-compareBar.querySelector("[data-action=open-compare]").addEventListener("click", openCompare);
-compareBar.querySelector("[data-action=clear-compare]").addEventListener("click", () => {
-  state.compare = [];
-  renderCompareBar();
-  if (state.selectedId) loadDetail();
+// --- Relieve y calidad del globo: se recuerdan en el navegador ---------------------------
+
+const reliefOn = document.getElementById("relief-on");
+const reliefEx = document.getElementById("relief-ex");
+const reliefOut = document.getElementById("relief-ex-out");
+const qualitySelect = document.getElementById("quality");
+
+function applyRelief() {
+  const exaggeration = Number(reliefEx.value);
+  reliefOut.textContent = `×${exaggeration}`;
+  globe.setRelief({ enabled: reliefOn.checked, exaggeration });
+  stored.set("relief", JSON.stringify({ on: reliefOn.checked, ex: exaggeration }));
+}
+
+try {
+  const saved = JSON.parse(stored.get("relief") ?? "null");
+  if (saved) {
+    reliefOn.checked = Boolean(saved.on);
+    reliefEx.value = Number(saved.ex) || 3;
+  }
+} catch { /* valores por defecto */ }
+if (["auto", "standard", "high"].includes(stored.get("quality"))) qualitySelect.value = stored.get("quality");
+reliefOn.addEventListener("change", applyRelief);
+reliefEx.addEventListener("input", applyRelief);
+qualitySelect.addEventListener("change", () => {
+  globe.setQuality(qualitySelect.value);
+  stored.set("quality", qualitySelect.value);
+});
+applyRelief();
+globe.setQuality(qualitySelect.value);
+
+// Diagnóstico (?debug): expone el globo para medir el tiempo por cuadro y ver qué textura usa.
+if (new URLSearchParams(window.location.search).has("debug")) window.lunarDebug = { globe };
+
+// --- Compartir y exportar -----------------------------------------------------
+
+document.getElementById("copy-link").addEventListener("click", async () => {
+  syncUrl();
+  try {
+    await navigator.clipboard.writeText(window.location.href);
+    setStatus("controls.linkCopied", {}, "ok");
+  } catch {
+    setStatus("controls.linkFailed", {}, "error");
+  }
+});
+
+function csvCell(value) {
+  const text = String(value ?? "");
+  return /[",\n]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;
+}
+
+document.getElementById("export-csv").addEventListener("click", () => {
+  const rows = [...state.scores.values()]
+    .filter((s) => state.sites.has(s.site_id))
+    .sort((a, b) => b.viable - a.viable || b.scores.total - a.scores.total)
+    .map((s) => {
+      const site = state.sites.get(s.site_id);
+      return [
+        site.id, siteName(site), site.category, site.lat, site.lon, isoUtc(state.date), s.viable,
+        s.scores.total, s.scores.energy, s.scores.communication,
+        s.sun.elevation_deg, s.sun.azimuth_deg, s.sun.visible,
+        s.earth.elevation_deg, s.earth.azimuth_deg, s.earth.visible,
+        state.config.windowDays, state.config.panel, state.config.weightEnergy,
+      ].map(csvCell).join(",");
+    });
+  const csv = [t("csv.headers"), ...rows].join("\n") + "\n";
+  const url = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" }));
+  const link = Object.assign(document.createElement("a"), {
+    href: url,
+    download: `lunar-sites-${isoUtc(state.date).slice(0, 13).replace(/[-:]/g, "")}Z.csv`,
+  });
+  link.click();
+  URL.revokeObjectURL(url);
 });
 
 // --- Carga por fecha ----------------------------------------------------------
@@ -319,7 +681,7 @@ compareBar.querySelector("[data-action=clear-compare]").addEventListener("click"
 async function loadDate(date) {
   state.date = date;
   const request = ++state.request;
-  setStatus("Calculando…", "busy");
+  setStatus("status.computing", {}, "busy");
   const custom = [...state.sites.values()].filter((s) => s.category === "personalizado");
   try {
     const [scores, illumination, ...customSkies] = await Promise.all([
@@ -333,24 +695,45 @@ async function loadDate(date) {
     state.illumination = illumination;
     globe.setScores(all);
     globe.setIllumination(illumination);
+    hero.setIllumination(illumination);
     list.setScores(all);
     const viable = all.filter((s) => s.viable).length;
-    setStatus(`${viable} de ${all.length} sitios viables`, "ok");
-    if (state.selectedId && !state.playing) loadDetail();
+    setStatus("status.viable", { viable, total: all.length }, "ok");
+    if (!state.playing) {
+      syncUrl();
+      if (state.selectedId) loadActive();
+    }
   } catch (error) {
-    if (request === state.request) setStatus(`Error: ${error.message}`, "error");
+    if (request === state.request) setStatus("status.error", { message: error.message }, "error");
   }
 }
 
 async function start() {
+  const fromUrl = readUrlState();
+  const browserLang = navigator.language?.toLowerCase().startsWith("es") ? "es" : "en";
+  applyLang(fromUrl.lang ?? stored.get("lang") ?? browserLang);
+  applyMode(fromUrl.mode ?? stored.get("mode") ?? "simple");
+  state.config = { ...DEFAULT_CONFIG, ...fromUrl.config };
+  settings.setConfig(state.config);
+  updateLegendDays();
+  if (fromUrl.date) controls.setDate(fromUrl.date);
+
   try {
     const sites = await fetchSites();
     for (const site of sites) state.sites.set(site.id, site);
     globe.addSites(sites);
     await loadDate(controls.date);
-    if (state.illumination) globe.focusNearSide(state.illumination);
+    for (const c of fromUrl.custom) {
+      await addCustomSite(c.lat, c.lon, c.name, { selectIt: false }).catch(() => {});
+    }
+    // Sitios elegidos en el enlace: con uno solo se centra la cámara en él.
+    state.selected = fromUrl.selected
+      .map((ref) => siteForRef(ref)?.id)
+      .filter(Boolean)
+      .slice(-MAX_SELECTED);
+    if (state.selected.length) applySelection({ fly: state.selected.length === 1 && document.body.dataset.section === "explorar" });
   } catch (error) {
-    setStatus(`No se pudo conectar con el servidor: ${error.message}`, "error");
+    setStatus("status.offline", { message: error.message }, "error");
   }
 }
 

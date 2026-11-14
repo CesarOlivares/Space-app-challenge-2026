@@ -15,32 +15,27 @@ Elementos visuales para elevar el diseño del frontend: paleta, tipografía, íc
 
 Nombres de archivo en minúsculas, con guiones y sin espacios: `icono-sol.svg`, `mockup-detalle-v2.png`.
 
+## Kit actual
+
+`iconos/` tiene los 23 SVG del kit del equipo (estilo HUD, monocromos con `currentColor`: toman el color del texto o de la variable que se les asigne). El uso asignado a cada uno está en el inventario de [docs/CICLO-2-VISUAL.md](../docs/CICLO-2-VISUAL.md).
+
 ## Lo que ya usa el frontend
 
-Los colores viven como variables CSS en `frontend/src/styles.css` (`:root`). Cambiar un valor allí cambia toda la interfaz.
+El sistema visual vive en `frontend/src/design-system.css` (tokens y componentes), `frontend/src/icons.js` (kit de íconos) y se puede ver completo en `/design-system.html` con la app levantada.
 
-| Variable | Valor | Uso |
-|---|---|---|
-| `--bg` | `#05070d` | Fondo (espacio) |
-| `--panel` | `rgba(14, 18, 28, 0.88)` | Paneles flotantes |
-| `--text` | `#e8ecf4` | Texto principal |
-| `--muted` | `#9aa3b2` | Texto secundario |
-| `--accent` | `#56b4e9` | Acento, foco, barras |
-| `--ok` | `#7ee0a1` | Viable, mejor valor |
-| `--warn` | `#f0c45a` | Advertencia (p. ej. ocaso en menos de 48 h) |
-| `--bad` | `#ff9a8a` | No viable, errores |
-| `--sun` | `#ffd25a` | Sol en el cielo y la línea de tiempo |
-| `--comm-high` | `#56b4e9` | Punto: Tierra visible ≥ 95 % |
-| `--comm-mid` | `#e69f00` | Punto: Tierra visible parte del tiempo |
-| `--comm-low` | `#d55e00` | Punto: Tierra visible < 50 % |
-| `--off` | `#8a9099` | Punto: no viable |
+- Paleta: [paleta/README.md](paleta/README.md)
+- Tipografía: [tipografia/README.md](tipografia/README.md)
+- Íconos: el kit está en `iconos/` (fuente de diseño); los aprobados se copian a `frontend/assets/icons/` y se registran en `icons.js` con un nombre semántico.
 
-Tipografía actual: `system-ui` a 14 px, sin fuentes externas.
+El engranaje (`iconos/hud-gear.svg`) lo dibujó el rediseño minimalista en el estilo del kit: el kit original no traía uno. Falta que quien lleve el diseño lo apruebe o lo reemplace.
+
+Componentes disponibles: encabezado de sección numerado, marco HUD biselado con esquinas de acento, botón (normal y principal), filete, dato ancla con fuente.
 
 ## Restricciones al proponer cambios
 
 - **Daltonismo (RNF-06).** Los colores de los puntos del globo usan la paleta Okabe-Ito y el color nunca es el único canal: también cuentan el tamaño, el brillo y el número en la lista. Una paleta nueva debe seguir distinguiéndose con deuteranopía y protanopía. Se puede comprobar con un simulador.
 - **Contraste.** El texto sobre los paneles oscuros debe cumplir WCAG AA: 4,5:1 para texto normal.
+- **Un único acento y colores de datos aparte.** Ver [paleta/README.md](paleta/README.md).
 - **Codificación del globo.** Tamaño = puntaje global, brillo = energía, color = comunicación, gris = no viable. Si se cambia, hay que actualizar a la vez `frontend/src/views/encoding.js`, la leyenda de `frontend/index.html` y esta guía.
 - **Sin dependencias en tiempo de ejecución (RNF-07).** La app funciona sin internet. Las fuentes o íconos que se adopten se copian al repositorio; no se cargan desde un CDN.
 - **Licencias.** Todo lo que entre al frontend necesita licencia que permita usarlo. Anotar la fuente y la licencia junto al archivo. Las imágenes de NASA son en general de dominio público, pero conviene citarlas.

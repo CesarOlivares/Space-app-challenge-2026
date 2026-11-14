@@ -261,10 +261,10 @@ Las tareas se hacen en orden: cada una parte de lo que dejó la anterior. Una ta
 
 | ✓ | ID | Tarea | Verificación | RF |
 |---|---|---|---|---|
-| [ ] | T-37 | Modo simple y modo técnico, con explicaciones en lenguaje llano | Una persona sin formación técnica entiende el modo simple | RF-15 |
-| [ ] | T-38 | Textos en español e inglés, y créditos de las fuentes de datos | Cambio de idioma completo, sin textos sueltos | — |
-| [ ] | T-39 | Revisión de accesibilidad: paleta apta para daltonismo y valores numéricos visibles | Se cumple RNF-06 | — |
-| [ ] | T-40 | Extras si alcanza el tiempo: enlace compartible, mejor fecha, exportar CSV | Cada extra funciona o se descarta | RF-17 a RF-19 |
+| [x] | T-37 | Modo simple y modo técnico, con explicaciones en lenguaje llano | Una persona sin formación técnica entiende el modo simple | RF-15 |
+| [x] | T-38 | Textos en español e inglés, y créditos de las fuentes de datos | Cambio de idioma completo, sin textos sueltos | — |
+| [x] | T-39 | Revisión de accesibilidad: paleta apta para daltonismo y valores numéricos visibles | Se cumple RNF-06 | — |
+| [x] | T-40 | Extras si alcanza el tiempo: enlace compartible, mejor fecha, exportar CSV | Cada extra funciona o se descarta | RF-17 a RF-19 |
 | [ ] | T-41 | Despliegue público | La URL abre y funciona desde otro equipo | — |
 | [ ] | T-42 | Video de demostración y presentación para el jurado | Material entregado en la plataforma del desafío | — |
 

@@ -4,11 +4,13 @@
 // para que en el polo sur, donde todo ocurre a pocos grados del horizonte,
 // las diferencias se vean.
 
+import { t } from "../i18n.js";
+
 const SVG_NS = "http://www.w3.org/2000/svg";
 const WIDTH = 360;
 const BODIES = {
-  sun: { color: "#FFD25A", label: "Sol" },
-  earth: { color: "#56B4E9", label: "Tierra" },
+  sun: { color: "#FFD25A", label: "body.sun" },
+  earth: { color: "#56B4E9", label: "body.earth" },
 };
 
 function el(name, attrs = {}, text) {
@@ -54,7 +56,7 @@ export function renderSky(container, sky, timeline = null, { height = 150, compa
     viewBox: `0 0 ${WIDTH} ${height + 14}`,
     class: "sky",
     role: "img",
-    "aria-label": `Cielo desde el sitio: Sol a ${sky.sun.elevation_deg.toFixed(1)}° y Tierra a ${sky.earth.elevation_deg.toFixed(1)}° de elevación`,
+    "aria-label": t("sky.aria", { sun: sky.sun.elevation_deg.toFixed(1), earth: sky.earth.elevation_deg.toFixed(1) }),
   });
   const clip = el("clipPath", { id });
   clip.append(el("rect", { x: 0, y: 0, width: WIDTH, height }));
@@ -74,7 +76,8 @@ export function renderSky(container, sky, timeline = null, { height = 150, compa
   }
   // Con relieve, la línea de 0° queda como referencia del horizonte geométrico.
   svg.append(el("line", { x1: 0, x2: WIDTH, y1: y(0), y2: y(0), class: profile ? "sky-zero" : "sky-horizon" }));
-  for (const [az, label] of [[0, "N"], [90, "E"], [180, "S"], [270, "O"], [360, "N"]]) {
+  for (const [az, key] of [[0, "sky.north"], [90, "sky.east"], [180, "sky.south"], [270, "sky.west"], [360, "sky.north"]]) {
+    const label = t(key);
     svg.append(el("text", { x: az, y: height + 11, class: "sky-cardinal", "text-anchor": az === 0 ? "start" : az === 360 ? "end" : "middle" }, label));
   }
 
@@ -117,7 +120,7 @@ export function renderSky(container, sky, timeline = null, { height = 150, compa
     const anchor = az > WIDTH - 50 ? "end" : "start";
     const dx = anchor === "end" ? -8 : 8;
     svg.append(el("text", { x: az + dx, y: cy - 6, class: "sky-label", "text-anchor": anchor, fill: color },
-      `${label} ${below ? "↓ " : ""}${elev.toFixed(1)}°`));
+      `${t(label)} ${below ? "↓ " : ""}${elev.toFixed(1)}°`));
   }
 
   const cursor = el("g", { "clip-path": `url(#${id})` });

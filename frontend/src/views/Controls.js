@@ -1,5 +1,7 @@
 // Selector de fecha (UTC), animación del paso del tiempo y atajos de vista.
 
+import { onLangChange, t } from "../i18n.js";
+
 const HOUR = 3600 * 1000;
 const TICK_MS = 250; // pausa mínima entre pasos de la animación
 
@@ -50,6 +52,14 @@ export class Controls {
     }
 
     this.playButton.addEventListener("click", () => (this.playing ? this.stop() : this.#play()));
+    onLangChange(() => this.#showPlaying());
+  }
+
+  // Fija la fecha sin disparar la carga (p. ej. al restaurar un enlace compartido).
+  setDate(date) {
+    if (Number.isNaN(date.getTime())) return;
+    this.date = date;
+    this.input.value = toInputValue(date);
   }
 
   async #play() {
@@ -72,7 +82,7 @@ export class Controls {
   }
 
   #showPlaying() {
-    this.playButton.textContent = this.playing ? "⏸ Pausar" : "▶ Animar";
+    this.playButton.textContent = t(this.playing ? "controls.pause" : "controls.play");
     this.playButton.setAttribute("aria-pressed", this.playing);
   }
 

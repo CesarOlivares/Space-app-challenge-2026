@@ -1,14 +1,8 @@
 // Ranking de sitios con los valores numéricos de cada puntaje (RNF-06).
 
 import { escapeHtml } from "../format.js";
+import { siteName, t } from "../i18n.js";
 import { encode, notViableReason } from "./encoding.js";
-
-const CATEGORY_LABELS = {
-  historico: "Histórico",
-  reciente: "Reciente",
-  candidato: "Candidato",
-  personalizado: "Personalizado",
-};
 
 const escape = escapeHtml;
 
@@ -17,7 +11,7 @@ export class SiteList {
     this.list = root.querySelector("#site-list");
     this.filter = root.querySelector("#filter-south-pole");
     this.onSelect = onSelect;
-    this.selectedId = null;
+    this.selectedIds = new Set();
     this.sites = new Map();
     this.scores = [];
 
@@ -49,12 +43,16 @@ export class SiteList {
     this.#render();
   }
 
-  select(id) {
-    this.selectedId = id;
+  // Vuelve a dibujar (p. ej. al cambiar de idioma).
+  refresh() {
+    this.#render();
+  }
+
+  // `ids`: sitios elegidos (puede haber varios).
+  setSelection(ids) {
+    this.selectedIds = new Set(ids);
     for (const row of this.list.querySelectorAll("[data-site-id]")) {
-      const selected = row.dataset.siteId === id;
-      row.setAttribute("aria-selected", selected);
-      if (selected) row.scrollIntoView({ block: "nearest", behavior: "smooth" });
+      row.setAttribute("aria-selected", this.selectedIds.has(row.dataset.siteId));
     }
   }
 
@@ -76,18 +74,19 @@ export class SiteList {
       const slopeDeg = score.topography?.slope_deg;
       const slopeText = slopeDeg != null ? ` · ${slopeDeg.toFixed(1)}°` : "";
       const terrainText = terrain != null ? ` · T ${Math.round(terrain)}` : "";
+      // Written reason (not just title) so screen readers and touch devices can read it.
       const status = score.viable
-        ? `<span class="status ok">Viable</span>`
-        : `<span class="status bad" title="${escape(notViableReason(score))}">No viable</span>`;
+        ? `<span class="status ok">${t("verdict.viable")}</span>`
+        : `<span class="status bad">${t("verdict.notViable")}</span><span class="reason">${escape(notViableReason(score))}</span>`;
       return `
-        <li data-site-id="${escape(site.id)}" aria-selected="${site.id === this.selectedId}" tabindex="0">
+        <li data-site-id="${escape(site.id)}" aria-selected="${this.selectedIds.has(site.id)}" tabindex="0">
           <span class="dot" style="background:${color}"></span>
           <span class="name">
-            ${escape(site.name)}
-            <small>${CATEGORY_LABELS[site.category] ?? ""} · ${site.lat.toFixed(2)}°, ${site.lon.toFixed(2)}°${slopeText}</small>
+            ${escape(siteName(site))}
+            <small>${t(`category.${site.category}`)} · ${site.lat.toFixed(2)}°, ${site.lon.toFixed(2)}°${slopeText}</small>
           </span>
           <span class="score">${Math.round(total)}</span>
-          <span class="sub">E ${Math.round(energy)} · C ${Math.round(communication)}${terrainText} ${status}</span>
+          <span class="sub">${t("list.energyShort")} ${Math.round(energy)} · ${t("list.commShort")} ${Math.round(communication)}${terrainText} ${status}</span>
         </li>`;
     }).join("");
   }

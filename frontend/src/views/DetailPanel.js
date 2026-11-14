@@ -1,83 +1,121 @@
-// Panel de detalle del sitio seleccionado: veredicto, puntajes, cielo,
-// tiempos hasta el ocaso y ventanas de visibilidad.
+// Panel de detalle del sitio seleccionado: veredicto, resumen en lenguaje llano,
+// puntajes, cielo, tiempos hasta el ocaso, ventanas y mejores fechas cercanas.
+//
+// Las partes marcadas "tech-only" se ocultan en modo simple y las "simple-only"
+// en modo técnico (ver styles.css).
 
 import { escapeHtml, formatDegrees, formatDuration, formatUtc } from "../format.js";
+import { siteName, siteNotes, t } from "../i18n.js";
 import { notViableReason } from "./encoding.js";
 import { renderRadarChart } from "./RadarChartView.js";
 import { renderSky } from "./SkyView.js";
 import { renderTerrainPatch } from "./TerrainPatchView.js";
 import { renderTimeline } from "./TimelineView.js";
 
-const PRECISION_NOTES = {
-  lander: "Posición del módulo medida en imágenes de LRO.",
-  punto_de_interes: "Punto de interés publicado por LROC.",
-  centro_de_rasgo: "Centro del rasgo según la IAU: representa una región, no un punto de aterrizaje.",
-  aproximada: "Coordenada aproximada de fuente secundaria.",
-  personalizada: "Coordenadas ingresadas por el usuario.",
-};
-
-const BODY_TEXT = {
-  sun: { name: "Sol", set: "Ocaso solar", rise: "Salida del Sol", none: "El Sol no se pone", never: "El Sol no sale" },
-  earth: { name: "Tierra", set: "Ocaso terrestre", rise: "Salida de la Tierra", none: "La Tierra no se pone", never: "La Tierra no sale" },
-};
+export const BEST_DATES_DAYS = 30;
+export const BEST_DATES_STEP_HOURS = 6;
 
 // Texto del contador para un cuerpo, contado desde el aterrizaje.
 export function countdown(body, data, windowDays) {
-  const text = BODY_TEXT[body];
+  const prefix = body === "sun" ? "count.sun" : "count.earth";
   if (data.visible) {
     if (data.hours_until_set == null) {
-      return { main: text.none, detail: `en los ${windowDays} días de la ventana`, tone: "ok" };
+      return { main: t(`${prefix}NoSet`), detail: t("count.inWindow", { days: windowDays }), tone: "ok" };
     }
     return {
-      main: `${text.set} en ${formatDuration(data.hours_until_set)}`,
+      main: t(`${prefix}Set`, { duration: formatDuration(data.hours_until_set) }),
       detail: formatUtc(data.set_time),
       tone: data.hours_until_set < 48 ? "warn" : "ok",
     };
   }
   if (data.hours_until_rise == null) {
-    return { main: text.never, detail: `en los ${windowDays} días de la ventana`, tone: "bad" };
+    return { main: t(`${prefix}NoRise`), detail: t("count.inWindow", { days: windowDays }), tone: "bad" };
   }
   return {
-    main: `${text.rise} en ${formatDuration(data.hours_until_rise)}`,
-    detail: `Bajo el horizonte al aterrizar · ${formatUtc(data.rise_time)}`,
+    main: t(`${prefix}Rise`, { duration: formatDuration(data.hours_until_rise) }),
+    detail: t("count.hiddenAtLanding", { date: formatUtc(data.rise_time) }),
     tone: "bad",
   };
 }
 
-function horizonText(horizon) {
-  if (horizon.kind !== "terreno") {
-    return "Horizonte esférico: sin datos de relieve para este sitio (solo hay para el polo sur, al sur de 80° S).";
+// Resumen para público general: qué significa cada número para la misión.
+export function plainSummary(sky) {
+  const days = sky.config.window_days;
+  const { sun, earth } = sky;
+  const lines = [];
+
+  if (sun.visible) {
+    lines.push(sun.hours_until_set == null
+      ? t("plain.sunAll", { days })
+      : t("plain.sunSets", { duration: formatDuration(sun.hours_until_set) }));
+  } else {
+    const when = sun.hours_until_rise == null
+      ? t(sun.elevation_deg > 0 ? "plain.notInMission" : "plain.notThisMission")
+      : t(sun.elevation_deg > 0 ? "plain.inDuration" : "plain.inTime", { duration: formatDuration(sun.hours_until_rise) });
+    lines.push(sun.elevation_deg > 0
+      ? t("plain.sunBlocked", { elevation: sun.elevation_deg.toFixed(1), when })
+      : t("plain.sunNight", { elevation: Math.abs(sun.elevation_deg).toFixed(1), when }));
   }
-  return `Horizonte con el relieve real (${escapeHtml(horizon.source)}, ${horizon.max_distance_km} km a la redonda,
-    observador a ${horizon.observer_height_m} m). La línea gris punteada marca 0°.`;
+  if (sun.max_elevation_deg < 10) {
+    lines.push(t("plain.lowSun", { max: sun.max_elevation_deg.toFixed(1) }));
+  }
+
+  if (earth.visible) {
+    lines.push(earth.hours_until_set == null
+      ? t("plain.earthAll")
+      : t("plain.earthSets", { duration: formatDuration(earth.hours_until_set) }));
+  } else {
+    lines.push(earth.hours_until_rise == null
+      ? t("plain.earthNever")
+      : t("plain.earthLater", { duration: formatDuration(earth.hours_until_rise) }));
+  }
+  return lines;
 }
 
-function scoreBar(label, value, hint) {
+function horizonText(horizon) {
+  if (horizon.kind !== "terreno") return escapeHtml(t("detail.horizonSphere"));
+  return escapeHtml(t("detail.horizonTerrain", {
+    source: horizon.source, km: horizon.max_distance_km, height: horizon.observer_height_m,
+  }));
+}
+
+function scoreBar(labelKey, value, hintKey) {
+  return `
+    <div class="bar" title="${escapeHtml(t(hintKey))}">
+      <span>${t(labelKey)}</span>
+      <span class="track"><span style="width:${value}%"></span></span>
+      <b>${Math.round(value)}</b>
+    </div>`;
+}
+
+function scoreBarRaw(label, value, hint) {
   return `
     <div class="bar" title="${escapeHtml(hint)}">
-      <span>${label}</span>
+      <span>${escapeHtml(label)}</span>
       <span class="track"><span style="width:${value}%"></span></span>
       <b>${Math.round(value)}</b>
     </div>`;
 }
 
 function windowsList(windows) {
-  if (!windows.length) return `<li class="muted">Ninguna en la ventana</li>`;
+  if (!windows.length) return `<li class="muted">${t("detail.noWindows")}</li>`;
   return windows.slice(0, 6).map((w) => {
-    const from = w.open_start ? "desde el aterrizaje" : formatUtc(w.start);
-    const to = w.open_end ? "más allá de la ventana" : formatUtc(w.end);
+    const from = w.open_start ? t("detail.fromLanding") : formatUtc(w.start);
+    const to = w.open_end ? t("detail.beyondWindow") : formatUtc(w.end);
     return `<li>${escapeHtml(from)} → ${escapeHtml(to)} <span class="muted">(${formatDuration(w.duration_hours)})</span></li>`;
-  }).join("") + (windows.length > 6 ? `<li class="muted">y ${windows.length - 6} más</li>` : "");
+  }).join("") + (windows.length > 6 ? `<li class="muted">${t("detail.moreWindows", { count: windows.length - 6 })}</li>` : "");
 }
 
 export class DetailPanel {
-  constructor(root, { onClose, onCompare, onRemove }) {
+  constructor(root, { onClose, onRemove, onFindBestDates, onUseDate }) {
     this.root = root;
     this.body = root.querySelector(".detail-body");
     this.root.querySelector(".detail-close").addEventListener("click", onClose);
     this.body.addEventListener("click", (e) => {
-      if (e.target.closest("[data-action=compare]")) onCompare(this.siteId);
       if (e.target.closest("[data-action=remove]")) onRemove(this.siteId);
+      if (e.target.closest("[data-action=best-dates]")) onFindBestDates(this.siteId);
+      const use = e.target.closest("[data-use-date]");
+      if (use) onUseDate(new Date(use.dataset.useDate));
     });
     this.siteId = null;
   }
@@ -89,46 +127,16 @@ export class DetailPanel {
   showLoading(site) {
     this.siteId = site.id;
     this.root.hidden = false;
-    this.root.querySelector(".detail-title").textContent = site.name;
+    this.root.querySelector(".detail-title").textContent = siteName(site);
     this.body.setAttribute("aria-busy", "true");
   }
 
   showError(message) {
     this.body.removeAttribute("aria-busy");
-    this.body.innerHTML = `<p class="error">${escapeHtml(message)}</p>`;
+    this.body.innerHTML = `<p class="error">${escapeHtml(t("detail.error", { message }))}</p>`;
   }
 
-  /**
-   * Returns a human-readable engineering interpretation for local terrain slope.
-   * @param {number} slopeDeg - Local surface slope in degrees.
-   * @returns {string}
-   */
-  #slopeSemantic(slopeDeg) {
-    if (slopeDeg <= 5.0) return "Terreno plano (Apto HLS, CLPS y Rover)";
-    if (slopeDeg <= 10.0) return "Pendiente moderada (Apto CLPS y Rover)";
-    if (slopeDeg <= 20.0) return "Pendiente pronunciada (Solo Rover)";
-    return "Escarpado (Riesgo alto de vuelco)";
-  }
-
-  /**
-   * Returns a human-readable engineering interpretation for RMS surface roughness.
-   * @param {number} roughnessM - RMS surface roughness in meters.
-   * @returns {string}
-   */
-  #roughnessSemantic(roughnessM) {
-    if (roughnessM <= 0.8) return "Riesgo bajo de rocas";
-    if (roughnessM <= 1.5) return "Riesgo moderado de bloques";
-    return "Terreno rugoso / eyecciones";
-  }
-
-  /**
-   * Renders the full site detail view including GO/NO-GO banner, sky panorama,
-   * timeline, 4-axis radar chart, 2.5D terrain patch, and local topography summary.
-   * @param {Object} sky - Detailed evaluation payload from /api/sites/{id}/sky.
-   * @param {Object} timeline - Time-series payload from /api/sites/{id}/timeline.
-   * @param {{ inCompare: boolean, compareFull: boolean, patch?: Object|null }} options
-   */
-  render(sky, timeline, { inCompare, compareFull, patch = null }) {
+  render(sky, timeline, { patch = null } = {}) {
     const { site, config } = sky;
     const days = config.window_days;
     const topo = sky.topography ?? {};
@@ -142,13 +150,14 @@ export class DetailPanel {
       : slopeDeg <= 5 ? "Segura (≤ 5°)" : slopeDeg <= 10 ? "Moderada (5–10°)" : "Pronunciada (> 10°)";
 
     this.siteId = site.id;
-    this.root.querySelector(".detail-title").textContent = site.name;
+    this.root.querySelector(".detail-title").textContent = siteName(site);
     this.body.removeAttribute("aria-busy");
 
     const meta = [site.mission, site.agency, site.year].filter(Boolean).join(" · ");
+    const notes = siteNotes(site);
     const goBanner = sky.viable
-      ? `<div class="readiness-banner go" role="status"><span class="badge">GO</span><span>Apto para aterrizar el ${escapeHtml(formatUtc(sky.date))} · Pendiente ${slopeDeg.toFixed(1)}° ≤ ${maxSlopeDeg.toFixed(1)}°</span></div>`
-      : `<div class="readiness-banner nogo" role="alert"><span class="badge">NO-GO</span><span>${escapeHtml(notViableReason(sky))}</span></div>`;
+      ? `<div class="readiness-banner go" role="status"><span class="badge">GO</span><span>${escapeHtml(t("verdict.viableAt", { date: formatUtc(sky.date) }))} · Pendiente ${slopeDeg.toFixed(1)}° ≤ ${maxSlopeDeg.toFixed(1)}°</span></div>`
+      : `<div class="readiness-banner nogo" role="alert"><span class="badge">NO-GO</span><span>${escapeHtml(t("verdict.notViableBecause", { reason: notViableReason(sky) }))}</span></div>`;
     const slopeWarning = !sky.viable && !slopeOk
       ? `<p class="slope-warning" role="alert">Advertencia de seguridad: la pendiente local (${slopeDeg.toFixed(1)}°) supera el límite del aterrizador (${maxSlopeDeg.toFixed(1)}°).</p>`
       : "";
@@ -156,45 +165,46 @@ export class DetailPanel {
       const c = countdown(body, sky[body], days);
       return `<div class="counter ${c.tone}"><b>${escapeHtml(c.main)}</b><span>${escapeHtml(c.detail)}</span></div>`;
     }).join("");
+    const plain = plainSummary(sky).map((line) => `<li>${escapeHtml(line)}</li>`).join("");
     const source = site.source?.url
       ? `<a href="${escapeHtml(site.source.url)}" target="_blank" rel="noopener">${escapeHtml(site.source.name)}</a>`
       : "";
-    const compareButton = inCompare
-      ? `<button type="button" disabled>En la comparación</button>`
-      : `<button type="button" data-action="compare" ${compareFull ? "disabled title=\"Máximo 4 escenarios\"" : ""}>Agregar a comparación</button>`;
     const removeButton = site.category === "personalizado"
-      ? `<button type="button" data-action="remove">Quitar sitio</button>` : "";
+      ? `<button type="button" data-action="remove">${t("detail.remove")}</button>` : "";
 
     this.body.innerHTML = `
       <p class="muted">${escapeHtml(meta)}${meta ? "<br>" : ""}${site.lat.toFixed(4)}°, ${site.lon.toFixed(4)}°
-        · ${escapeHtml(PRECISION_NOTES[site.precision] ?? "")}</p>
-      ${site.notes ? `<p class="note">${escapeHtml(site.notes)}</p>` : ""}
+        · ${escapeHtml(t(`precision.${site.precision}`))}</p>
+      ${notes ? `<p class="note">${escapeHtml(notes)}</p>` : ""}
       ${goBanner}
       ${slopeWarning}
       <div class="counters">${counters}</div>
 
-      <h3>Cielo desde el sitio</h3>
-      <div class="sky-container"></div>
-      <p class="caption">Posición al aterrizar y trayectoria durante ${days} días (un punto por día).
-        ${horizonText(sky.horizon)}</p>
+      <section class="plain simple-only" aria-label="${t("detail.plainTitle")}">
+        <ul>${plain}</ul>
+      </section>
 
-      <h3>Línea de tiempo</h3>
+      <h3>${t("detail.sky")}</h3>
+      <div class="sky-container"></div>
+      <p class="caption">${escapeHtml(t("detail.skyCaption", { days }))} ${horizonText(sky.horizon)}</p>
+
+      <h3>${t("detail.timeline")}</h3>
       <div class="timeline-container"></div>
 
-      <h3>Huella de misión (4 pilares)</h3>
+      <h3>${t("detail.score")}</h3>
       <div class="radar-container"></div>
-      ${scoreBar("Energía (E)", sky.scores.energy, "Luz solar durante la ventana y continuidad desde el aterrizaje")}
-      ${scoreBar("Comunicación (C)", sky.scores.communication, "Fracción de la ventana con la Tierra visible")}
-      ${scoreBar("Terreno (T)", sky.scores.terrain ?? 0, "Seguridad topográfica según pendiente local y rugosidad")}
-      ${scoreBar("Seguridad (A)", sky.scores.asteroid ?? 0, "Blindaje balístico del horizonte (SVF) y baja rugosidad de rocas")}
-      ${scoreBar("Global", sky.scores.total, "Promedio ponderado de energía, comunicación y terreno")}
+      ${scoreBar("detail.energy", sky.scores.energy, "detail.energyHint")}
+      ${scoreBar("detail.communication", sky.scores.communication, "detail.communicationHint")}
+      ${scoreBarRaw("Terreno (T)", sky.scores.terrain ?? 0, "Seguridad topográfica según pendiente local y rugosidad")}
+      ${scoreBarRaw("Seguridad (A)", sky.scores.asteroid ?? 0, "Blindaje balístico del horizonte (SVF) y baja rugosidad de rocas")}
+      ${scoreBar("detail.total", sky.scores.total, "detail.totalHint")}
 
       <h3>Topografía local</h3>
       <div class="topography-summary">
         <div>
           <span class="muted">Pendiente</span>
           <b>${slopeDeg.toFixed(1)}° <span class="slope-badge ${slopeTone}">${escapeHtml(slopeLabel)}</span></b>
-          <small class="muted">${escapeHtml(this.#slopeSemantic(slopeDeg))}</small>
+          <small class="muted">${slopeDeg <= 5 ? "Terreno plano (Apto HLS, CLPS y Rover)" : slopeDeg <= 10 ? "Pendiente moderada (Apto CLPS y Rover)" : slopeDeg <= 20 ? "Pendiente pronunciada (Solo Rover)" : "Escarpado (Riesgo alto)"}</small>
         </div>
         <div>
           <span class="muted">Elevación</span>
@@ -204,7 +214,7 @@ export class DetailPanel {
         <div>
           <span class="muted">Rugosidad RMS</span>
           <b>${topo.roughness_m != null ? `${roughnessM.toFixed(2)} m` : "—"}</b>
-          <small class="muted">${escapeHtml(this.#roughnessSemantic(roughnessM))}</small>
+          <small class="muted">${roughnessM <= 0.8 ? "Riesgo bajo de rocas" : roughnessM <= 1.5 ? "Riesgo moderado de bloques" : "Terreno rugoso / eyecciones"}</small>
         </div>
       </div>
 
@@ -214,25 +224,34 @@ export class DetailPanel {
       <p class="caption">Arrastra para rotar el relieve local (${patch.size}×${patch.size} celdas, ${patch.spacing_m} m/celda). Verde ≤ 5° · Ámbar 5–10° · Rojo &gt; 10°.</p>
       ` : ""}
 
-      <h3>Métricas en ${days} días</h3>
-      <table class="metrics">
-        <thead><tr><th></th><th>Sol</th><th>Tierra</th></tr></thead>
-        <tbody>
-          <tr><th>Elevación al aterrizar</th><td>${formatDegrees(sky.sun.elevation_deg)}</td><td>${formatDegrees(sky.earth.elevation_deg)}</td></tr>
-          <tr><th>Azimut al aterrizar</th><td>${formatDegrees(sky.sun.azimuth_deg)}</td><td>${formatDegrees(sky.earth.azimuth_deg)}</td></tr>
-          <tr><th>Elevación máxima</th><td>${formatDegrees(sky.sun.max_elevation_deg)}</td><td>${formatDegrees(sky.earth.max_elevation_deg)}</td></tr>
-          <tr><th>Horas visible</th><td>${formatDuration(sky.sun.visible_hours)}</td><td>${formatDuration(sky.earth.visible_hours)}</td></tr>
-          <tr><th>Fracción visible</th><td>${Math.round(sky.sun.visible_fraction * 100)} %</td><td>${Math.round(sky.earth.visible_fraction * 100)} %</td></tr>
-        </tbody>
-      </table>
+      <div class="tech-only">
+        <h3>${t("detail.metrics", { days })}</h3>
+        <table class="metrics">
+          <thead><tr><th></th><th scope="col">${t("body.sun")}</th><th scope="col">${t("body.earth")}</th></tr></thead>
+          <tbody>
+            <tr><th scope="row">${t("detail.elevationLanding")}</th><td>${formatDegrees(sky.sun.elevation_deg)}</td><td>${formatDegrees(sky.earth.elevation_deg)}</td></tr>
+            <tr><th scope="row">${t("detail.azimuthLanding")}</th><td>${formatDegrees(sky.sun.azimuth_deg)}</td><td>${formatDegrees(sky.earth.azimuth_deg)}</td></tr>
+            <tr><th scope="row">${t("detail.maxElevation")}</th><td>${formatDegrees(sky.sun.max_elevation_deg)}</td><td>${formatDegrees(sky.earth.max_elevation_deg)}</td></tr>
+            <tr><th scope="row">${t("detail.visibleHours")}</th><td>${formatDuration(sky.sun.visible_hours)}</td><td>${formatDuration(sky.earth.visible_hours)}</td></tr>
+            <tr><th scope="row">${t("detail.visibleFraction")}</th><td>${Math.round(sky.sun.visible_fraction * 100)} %</td><td>${Math.round(sky.earth.visible_fraction * 100)} %</td></tr>
+          </tbody>
+        </table>
 
-      <h3>Ventanas de luz solar</h3>
-      <ul class="windows">${windowsList(sky.sun.windows)}</ul>
-      <h3>Ventanas de comunicación directa</h3>
-      <ul class="windows">${windowsList(sky.earth.windows)}</ul>
+        <h3>${t("detail.sunWindows")}</h3>
+        <ul class="windows">${windowsList(sky.sun.windows)}</ul>
+        <h3>${t("detail.earthWindows")}</h3>
+        <ul class="windows">${windowsList(sky.earth.windows)}</ul>
+      </div>
 
-      <div class="actions">${compareButton}${removeButton}</div>
-      ${source ? `<p class="caption">Fuente de la coordenada: ${source}</p>` : ""}`;
+      <h3>${t("detail.bestTitle")}</h3>
+      <div class="best-dates">
+        <button type="button" data-action="best-dates">${t("detail.bestSearch", { days: BEST_DATES_DAYS })}</button>
+        <p class="caption tech-only">${t("detail.bestHelp", { step: BEST_DATES_STEP_HOURS })}</p>
+        <div class="best-results" aria-live="polite"></div>
+      </div>
+
+      <div class="actions">${removeButton}</div>
+      ${source ? `<p class="caption">${t("detail.source", { source })}</p>` : ""}`;
 
     const skyView = renderSky(this.body.querySelector(".sky-container"), sky, timeline);
     renderTimeline(this.body.querySelector(".timeline-container"), timeline, {
@@ -242,6 +261,32 @@ export class DetailPanel {
     if (patch) {
       renderTerrainPatch(this.body.querySelector(".terrain-patch-container"), patch, maxSlopeDeg);
     }
+  }
+
+  showBestDatesLoading(count) {
+    const box = this.body.querySelector(".best-results");
+    if (box) box.innerHTML = `<p class="muted">${t("detail.bestSearching", { count })}</p>`;
+  }
+
+  showBestDates(data) {
+    const box = this.body.querySelector(".best-results");
+    if (!box) return;
+    const viable = data.results.filter((r) => r.viable);
+    if (!viable.length) {
+      box.innerHTML = `<p class="muted">${t("detail.bestNone", { days: data.days })}</p>`;
+      return;
+    }
+    box.innerHTML = `<ol class="best-list">${viable.map((r) => `
+      <li>
+        <span>${escapeHtml(formatUtc(r.date))}<small>${t("detail.bestScore", { score: Math.round(r.scores.total) })}
+          · ${t("list.energyShort")} ${Math.round(r.scores.energy)} · ${t("list.commShort")} ${Math.round(r.scores.communication)}</small></span>
+        <button type="button" data-use-date="${escapeHtml(r.date)}">${t("detail.bestUse")}</button>
+      </li>`).join("")}</ol>`;
+  }
+
+  showBestDatesError(message) {
+    const box = this.body.querySelector(".best-results");
+    if (box) box.innerHTML = `<p class="error">${escapeHtml(t("detail.bestError", { message }))}</p>`;
   }
 
   close() {
