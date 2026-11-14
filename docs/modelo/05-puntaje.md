@@ -64,7 +64,7 @@ $$
 
 ### Efecto del relieve
 
-Ejemplo real del modelo para un aterrizaje el 15/12/2026: en IM-2 el Sol está a +2,2°, pero el relieve lo tapa, así que el sitio no es viable con terreno y sí lo sería con horizonte esférico. Cinco de los seis sitios polares cambian de veredicto al considerar el relieve.
+Ejemplo real del modelo para un aterrizaje el 15/12/2026: en IM-2 el Sol está a +2,2°, pero el relieve lo tapa, así que el sitio no es viable con terreno y sí lo sería con horizonte esférico. Ese día, tres de los seis sitios polares cambian de veredicto al considerar el relieve con el margen de 2° para la Tierra (cinco con margen 0°).
 
 ## Supuestos del equipo, pendientes de respaldar
 
