@@ -1,4 +1,8 @@
 // Controlador del frontend: mantiene el estado y conecta la API con las vistas.
+//
+// Flujo: portada (#intro, la Luna enorme y un saludo) → "Comenzar" aleja la cámara hasta ver la Luna
+// entera con solo los puntos (#explorar). Ahí se elige un sitio (aparece su ficha) o varios (aparece
+// el botón Comparar). La configuración vive en el panel del engranaje.
 
 import {
   fetchBestDates,
@@ -10,7 +14,7 @@ import {
   fetchTimeline,
   isoUtc,
 } from "./api.js";
-import { formatUtc, siteRef } from "./format.js";
+import { siteRef } from "./format.js";
 import { hydrateIcons } from "./icons.js";
 import { getLang, LANGUAGES, onLangChange, setLang, siteName, t } from "./i18n.js";
 import { createRouter } from "./router.js";
@@ -18,24 +22,31 @@ import { readUrlState, writeUrlState } from "./urlState.js";
 import { CompareView } from "./views/CompareView.js";
 import { Controls } from "./views/Controls.js";
 import { CustomSiteForm } from "./views/CustomSiteForm.js";
-import { IntroView } from "./views/IntroView.js";
 import { BEST_DATES_DAYS, BEST_DATES_STEP_HOURS, DetailPanel } from "./views/DetailPanel.js";
+import { exploreViewsFor, getExploreView, registerExploreView, StageHost } from "./views/exploreViews.js";
 import { GlobeView } from "./views/GlobeView.js";
+import { HeroView } from "./views/HeroView.js";
 import { SettingsPanel, DEFAULT_CONFIG } from "./views/SettingsPanel.js";
+import { SiteCard } from "./views/SiteCard.js";
 import { SiteList } from "./views/SiteList.js";
 import { notViableReason } from "./views/encoding.js";
+import { registerTerrain } from "./views/terrain/index.js";
 
 hydrateIcons();
 
-const MAX_COMPARE = 4;
-const WIDE = 760;
+const MAX_SELECTED = 4; // la comparación admite de 2 a 4 sitios
 const MODES = ["simple", "tecnico"];
+const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 const statusEl = document.getElementById("status");
 const tooltip = document.getElementById("tooltip");
-const leftColumn = document.getElementById("left");
-const sidebar = document.getElementById("sidebar");
-const compareBar = document.getElementById("compare-bar");
+const drawer = document.getElementById("drawer");
+const gear = document.getElementById("gear");
+const legendCard = document.getElementById("legend-card");
+const legendToggle = document.getElementById("legend-toggle");
+const selbar = document.getElementById("selbar");
+const explore = document.getElementById("sec-explorar");
 
 const state = {
   sites: new Map(), // catálogo + personalizados, por id
@@ -45,8 +56,10 @@ const state = {
   config: { ...DEFAULT_CONFIG },
   mode: "simple",
   playing: false,
-  selectedId: null,
-  compare: [], // [{ ref, date }]
+  selected: [], // ids elegidos, en orden de elección (máximo MAX_SELECTED)
+  selectedId: null, // el último elegido: el de la ficha y el detalle
+  detailOpen: false,
+  current: null, // { id, sky, timeline } del sitio activo
   status: { key: "status.connecting", params: {}, kind: "" },
   request: 0,
   detailRequest: 0,
@@ -69,18 +82,17 @@ function setStatus(key, params = {}, kind = "") {
 }
 
 function syncUrl() {
-  // En la intro la dirección queda limpia (#intro); el escenario se escribe al entrar a la app.
+  // En la portada la dirección queda limpia (#intro); el escenario se escribe al entrar a la app.
   if (document.body.dataset.section === "intro") return;
   writeUrlState({
     date: state.date,
-    site: state.selectedId,
+    selected: state.selected.map(siteRef),
     mode: state.mode,
     lang: getLang(),
     config: state.config,
     custom: [...state.sites.values()]
       .filter((s) => s.category === "personalizado")
       .map((s) => ({ lat: s.lat, lon: s.lon, name: s.userName ?? "" })),
-    compare: state.compare,
   });
 }
 
@@ -115,21 +127,17 @@ const globe = new GlobeView(document.getElementById("globe"), {
     for (const el of document.querySelectorAll("#relief-on, #relief-ex")) el.disabled = status !== "ready";
     document.getElementById("relief-note").hidden = status !== "unavailable";
   },
-  onSelect: (id) => select(id),
-  occluded: () => (window.innerWidth > WIDE
-    ? { left: leftColumn.offsetWidth + 16, right: sidebar.offsetWidth + 16 }
-    : { left: 0, right: 0 }),
+  onSelect: (id) => toggleSelect(id),
 });
 
-const list = new SiteList(sidebar, {
-  onSelect: (id) => select(id),
-  onHover: (id) => globe.select(id ?? state.selectedId),
+const list = new SiteList(drawer, {
+  onSelect: (id) => toggleSelect(id),
+  onHover: (id) => globe.setHover(id),
 });
 list.setSites(state.sites);
 
 const detail = new DetailPanel(document.getElementById("detail"), {
-  onClose: () => select(null),
-  onCompare: (id) => addToCompare(id),
+  onClose: () => closeDetail(),
   onRemove: (id) => removeCustomSite(id),
   onFindBestDates: (id) => findBestDates(id),
   onUseDate: (date) => {
@@ -138,18 +146,24 @@ const detail = new DetailPanel(document.getElementById("detail"), {
   },
 });
 
+const card = new SiteCard(document.getElementById("sitecard"), {
+  onDetail: () => openDetail(),
+  onRemove: () => deselect(state.selectedId),
+  onOpenView: (id) => openStageView(id),
+});
+
 const compareView = new CompareView(document.getElementById("compare"), {
   onClose: () => compareView.close(),
   onRemove: (index) => {
-    state.compare.splice(index, 1);
-    renderCompareBar();
-    syncUrl();
-    if (state.compare.length < 2) compareView.close();
+    state.selected.splice(index, 1);
+    applySelection();
+    if (state.selected.length < 2) compareView.close();
     else openCompare();
   },
   onOpenSite: (id) => {
     compareView.close();
-    select(id);
+    state.selected = [id];
+    applySelection({ fly: true });
   },
 });
 
@@ -157,14 +171,14 @@ new CustomSiteForm(document.getElementById("custom-site"), {
   onAdd: (lat, lon, name) => addCustomSite(lat, lon, name),
 });
 
-const controls = new Controls(document.getElementById("controls"), {
+const controls = new Controls(explore, {
   onDateChange: (date) => loadDate(date),
-  // Durante la animación solo se actualizan el globo y la lista; el detalle, al pausar.
+  // Durante la animación solo se actualizan el globo y la lista; la ficha, al pausar.
   onPlayChange: (playing) => {
     state.playing = playing;
     if (!playing) {
       syncUrl();
-      if (state.selectedId) loadDetail();
+      if (state.selectedId) loadActive();
     }
   },
   onView: (view) => {
@@ -181,36 +195,93 @@ const settings = new SettingsPanel(document.getElementById("settings"), {
   },
 });
 
-new ResizeObserver(() => globe.refreshLayout()).observe(leftColumn);
-
-// Intro: el gancho se muestra la primera vez (o con ?intro); "Iniciar" y "Saltar" recuerdan que ya se vio.
-const intro = new IntroView(document.getElementById("sec-intro"), {
-  markSeen: () => stored.set("introSeen", "1"),
-  navigate: () => router.go("explorar"),
+// Vistas adicionales (topografía, etc.): se abren a pantalla completa sobre el globo.
+const stage = new StageHost(document.getElementById("stage"), {
+  onOpen: () => {
+    globe.setActive(false);
+    document.body.classList.add("stage-open");
+    tooltip.hidden = true;
+  },
+  onClose: () => {
+    document.body.classList.remove("stage-open");
+    globe.setActive(document.body.dataset.section !== "comparar");
+  },
 });
-const forceHook = new URLSearchParams(window.location.search).has("intro");
-let introShown = false;
+registerTerrain({ registerExploreView });
 
-// Tres partes: intro, vista general y comparación. Fuera de la vista general se pausa el globo y
-// la animación del tiempo, y se oculta el tooltip.
+function stageContext() {
+  const { sky } = state.current ?? {};
+  return { site: sky?.site ?? state.sites.get(state.selectedId), sky, date: state.date, config: state.config, globe };
+}
+
+function openStageView(id) {
+  const view = getExploreView(id);
+  if (view && state.current) stage.open(view, stageContext());
+}
+
+// --- Portada y navegación ---------------------------------------------------------
+
+const hero = new HeroView(document.getElementById("sec-intro"), { onStart: () => enterExplore() });
+let entering = false;
+
+// "Comenzar": el texto se va, la cámara se aleja hasta ver la Luna entera y aparecen los puntos.
+async function enterExplore() {
+  if (entering) return;
+  entering = true;
+  stored.set("introSeen", "1");
+  document.body.classList.add("hero-leaving");
+  globe.setFraming("overview", { animate: true, durationMs: 1900 });
+  await sleep(reducedMotion.matches ? 0 : 1100);
+  router.go("explorar");
+  document.body.classList.remove("hero-leaving");
+  entering = false;
+}
+
+// Tres partes: portada, vista general y comparación. En la comparación se pausa el globo.
 const router = createRouter({
-  // Quien ya vio la intro abre directo en la vista general; "Inicio" (#intro) siempre la muestra.
+  // Quien ya vio la portada abre directo en la vista general; "Inicio" (#intro) siempre la muestra.
   defaultSection: () => (stored.get("introSeen") ? "explorar" : "intro"),
   onChange: (section, previous) => {
+    globe.setActive(section !== "comparar" && !stage.isOpen);
     if (section === "intro") {
-      intro.show({ hook: !introShown && (forceHook || !stored.get("introSeen")) });
-      introShown = true;
-    } else {
-      intro.hide();
+      globe.setFraming("hero", { animate: previous === "explorar" });
+    } else if (section === "explorar" && !entering) {
+      globe.setFraming("overview", { animate: previous === "intro" });
     }
-    globe.setActive(section === "explorar");
-    // Al entrar desde la intro se escribe el escenario; en la carga inicial lo hace start(), después de leer la URL.
+    // Al entrar desde la portada se escribe el escenario; en la carga inicial lo hace start(), después de leer la URL.
     if (previous === "intro") syncUrl();
     if (section !== "explorar") {
       controls.stop();
       tooltip.hidden = true;
+      setDrawer(false);
+      stage.close();
     }
   },
+});
+
+// --- Panel del engranaje y leyenda ---------------------------------------------------
+
+function setDrawer(open) {
+  drawer.hidden = !open;
+  gear.setAttribute("aria-expanded", open);
+  document.body.classList.toggle("drawer-open", open);
+}
+
+function setLegend(open) {
+  legendCard.hidden = !open;
+  legendToggle.setAttribute("aria-expanded", open);
+}
+
+gear.addEventListener("click", () => setDrawer(drawer.hidden));
+document.getElementById("drawer-close").addEventListener("click", () => {
+  setDrawer(false);
+  gear.focus();
+});
+legendToggle.addEventListener("click", () => setLegend(legendCard.hidden));
+document.addEventListener("keydown", (event) => {
+  if (event.key !== "Escape") return;
+  if (!drawer.hidden) setDrawer(false);
+  if (!legendCard.hidden) setLegend(false);
 });
 
 function updateLegendDays() {
@@ -246,10 +317,11 @@ onLangChange(() => {
   router.refreshTitle();
   setStatus(state.status.key, state.status.params, state.status.kind);
   updateLegendDays();
+  hero.render();
   list.refresh();
-  renderCompareBar();
+  renderSelection();
   compareView.refresh();
-  if (state.selectedId) loadDetail();
+  if (state.selectedId) loadActive();
 });
 
 for (const button of document.querySelectorAll("[data-mode]")) {
@@ -265,28 +337,80 @@ for (const button of document.querySelectorAll("[data-lang]")) {
   });
 }
 
-// --- Selección y detalle ----------------------------------------------------
+// --- Selección: un sitio muestra su ficha; dos o más muestran el botón Comparar ---------
 
-function select(id) {
-  state.selectedId = id;
-  globe.select(id);
-  list.select(id);
-  document.body.classList.toggle("detail-open", Boolean(id));
-  syncUrl();
-  if (!id) {
-    detail.close();
-    return;
+// Elegir o quitar un sitio (clic en un punto o en la lista).
+function toggleSelect(id) {
+  const at = state.selected.indexOf(id);
+  if (at >= 0) {
+    state.selected.splice(at, 1);
+    applySelection();
+  } else {
+    state.selected.push(id);
+    if (state.selected.length > MAX_SELECTED) state.selected.shift(); // el más antiguo sale
+    applySelection({ fly: true });
   }
-  globe.focusSite(id);
-  loadDetail();
 }
 
-async function loadDetail() {
+function deselect(id) {
+  state.selected = state.selected.filter((x) => x !== id);
+  applySelection();
+}
+
+// `fly`: centrar el último elegido; solo se acerca la cámara si es el único (con varios se deja a la vista el resto).
+function applySelection({ fly = false } = {}) {
+  state.selectedId = state.selected.at(-1) ?? null;
+  globe.setSelection(state.selected);
+  list.setSelection(state.selected);
+  renderSelection();
+  syncUrl();
+  if (!state.selectedId) {
+    card.hide();
+    closeDetail();
+    state.current = null;
+    return;
+  }
+  if (fly) globe.focusSite(state.selectedId, { zoomTo: state.selected.length === 1 ? 2.4 : Infinity });
+  loadActive();
+}
+
+// Barra de abajo: aparece con 2 o más sitios elegidos.
+function renderSelection() {
+  const n = state.selected.length;
+  selbar.hidden = n < 2;
+  document.body.classList.toggle("has-selbar", n >= 2);
+  document.getElementById("sel-compare").textContent = t("sel.compare", { count: n });
+  const chips = document.getElementById("sel-chips");
+  chips.replaceChildren(...state.selected.map((id) => {
+    const site = state.sites.get(id);
+    const name = site ? siteName(site) : id;
+    const li = document.createElement("li");
+    const label = document.createElement("span");
+    label.textContent = name;
+    const remove = document.createElement("button");
+    remove.type = "button";
+    remove.textContent = "✕";
+    remove.setAttribute("aria-label", t("sel.remove", { name }));
+    remove.addEventListener("click", () => deselect(id));
+    li.append(label, remove);
+    return li;
+  }));
+}
+
+document.getElementById("sel-compare").addEventListener("click", () => openCompare());
+document.getElementById("sel-clear").addEventListener("click", () => {
+  state.selected = [];
+  applySelection();
+});
+
+// Ficha (siempre) y detalle (si está abierto) del sitio activo, con los datos de la fecha elegida.
+async function loadActive() {
   const id = state.selectedId;
   const site = state.sites.get(id);
   if (!site) return;
   const request = ++state.detailRequest;
-  detail.showLoading(site);
+  card.showLoading(site);
+  if (state.detailOpen) detail.showLoading(site);
   try {
     const ref = siteRef(id);
     const [sky, timeline] = await Promise.all([
@@ -295,13 +419,31 @@ async function loadDetail() {
     ]);
     if (request !== state.detailRequest) return;
     sky.site = { ...sky.site, ...site }; // conserva nombres y traducciones del lado del cliente
-    detail.render(sky, timeline, {
-      inCompare: state.compare.some((c) => c.ref === ref && c.date.getTime() === state.date.getTime()),
-      compareFull: state.compare.length >= MAX_COMPARE,
-    });
+    state.current = { id, sky, timeline };
+    card.render(sky, { selectedCount: state.selected.length, views: exploreViewsFor(site) });
+    if (state.detailOpen) detail.render(sky, timeline);
+    if (stage.isOpen) stage.update(stageContext());
   } catch (error) {
-    if (request === state.detailRequest) detail.showError(error.message);
+    if (request !== state.detailRequest) return;
+    card.showError(error.message);
+    if (state.detailOpen) detail.showError(error.message);
   }
+}
+
+function openDetail() {
+  if (!state.selectedId) return;
+  state.detailOpen = true;
+  document.body.classList.add("detail-open");
+  const site = state.sites.get(state.selectedId);
+  detail.showLoading(site);
+  if (state.current?.id === state.selectedId) detail.render(state.current.sky, state.current.timeline);
+  else loadActive();
+}
+
+function closeDetail() {
+  state.detailOpen = false;
+  document.body.classList.remove("detail-open");
+  detail.close();
 }
 
 async function findBestDates(id) {
@@ -334,8 +476,11 @@ async function addCustomSite(lat, lon, name, { selectIt = true } = {}) {
   state.scores.set(site.id, sky);
   globe.setScores([sky]);
   list.setScores([...state.scores.values()]);
-  if (selectIt) select(site.id);
-  else syncUrl();
+  if (selectIt) {
+    if (!state.selected.includes(site.id)) toggleSelect(site.id);
+  } else {
+    syncUrl();
+  }
 }
 
 function removeCustomSite(id) {
@@ -343,48 +488,28 @@ function removeCustomSite(id) {
   state.scores.delete(id);
   globe.removeSite(id);
   list.setScores([...state.scores.values()]);
-  select(null);
+  state.selected = state.selected.filter((x) => x !== id);
+  applySelection();
 }
 
-// --- Comparación ------------------------------------------------------------
-
-// Un sitio de la comparación: por id del catálogo o por "lat,lon" (con cualquier cantidad de decimales).
+// Un sitio por su referencia: id del catálogo o "lat,lon" (con cualquier cantidad de decimales).
 function siteForRef(ref) {
   const match = /^(-?[\d.]+),(-?[\d.]+)$/.exec(ref);
   const id = match ? `custom:${Number(match[1]).toFixed(4)},${Number(match[2]).toFixed(4)}` : ref;
   return state.sites.get(id);
 }
 
-function compareName(ref) {
-  const site = siteForRef(ref);
-  return site ? siteName(site) : ref;
-}
-
-function addToCompare(id) {
-  if (state.compare.length >= MAX_COMPARE) return;
-  state.compare.push({ ref: siteRef(id), date: state.date });
-  renderCompareBar();
-  syncUrl();
-  loadDetail(); // actualiza el botón del panel
-}
-
-function renderCompareBar() {
-  const n = state.compare.length;
-  compareBar.hidden = n === 0;
-  compareBar.querySelector(".compare-count").textContent =
-    t("compare.count", { count: n, max: MAX_COMPARE }) + (n < 2 ? t("compare.needMore") : "");
-  compareBar.querySelector(".compare-items").replaceChildren(...state.compare.map((c) =>
-    Object.assign(document.createElement("li"), { textContent: `${compareName(c.ref)} — ${formatUtc(c.date)}` })));
-  compareBar.querySelector("[data-action=open-compare]").disabled = n < 2;
-}
+// --- Comparación ------------------------------------------------------------
 
 async function openCompare() {
+  if (state.selected.length < 2) return;
   compareView.open();
   compareView.showMessage(t("compare.computing"));
   try {
-    const data = await fetchComparison(state.compare, state.config);
+    const ids = [...state.selected];
+    const data = await fetchComparison(ids.map((id) => ({ ref: siteRef(id), date: state.date })), state.config);
     data.results.forEach((r, i) => {
-      const site = siteForRef(state.compare[i].ref);
+      const site = state.sites.get(ids[i]);
       if (site) r.site = { ...r.site, ...site };
     });
     compareView.render(data.results);
@@ -393,15 +518,8 @@ async function openCompare() {
   }
 }
 
-compareBar.querySelector("[data-action=open-compare]").addEventListener("click", openCompare);
-compareBar.querySelector("[data-action=clear-compare]").addEventListener("click", () => {
-  state.compare = [];
-  renderCompareBar();
-  syncUrl();
-  if (state.selectedId) loadDetail();
-});
+// --- Relieve y calidad del globo: se recuerdan en el navegador ---------------------------
 
-// Relieve y calidad del globo: se recuerdan en el navegador.
 const reliefOn = document.getElementById("relief-on");
 const reliefEx = document.getElementById("relief-ex");
 const reliefOut = document.getElementById("relief-ex-out");
@@ -433,16 +551,6 @@ globe.setQuality(qualitySelect.value);
 
 // Diagnóstico (?debug): expone el globo para medir el tiempo por cuadro y ver qué textura usa.
 if (new URLSearchParams(window.location.search).has("debug")) window.lunarDebug = { globe };
-
-// En pantallas angostas los controles secundarios se pliegan para dejar ver el globo.
-const moreToggle = document.getElementById("more-toggle");
-moreToggle.addEventListener("click", () => {
-  const open = !document.body.classList.contains("more-open");
-  document.body.classList.toggle("more-open", open);
-  moreToggle.setAttribute("aria-expanded", open);
-  moreToggle.dataset.i18n = open ? "controls.less" : "controls.more";
-  moreToggle.textContent = t(moreToggle.dataset.i18n);
-});
 
 // --- Compartir y exportar -----------------------------------------------------
 
@@ -504,12 +612,13 @@ async function loadDate(date) {
     state.illumination = illumination;
     globe.setScores(all);
     globe.setIllumination(illumination);
+    hero.setIllumination(illumination);
     list.setScores(all);
     const viable = all.filter((s) => s.viable).length;
     setStatus("status.viable", { viable, total: all.length }, "ok");
     if (!state.playing) {
       syncUrl();
-      if (state.selectedId) loadDetail();
+      if (state.selectedId) loadActive();
     }
   } catch (error) {
     if (request === state.request) setStatus("status.error", { message: error.message }, "error");
@@ -525,7 +634,6 @@ async function start() {
   settings.setConfig(state.config);
   updateLegendDays();
   if (fromUrl.date) controls.setDate(fromUrl.date);
-  state.compare = fromUrl.compare.slice(0, MAX_COMPARE);
 
   try {
     const sites = await fetchSites();
@@ -535,9 +643,12 @@ async function start() {
     for (const c of fromUrl.custom) {
       await addCustomSite(c.lat, c.lon, c.name, { selectIt: false }).catch(() => {});
     }
-    renderCompareBar();
-    if (fromUrl.site && state.sites.has(fromUrl.site)) select(fromUrl.site);
-    else if (state.illumination) globe.focusNearSide(state.illumination);
+    // Sitios elegidos en el enlace: con uno solo se centra la cámara en él.
+    state.selected = fromUrl.selected
+      .map((ref) => siteForRef(ref)?.id)
+      .filter(Boolean)
+      .slice(-MAX_SELECTED);
+    if (state.selected.length) applySelection({ fly: state.selected.length === 1 && document.body.dataset.section === "explorar" });
   } catch (error) {
     setStatus("status.offline", { message: error.message }, "error");
   }

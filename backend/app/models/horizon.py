@@ -10,6 +10,7 @@ Sin atmósfera, el horizonte lo fijan el terreno y la curvatura de la esfera:
 
 from __future__ import annotations
 
+import json
 from functools import lru_cache
 from pathlib import Path
 
@@ -20,6 +21,7 @@ from app.models.terrain import HorizonMask, PolarDEM, compute_mask
 
 DATA_DIR = Path(__file__).resolve().parents[2] / "data"
 MASKS_DIR = DATA_DIR / "horizons"
+CACHE_DIR = MASKS_DIR / "cache"
 DEM_DIR = DATA_DIR / "dem"
 
 
@@ -64,21 +66,39 @@ class TerrainHorizon(SphericalHorizon):
 
 
 @lru_cache(maxsize=1)
-def _dem() -> PolarDEM | None:
+def get_dem() -> PolarDEM | None:
     return PolarDEM.open(DEM_DIR)
+
+
+_dem = get_dem  # retrocompatibilidad interna
 
 
 @lru_cache(maxsize=256)
 def terrain_mask(site_id: str, lat: float, lon: float) -> HorizonMask | None:
-    """Máscara precalculada del sitio, o calculada al vuelo; None si no hay datos de terreno."""
+    """Máscara precalculada del sitio, o calculada al vuelo con caché; None si no hay datos de terreno."""
     path = MASKS_DIR / f"{site_id}.json"
     if path.exists():
         mask = HorizonMask.load(path)
         if abs(mask.lat - lat) < 1e-6 and abs(mask.lon - lon) < 1e-6:
             return mask
-    dem = _dem()
+
+    # Caché persistente para coordenadas personalizadas
+    cache_path = CACHE_DIR / f"custom_{round(lat, 4)}_{round(lon, 4)}.json"
+    if cache_path.exists():
+        try:
+            return HorizonMask.load(cache_path)
+        except Exception:
+            pass
+
+    dem = get_dem()
     if dem is not None and PolarDEM.covers(lat):
-        return compute_mask(dem, lat, lon)
+        mask = compute_mask(dem, lat, lon)
+        try:
+            CACHE_DIR.mkdir(parents=True, exist_ok=True)
+            cache_path.write_text(json.dumps(mask.to_json(site_id), indent=2), encoding="utf-8")
+        except Exception:
+            pass
+        return mask
     return None
 
 

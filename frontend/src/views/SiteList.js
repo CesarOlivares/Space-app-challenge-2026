@@ -11,7 +11,7 @@ export class SiteList {
     this.list = root.querySelector("#site-list");
     this.filter = root.querySelector("#filter-south-pole");
     this.onSelect = onSelect;
-    this.selectedId = null;
+    this.selectedIds = new Set();
     this.sites = new Map();
     this.scores = [];
 
@@ -48,12 +48,11 @@ export class SiteList {
     this.#render();
   }
 
-  select(id) {
-    this.selectedId = id;
+  // `ids`: sitios elegidos (puede haber varios).
+  setSelection(ids) {
+    this.selectedIds = new Set(ids);
     for (const row of this.list.querySelectorAll("[data-site-id]")) {
-      const selected = row.dataset.siteId === id;
-      row.setAttribute("aria-selected", selected);
-      if (selected) row.scrollIntoView({ block: "nearest", behavior: "smooth" });
+      row.setAttribute("aria-selected", this.selectedIds.has(row.dataset.siteId));
     }
   }
 
@@ -73,7 +72,7 @@ export class SiteList {
         ? `<span class="status ok">${t("verdict.viable")}</span>`
         : `<span class="status bad">${t("verdict.notViable")}</span><span class="reason">${escape(notViableReason(score))}</span>`;
       return `
-        <li data-site-id="${escape(site.id)}" aria-selected="${site.id === this.selectedId}" tabindex="0">
+        <li data-site-id="${escape(site.id)}" aria-selected="${this.selectedIds.has(site.id)}" tabindex="0">
           <span class="dot" style="background:${color}"></span>
           <span class="name">
             ${escape(siteName(site))}

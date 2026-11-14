@@ -69,3 +69,22 @@ export function fetchComparison(scenarios, config) {
     body: { scenarios: scenarios.map((s) => ({ site: s.ref, date: isoUtc(s.date) })) },
   });
 }
+
+export function fetchTerrainCutout(ref, { size = 128, step = 1, format = "json", includeSlopes = true } = {}) {
+  return request(`/api/sites/${encodeURIComponent(ref)}/terrain`, {
+    params: { size, step, format, include_slopes: includeSlopes },
+  });
+}
+
+export function fetchScoresMatrix(startDate, { days = 30, stepHours = 12, sites = null, config = {} } = {}) {
+  const params = {
+    start: isoUtc(startDate),
+    days,
+    step_hours: stepHours,
+    ...configParams(config),
+  };
+  if (sites && sites.length) {
+    params.sites = sites.join(",");
+  }
+  return request("/api/scores/matrix", { params });
+}

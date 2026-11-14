@@ -1,3 +1,4 @@
+from pathlib import Path
 import time
 
 import pytest
@@ -6,6 +7,8 @@ from fastapi.testclient import TestClient
 from app.main import app
 
 DATE = "2026-12-15T00:00:00Z"
+DEM_FILE = Path(__file__).resolve().parents[1] / "data" / "dem" / "ldem_75s_120m.img"
+requires_dem = pytest.mark.skipif(not DEM_FILE.exists(), reason="falta el DEM: ./run.sh data --dem")
 
 
 @pytest.fixture(scope="module")
@@ -127,3 +130,73 @@ def test_errores_de_entrada_claros(client, method, url, kwargs, status):
     response = getattr(client, method)(url, **kwargs)
     assert response.status_code == status
     assert response.json()["detail"]
+
+
+@requires_dem
+def test_terrain_cutout_im2_json(client):
+    res = client.get("/api/sites/im-2/terrain", params={"size": 64, "step": 1})
+    assert res.status_code == 200
+    assert "public, max-age=86400, immutable" in res.headers.get("Cache-Control", "")
+    data = res.json()
+    assert data["site"]["id"] == "im-2"
+    assert data["grid"]["width"] == 64
+    assert data["grid"]["height"] == 64
+    assert len(data["elevations_m"]) == 64 * 64
+    assert len(data["slopes_deg"]) == 64 * 64
+    assert data["grid"]["min_elevation_m"] <= data["grid"]["max_elevation_m"]
+    assert 0 <= data["grid"]["safe_landing_fraction"] <= 1.0
+
+
+@requires_dem
+def test_terrain_cutout_base64(client):
+    res = client.get("/api/sites/im-2/terrain", params={"size": 32, "format": "base64"})
+    assert res.status_code == 200
+    data = res.json()
+    assert "elevations_b64" in data
+    assert "slopes_b64" in data
+
+
+@requires_dem
+def test_terrain_cutout_binary(client):
+    res = client.get("/api/sites/im-2/terrain", params={"size": 32, "format": "binary"})
+    assert res.status_code == 200
+    assert res.headers["Content-Type"] == "application/octet-stream"
+    assert res.headers["X-Grid-Width"] == "32"
+    assert len(res.content) == 32 * 32 * 4  # 32x32 float32
+
+
+@requires_dem
+def test_terrain_cutout_ecuador_error(client):
+    # Apollo 11 está en el ecuador, fuera del DEM polar LOLA
+    res = client.get("/api/sites/apollo-11/terrain")
+    assert res.status_code == 422
+    assert "fuera de la cobertura del DEM polar" in res.json()["detail"]
+
+
+def test_scores_matrix_periodo(client):
+    res = client.get("/api/scores/matrix", params={"start": DATE, "days": 10, "step_hours": 24})
+    assert res.status_code == 200
+    data = res.json()
+    assert len(data["dates"]) == 11
+    assert len(data["sites"]) == 22
+    for site_entry in data["sites"]:
+        assert len(site_entry["series"]) == 11
+        first_point = site_entry["series"][0]
+        assert "viable" in first_point
+        assert "total" in first_point
+        assert "energy" in first_point
+        assert "communication" in first_point
+
+
+def test_scores_matrix_filtrado_sitios(client):
+    res = client.get("/api/scores/matrix", params={"start": DATE, "days": 5, "step_hours": 24, "sites": "im-2,apollo-11"})
+    assert res.status_code == 200
+    data = res.json()
+    assert [s["id"] for s in data["sites"]] == ["im-2", "apollo-11"]
+
+
+def test_gzip_compression(client):
+    # Solicitando gzip para una respuesta grande (> 1000 bytes)
+    res = client.get("/api/scores/matrix", params={"start": DATE, "days": 30, "step_hours": 12}, headers={"Accept-Encoding": "gzip"})
+    assert res.status_code == 200
+    assert res.headers.get("Content-Encoding") == "gzip"

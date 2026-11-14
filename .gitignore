@@ -8,6 +8,7 @@ node_modules/
 # Datos descargados con ./run.sh data
 backend/data/kernels/
 backend/data/dem/
+backend/data/horizons/cache/
 frontend/public/textures/*
 !frontend/public/textures/.gitkeep
 frontend/vendor/

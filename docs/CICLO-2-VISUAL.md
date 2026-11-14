@@ -20,6 +20,8 @@ Se actualiza al subir cada fase. Rama de trabajo: `ciclo-2-visual`.
 | V7 Animaciones | Libre, después de V2 y V5 | — |
 | V8 Auditoría · V9 Despliegue | Al final | — |
 
+> **Rediseño minimalista** (rama `rediseno-minimalista`, ver [REDISENO-MINIMALISTA.md](REDISENO-MINIMALISTA.md)): reemplaza la intro de V2 por una portada como la referencia, avanza buena parte de V5 (vista general mínima) y cambia cómo se compara. Antes de empezar V5 o V6, conviene partir de esa rama o esperar su fusión.
+
 **Cómo tomar una fase libre:** crear una rama desde `ciclo-2-visual`, tocar solo los archivos de su fila (así no se pisan con otra persona) y avisar para fusionar. Cada fase nueva va en su propio archivo (`views/…`, `*.css`) cuando se puede; `styles.css` y `main.js` los comparten varias fases, así que ahí conviene commits chicos y frecuentes.
 
 Para probar: `./run.sh` y abrir http://localhost:8000. El sistema visual se ve en `/design-system.html`.

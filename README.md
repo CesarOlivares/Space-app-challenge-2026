@@ -7,6 +7,8 @@ Lunar Site Explorer: un globo lunar 3D para comparar sitios y fechas de aterriza
 - [API: rutas y formato de las respuestas](docs/API.md)
 - [Modelo matemático y fuentes de los criterios](docs/modelo/README.md)
 - [Ciclo 2: rediseño visual, relieve 3D y estructura en tres partes](docs/CICLO-2-VISUAL.md)
+- [Rediseño minimalista: portada, vista general mínima y comparación por selección](docs/REDISENO-MINIMALISTA.md)
+- [Cómo integrar la topografía](docs/INTEGRAR-TOPOGRAFIA.md)
 - [UX elements: elementos visuales para el frontend](UX%20elements/README.md)
 
 ## Requisitos
@@ -37,6 +39,18 @@ Todo el flujo se opera mediante el comando `./run.sh` en Bash (Linux, macOS o **
    La primera ejecución crea automáticamente el entorno virtual en `backend/.venv` e instala las dependencias. Abre tu navegador en http://localhost:8000. Para usar otro puerto: `PORT=8080 ./run.sh`.
 
 Una vez descargados los datos, la aplicación funciona de forma **100% offline**, sin requerir conexión a internet.
+
+## Uso rápido
+
+- **Portada:** se muestra la primera vez y luego se recuerda; `/?intro` la vuelve a mostrar. "Comenzar" aleja la cámara hasta ver toda la Luna con solo los puntos.
+- **Elegir sitios:** un clic en un punto muestra su ficha; con dos o más elegidos (hasta 4) aparece el botón **Comparar**. El engranaje abre toda la configuración.
+- **Tres partes**, con barra de navegación: `#intro` (01), `#explorar` (02) y `#comparar` (03). Una dirección con un escenario compartido abre directo en la vista general.
+
+- **Simple / Técnico:** el modo simple explica cada resultado en lenguaje llano; el técnico muestra métricas, ventanas y ajustes del puntaje.
+- **ES / EN:** idioma de la interfaz.
+- **Copiar enlace:** la dirección guarda la fecha, el sitio elegido, los ajustes, los sitios personalizados y la comparación; al abrirla se reproduce el mismo escenario.
+- **Exportar CSV:** puntajes de todos los sitios para la fecha actual.
+- **Mejores fechas:** en el detalle de un sitio, busca las mejores fechas de aterrizaje de los próximos 30 días.
 
 ## Pruebas automáticas
 

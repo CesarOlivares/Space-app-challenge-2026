@@ -228,3 +228,79 @@ Content-Type: application/json
   ]
 }
 ```
+
+### `GET /api/scores/matrix`
+
+Matriz temporal de viabilidad y puntajes para múltiples sitios a lo largo de un rango de semanas o meses (V6).
+Respuestas masivas comprimidas automáticamente con GZip (reducción ~90% de transferencia).
+
+Parámetros:
+- `start`: fecha de inicio (ISO 8601 UTC).
+- `days`: duración en días (1 a 90, por defecto 30).
+- `step_hours`: separación en horas entre muestras (1 a 48, por defecto 12).
+- `sites`: lista opcional de IDs o coordenadas separados por coma.
+
+`GET /api/scores/matrix?start=2026-12-01T00:00:00Z&days=30&step_hours=12`
+
+```json
+{
+  "start": "2026-12-01T00:00:00Z",
+  "days": 30.0,
+  "step_hours": 12.0,
+  "config": {"window_days": 14.0, "…": "…"},
+  "dates": ["2026-12-01T00:00:00Z", "…"],
+  "sites": [
+    {
+      "id": "im-2",
+      "name": "IM-2 — Shackleton Connecting Ridge",
+      "lat": -89.444,
+      "lon": 137.444,
+      "category": "candidato",
+      "series": [
+        {
+          "viable": true,
+          "total": 84.2,
+          "energy": 88.0,
+          "communication": 80.4,
+          "sun_elevation_deg": 1.25,
+          "earth_elevation_deg": 4.12
+        }
+      ]
+    }
+  ]
+}
+```
+
+### `GET /api/sites/{sitio}/terrain`
+
+Recorte de relieve 3D LOLA (`LDEM_75S_120M`, 120 m/px) y mapa de pendientes vectorizado centrado en el sitio.
+Aplica a sitios al sur de 80° S. Incluye cabecera `Cache-Control: public, max-age=86400, immutable`.
+
+Parámetros:
+- `size`: tamaño de la grilla cuadrada (32 a 512 píxeles, por defecto 128).
+- `step`: factor de muestreo en píxeles (1 = 120 m/px, 2 = 240 m/px).
+- `format`: `json` (por defecto), `base64` o `binary` (`application/octet-stream` de Float32).
+- `include_slopes`: `true` (por defecto) o `false`.
+
+`GET /api/sites/im-2/terrain?size=128&step=1`
+
+```json
+{
+  "site": {"id": "im-2", "…": "…"},
+  "grid": {
+    "width": 128,
+    "height": 128,
+    "step_m": 120.0,
+    "extent_km": 15.36,
+    "center_elevation_m": 1250.0,
+    "min_elevation_m": -1849.5,
+    "max_elevation_m": 2400.0,
+    "mean_slope_deg": 7.3,
+    "max_slope_deg": 28.4,
+    "safe_landing_fraction": 0.842,
+    "source": "LOLA LDEM_75S_120M (PDS Geosciences)"
+  },
+  "elevations_m": [1250.0, 1252.5, "…"],
+  "slopes_deg": [4.2, 5.1, "…"]
+}
+```

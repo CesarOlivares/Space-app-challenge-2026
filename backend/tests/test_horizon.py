@@ -1,8 +1,13 @@
+from pathlib import Path
+
 import numpy as np
+import pytest
 
 from app.models.horizon import SphericalHorizon, TerrainHorizon, horizon_for
 from app.models.terrain import HorizonMask
 from app.models.site import custom_site
+
+DEM_FILE = Path(__file__).resolve().parents[1] / "data" / "dem" / "ldem_75s_120m.img"
 
 
 def test_horizonte_esferico_es_cero():
@@ -38,3 +43,18 @@ def test_mascara_interpola_y_da_la_vuelta():
                        distance_km=np.zeros(4), max_distance_km=150, observer_height_m=2, source="prueba")
     horizon = TerrainHorizon(mask, margin_deg=1)
     np.testing.assert_allclose(horizon.elevation(np.array([45, 90, 315, 360, -45])), [3, 5, 4, 1, 4])
+
+
+@pytest.mark.skipif(not DEM_FILE.exists(), reason="falta el DEM: ./run.sh data --dem")
+def test_mascara_personalizada_se_guarda_en_cache_y_se_recupera():
+    from app.models.horizon import CACHE_DIR, terrain_mask
+
+    mask1 = terrain_mask("custom:-89.5,45.0", -89.5, 45.0)
+    assert mask1 is not None
+    cache_file = CACHE_DIR / "custom_-89.5_45.0.json"
+    assert cache_file.exists()
+
+    mask2 = terrain_mask("custom:-89.5,45.0", -89.5, 45.0)
+    assert mask2 is not None
+    assert mask2.lat == mask1.lat
+    np.testing.assert_array_equal(mask2.elevation_deg, mask1.elevation_deg)

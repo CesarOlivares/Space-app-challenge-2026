@@ -43,3 +43,23 @@ def test_cumbre_ve_por_debajo_de_cero(dem):
     # Desde la cumbre de Mons Malapert el horizonte cae bajo 0° en buena parte de las direcciones.
     mask = compute_mask(dem, -85.98, -1.67)
     assert np.mean(mask.elevation_deg < 0) > 0.4
+
+
+def test_cutout_polar_site(dem):
+    # IM-2 en cresta conectora de Shackleton
+    cutout = dem.cutout(-89.444, 137.444, size_px=64, step=1)
+    assert cutout.width == 64
+    assert cutout.height == 64
+    assert cutout.step_m == 120.0
+    assert cutout.extent_km == pytest.approx(7.68)
+    assert cutout.elevations_m.shape == (64, 64)
+    assert cutout.slopes_deg.shape == (64, 64)
+    assert -3000 < cutout.center_elevation_m < 3000
+    assert cutout.min_elevation_m <= cutout.max_elevation_m
+    assert 0 <= cutout.mean_slope_deg < 90
+    assert 0 <= cutout.safe_landing_fraction <= 1.0
+
+
+def test_cutout_fuera_de_rango(dem):
+    with pytest.raises(ValueError, match="no cubre"):
+        dem.cutout(0.0, 0.0, size_px=64)
