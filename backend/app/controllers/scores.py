@@ -1,8 +1,7 @@
-from __future__ import annotations
+from datetime import datetime, timedelta
 
-from datetime import datetime
-
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Query
+import numpy as np
 from pydantic import BaseModel, Field
 
 from app.controllers.deps import (
@@ -61,4 +60,59 @@ def compare(
     return {
         "config": config_json(config),
         "results": [evaluation_json(r, detailed=True) for r in results],
+    }
+
+
+@router.get("/scores/matrix")
+def scores_matrix(
+    start: datetime = Depends(landing_date),
+    days: float = Query(30.0, gt=0, le=90, description="Rango de evaluación en días"),
+    step_hours: float = Query(12.0, ge=1.0, le=48.0, description="Separación en horas entre fechas evaluadas"),
+    sites: str | None = Query(None, description="IDs o coordenadas separados por coma. Si se omite, evalúa todo el catálogo"),
+    config: ScoringConfig = Depends(coarse_config),
+    ephemeris: Ephemeris = Depends(get_ephemeris),
+    catalog: dict[str, Site] = Depends(get_catalog),
+) -> dict:
+    """Matriz temporal de viabilidad y puntajes para múltiples sitios a lo largo de un rango de fechas (V6)."""
+    if sites:
+        target_sites = tuple(resolve_site(ref.strip(), catalog) for ref in sites.split(",") if ref.strip())
+    else:
+        target_sites = tuple(catalog.values())
+
+    count = int(np.floor(days * 24 / step_hours + 1e-9)) + 1
+    if count > 500:
+        raise ValueError(f"demasiadas fechas ({count}); máximo 500. Aumenta 'step_hours' o reduce 'days'.")
+
+    dates = [start + timedelta(hours=i * step_hours) for i in range(count)]
+    sites_data = [
+        {
+            "id": s.id,
+            "name": s.name,
+            "lat": s.lat,
+            "lon": s.lon,
+            "category": s.category,
+            "series": [],
+        }
+        for s in target_sites
+    ]
+
+    for d in dates:
+        results = evaluate_all(ephemeris, target_sites, d, config)
+        for i, r in enumerate(results):
+            sites_data[i]["series"].append({
+                "viable": r.viable,
+                "total": round(r.total, 1),
+                "energy": round(r.energy, 1),
+                "communication": round(r.communication, 1),
+                "sun_elevation_deg": round(r.sun.elevation_deg, 2),
+                "earth_elevation_deg": round(r.earth.elevation_deg, 2),
+            })
+
+    return {
+        "start": iso(start),
+        "days": days,
+        "step_hours": step_hours,
+        "config": config_json(config),
+        "dates": [iso(d) for d in dates],
+        "sites": sites_data,
     }

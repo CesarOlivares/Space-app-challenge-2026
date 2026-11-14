@@ -1,13 +1,14 @@
 from __future__ import annotations
 
 from datetime import datetime
+from typing import Literal
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Response
 
 from app.controllers.deps import coarse_config, fine_config, get_catalog, get_ephemeris, landing_date, resolve_site
-from app.controllers.serializers import at_offset, evaluation_json, interval_json, iso, site_json
+from app.controllers.serializers import at_offset, cutout_json, evaluation_json, interval_json, iso, site_json
 from app.models.ephemeris import BODIES, Ephemeris
-from app.models.horizon import horizon_for
+from app.models.horizon import get_dem, horizon_for
 from app.models.scoring import ScoringConfig, best_dates, evaluate
 from app.models.site import Site
 from app.models.windows import visibility_intervals
@@ -100,3 +101,52 @@ def best_landing_dates(
         "evaluated": evaluated,
         "results": [evaluation_json(r, detailed=False) for r in results],
     }
+
+
+@router.get("/{site_ref}/terrain", response_model=None)
+def terrain_cutout(
+    site_ref: str,
+    response: Response,
+    size: int = Query(128, ge=32, le=512, description="Dimensiones de la grilla cuadrada (ancho y alto en píxeles)"),
+    step: int = Query(1, ge=1, le=8, description="Paso de muestreo en píxeles del DEM (1 = 120 m/px, 2 = 240 m/px...)"),
+    format: Literal["json", "base64", "binary"] = Query("json", description="Formato de entrega: json, base64 o binary"),
+    include_slopes: bool = Query(True, description="Si incluye el mapa y métricas de pendientes"),
+    catalog: dict[str, Site] = Depends(get_catalog),
+) -> Response | dict:
+    """Recorte de relieve 3D LOLA y mapa de pendientes centrado en el sitio (polo sur lunar)."""
+    site = resolve_site(site_ref, catalog)
+    dem = get_dem()
+    if dem is None:
+        raise HTTPException(
+            status_code=503,
+            detail="Modelo de elevación polar LOLA no disponible en el servidor. Ejecuta ./run.sh data --dem",
+        )
+
+    extent_km = (size * step * 120.0) / 1000.0
+    radius_km = extent_km / 2.0
+    if not dem.covers(site.lat, radius_km):
+        raise HTTPException(
+            status_code=422,
+            detail=f"El sitio '{site.name}' ({site.lat:.2f}°) está fuera de la cobertura del DEM polar LOLA "
+                   f"(requiere lat <= -79.95° para radio de {radius_km:.1f} km).",
+        )
+
+    cutout = dem.cutout(site.lat, site.lon, size_px=size, step=step)
+
+    # El relieve lunar es estático: respuesta inmutable en caché de cliente
+    response.headers["Cache-Control"] = "public, max-age=86400, immutable"
+
+    if format == "binary":
+        headers = {
+            "Content-Type": "application/octet-stream",
+            "Cache-Control": "public, max-age=86400, immutable",
+            "X-Grid-Width": str(cutout.width),
+            "X-Grid-Height": str(cutout.height),
+            "X-Grid-Step-Meters": str(cutout.step_m),
+            "X-Min-Elevation": str(cutout.min_elevation_m),
+            "X-Max-Elevation": str(cutout.max_elevation_m),
+            "X-Mean-Slope": str(cutout.mean_slope_deg),
+        }
+        return Response(content=cutout.elevations_m.tobytes(), media_type="application/octet-stream", headers=headers)
+
+    return cutout_json(cutout, site, include_slopes=include_slopes, format_mode=format)

@@ -32,6 +32,27 @@ OBSERVER_HEIGHT_M = 2.0  # paneles o antena de un módulo típico
 
 
 @dataclass(frozen=True)
+class TerrainCutout:
+    """Recorte cuadrado de elevación y mapa de pendientes centrado en un sitio."""
+
+    lat: float
+    lon: float
+    width: int
+    height: int
+    step_m: float
+    extent_km: float
+    center_elevation_m: float
+    min_elevation_m: float
+    max_elevation_m: float
+    elevations_m: np.ndarray  # (height, width), float32
+    slopes_deg: np.ndarray  # (height, width), float32
+    mean_slope_deg: float
+    max_slope_deg: float
+    safe_landing_fraction: float  # fracción de área con pendiente <= 15°
+    source: str
+
+
+@dataclass(frozen=True)
 class HorizonMask:
     """Elevación del horizonte (grados) cada `azimuth_step_deg`, empezando en el norte."""
 
@@ -114,6 +135,64 @@ class PolarDEM:
         top = d[l0, s0] * (1 - fs) + d[l0, s0 + 1] * fs
         bottom = d[l0 + 1, s0] * (1 - fs) + d[l0 + 1, s0 + 1] * fs
         return (top * (1 - fl) + bottom * fl) * DEM_HEIGHT_SCALE
+
+    def cutout(self, lat: float, lon: float, size_px: int = 128, step: int = 1) -> TerrainCutout:
+        """Extrae un parche regular de elevación centrado en (lat, lon) con cálculo de pendientes.
+
+        - `size_px`: cantidad de puntos en ancho y alto (grilla cuadrada, p. ej. 128 o 256).
+        - `step`: paso de muestreo en píxeles del DEM (1 = 120 m/px, 2 = 240 m/px...).
+        """
+        if size_px <= 0 or step <= 0:
+            raise ValueError("size_px y step deben ser positivos")
+
+        step_m = DEM_SCALE_M * step
+        radius_km = (size_px * step_m) / 2000.0
+        if not self.covers(lat, radius_km):
+            raise ValueError(
+                f"el DEM polar no cubre el radio de {radius_km:.1f} km alrededor de la latitud {lat}"
+            )
+
+        line_c, sample_c = self.pixel(np.array([lat]), np.array([lon]))
+        half = (size_px // 2) * step
+        l_start = int(round(line_c[0] - half))
+        l_end = l_start + size_px * step
+        s_start = int(round(sample_c[0] - half))
+        s_end = s_start + size_px * step
+
+        if l_start < 0 or s_start < 0 or l_end > DEM_SIZE or s_end > DEM_SIZE:
+            raise ValueError(f"el recorte de {size_px}px excede los límites del DEM polar")
+
+        raw = self.data[l_start:l_end:step, s_start:s_end:step]
+        elevations = (raw.astype(np.float32) * DEM_HEIGHT_SCALE)
+
+        # Cálculo vectorizado del gradiente de elevación y pendiente en grados
+        dy, dx = np.gradient(elevations, step_m, step_m)
+        slopes = np.degrees(np.arctan(np.sqrt(dx**2 + dy**2))).astype(np.float32)
+
+        center_h = float(self.height(np.array([lat]), np.array([lon]))[0])
+        min_h = float(np.min(elevations))
+        max_h = float(np.max(elevations))
+        mean_slope = float(np.mean(slopes))
+        max_slope = float(np.max(slopes))
+        safe_fraction = float(np.mean(slopes <= 15.0))
+
+        return TerrainCutout(
+            lat=lat,
+            lon=lon,
+            width=size_px,
+            height=size_px,
+            step_m=step_m,
+            extent_km=(size_px * step_m) / 1000.0,
+            center_elevation_m=round(center_h, 1),
+            min_elevation_m=round(min_h, 1),
+            max_elevation_m=round(max_h, 1),
+            elevations_m=elevations,
+            slopes_deg=slopes,
+            mean_slope_deg=round(mean_slope, 1),
+            max_slope_deg=round(max_slope, 1),
+            safe_landing_fraction=round(safe_fraction, 3),
+            source=DEM_SOURCE,
+        )
 
 
 def destination(lat: float, lon: float, azimuth_deg: np.ndarray, distance_m: np.ndarray):

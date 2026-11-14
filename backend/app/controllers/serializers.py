@@ -10,6 +10,7 @@ import numpy as np
 from app.models.horizon import SphericalHorizon, TerrainHorizon, horizon_for
 from app.models.scoring import BodyMetrics, ScoringConfig, SiteEvaluation
 from app.models.site import Site
+from app.models.terrain import TerrainCutout
 from app.models.windows import Interval
 
 
@@ -100,3 +101,39 @@ def horizon_json(horizon: SphericalHorizon) -> dict:
         "max_distance_km": mask.max_distance_km,
         "profile_deg": [round(v, 2) for v in profile.tolist()],
     }
+
+
+def cutout_json(
+    cutout: TerrainCutout,
+    site: Site,
+    include_slopes: bool = True,
+    format_mode: str = "json",
+) -> dict:
+    """Serialización optimizada de un recorte de terreno LOLA para WebGL / Three.js."""
+    data = {
+        "site": site_json(site),
+        "grid": {
+            "width": cutout.width,
+            "height": cutout.height,
+            "step_m": cutout.step_m,
+            "extent_km": cutout.extent_km,
+            "center_elevation_m": cutout.center_elevation_m,
+            "min_elevation_m": cutout.min_elevation_m,
+            "max_elevation_m": cutout.max_elevation_m,
+            "mean_slope_deg": cutout.mean_slope_deg,
+            "max_slope_deg": cutout.max_slope_deg,
+            "safe_landing_fraction": cutout.safe_landing_fraction,
+            "source": cutout.source,
+        },
+    }
+    if format_mode == "base64":
+        import base64
+
+        data["elevations_b64"] = base64.b64encode(cutout.elevations_m.tobytes()).decode("ascii")
+        if include_slopes:
+            data["slopes_b64"] = base64.b64encode(cutout.slopes_deg.tobytes()).decode("ascii")
+    else:
+        data["elevations_m"] = [round(float(v), 1) for v in cutout.elevations_m.ravel()]
+        if include_slopes:
+            data["slopes_deg"] = [round(float(v), 1) for v in cutout.slopes_deg.ravel()]
+    return data
