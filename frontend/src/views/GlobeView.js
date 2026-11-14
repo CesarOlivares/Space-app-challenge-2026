@@ -36,8 +36,8 @@ function glowTexture() {
 }
 
 export class GlobeView {
-  // `occluded()` devuelve cuántos píxeles tapa un panel a la derecha: el globo se centra en el resto.
-  constructor(canvas, { onHover = () => {}, onSelect = () => {}, occluded = () => 0 } = {}) {
+  // `occluded()` devuelve { left, right }: píxeles tapados por paneles a cada lado; el globo se centra en el resto.
+  constructor(canvas, { onHover = () => {}, onSelect = () => {}, occluded = () => ({ left: 0, right: 0 }) } = {}) {
     this.canvas = canvas;
     this.occluded = occluded;
     this.onHover = onHover;
@@ -98,7 +98,18 @@ export class GlobeView {
     this.scene.add(this.moon);
   }
 
-  setSites(sites) {
+  removeSite(id) {
+    const marker = this.markers.get(id);
+    if (!marker) return;
+    this.markerGroup.remove(marker.group);
+    marker.group.traverse((node) => {
+      node.geometry?.dispose();
+      node.material?.dispose();
+    });
+    this.markers.delete(id);
+  }
+
+  addSites(sites) {
     for (const site of sites) {
       const group = new THREE.Group();
       group.position.copy(latLonToVector(site.lat, site.lon, MARKER_ALTITUDE));
@@ -226,13 +237,19 @@ export class GlobeView {
     this.renderer.render(this.scene, this.camera);
   }
 
+  // Recalcula el encuadre cuando un panel cambia de tamaño o se abre.
+  refreshLayout() {
+    this.#resize();
+  }
+
   #resize() {
     const { clientWidth: width, clientHeight: height } = this.canvas;
     if (!width || !height) return;
     this.renderer.setSize(width, height, false);
     this.camera.aspect = width / height;
-    const shift = this.occluded() / 2;
-    if (shift > 0) this.camera.setViewOffset(width, height, shift, 0, width, height);
+    const { left, right } = this.occluded();
+    const shift = (right - left) / 2;
+    if (shift !== 0) this.camera.setViewOffset(width, height, shift, 0, width, height);
     else this.camera.clearViewOffset();
     this.camera.updateProjectionMatrix();
   }

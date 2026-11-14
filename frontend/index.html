@@ -17,23 +17,42 @@
   <body>
     <canvas id="globe" aria-label="Globo lunar con los sitios de aterrizaje"></canvas>
 
-    <header id="controls" class="panel">
-      <h1>Lunar Site Explorer</h1>
-      <label for="date-input">Fecha de aterrizaje (UTC)</label>
-      <input id="date-input" type="datetime-local" step="3600" />
-      <div class="buttons" role="group" aria-label="Mover la fecha">
-        <button type="button" data-shift-days="-7">−7 d</button>
-        <button type="button" data-shift-days="-1">−1 d</button>
-        <button type="button" id="date-now">Ahora</button>
-        <button type="button" data-shift-days="1">+1 d</button>
-        <button type="button" data-shift-days="7">+7 d</button>
-      </div>
-      <div class="buttons" role="group" aria-label="Vista">
-        <button type="button" data-view="near-side">Vista desde la Tierra</button>
-        <button type="button" data-view="south-pole">Polo sur</button>
-      </div>
-      <p id="status" role="status">Conectando…</p>
-    </header>
+    <div id="left">
+      <header id="controls" class="panel">
+        <h1>Lunar Site Explorer</h1>
+        <label for="date-input">Fecha de aterrizaje (UTC)</label>
+        <input id="date-input" type="datetime-local" step="3600" />
+        <div class="buttons" role="group" aria-label="Mover la fecha">
+          <button type="button" data-shift-days="-7">−7 d</button>
+          <button type="button" data-shift-days="-1">−1 d</button>
+          <button type="button" id="date-now">Ahora</button>
+          <button type="button" data-shift-days="1">+1 d</button>
+          <button type="button" data-shift-days="7">+7 d</button>
+        </div>
+        <div class="buttons" role="group" aria-label="Vista">
+          <button type="button" data-view="near-side">Vista desde la Tierra</button>
+          <button type="button" data-view="south-pole">Polo sur</button>
+        </div>
+        <p id="status" role="status">Conectando…</p>
+
+        <section id="compare-bar" hidden aria-label="Comparación">
+          <p class="compare-count"></p>
+          <ul class="compare-items"></ul>
+          <div class="buttons">
+            <button type="button" data-action="open-compare" class="primary">Comparar</button>
+            <button type="button" data-action="clear-compare">Vaciar</button>
+          </div>
+        </section>
+      </header>
+
+      <section id="detail" class="panel" hidden aria-labelledby="detail-title">
+        <div class="detail-header">
+          <h2 class="detail-title" id="detail-title"></h2>
+          <button type="button" class="detail-close" aria-label="Cerrar detalle">✕</button>
+        </div>
+        <div class="detail-body"></div>
+      </section>
+    </div>
 
     <aside id="sidebar" class="panel">
       <section class="legend" aria-label="Cómo leer los puntos">
@@ -53,6 +72,20 @@
           <dd><b>Gris</b>: no viable, Sol o Tierra bajo el horizonte al aterrizar</dd>
         </dl>
       </section>
+
+      <details class="custom">
+        <summary>Agregar coordenadas</summary>
+        <form id="custom-site" novalidate>
+          <div class="fields">
+            <label>Latitud<input name="lat" type="number" step="any" min="-90" max="90" placeholder="-89.45" required /></label>
+            <label>Longitud este<input name="lon" type="number" step="any" min="-180" max="180" placeholder="137.3" required /></label>
+          </div>
+          <label>Nombre (opcional)<input name="name" type="text" maxlength="60" placeholder="Mi sitio" /></label>
+          <p class="form-error" role="alert" hidden></p>
+          <button type="submit" class="primary">Agregar al globo</button>
+        </form>
+      </details>
+
       <div class="list-header">
         <h2>Sitios</h2>
         <label><input type="checkbox" id="filter-south-pole" /> Solo polo sur</label>
@@ -60,6 +93,16 @@
       <p class="list-hint">Puntaje global · E energía · C comunicación (0–100)</p>
       <ol id="site-list"></ol>
     </aside>
+
+    <div id="compare" class="overlay" hidden role="dialog" aria-modal="true" aria-labelledby="compare-title">
+      <div class="panel compare-panel">
+        <div class="detail-header">
+          <h2 id="compare-title">Comparación de escenarios</h2>
+          <button type="button" class="compare-close" aria-label="Cerrar comparación">✕</button>
+        </div>
+        <div class="compare-content"></div>
+      </div>
+    </div>
 
     <div id="tooltip" role="tooltip" hidden></div>
 

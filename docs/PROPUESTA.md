@@ -232,11 +232,11 @@ Las tareas se hacen en orden: cada una parte de lo que dejó la anterior. Una ta
 
 | ✓ | ID | Tarea | Verificación | RF |
 |---|---|---|---|---|
-| [ ] | T-25 | Seleccionar un sitio con clic y abrir su panel de métricas | El panel muestra elevación solar, horas de luz y ventanas | RF-09 |
-| [ ] | T-26 | `SkyView`: Sol y Tierra sobre el horizonte en un panorama de 360° | Las posiciones coinciden con las de `/sky` | RF-07 |
-| [ ] | T-27 | Contadores de tiempo hasta el ocaso solar y terrestre | Los valores coinciden con T-13 | RF-08 |
-| [ ] | T-28 | Formulario de coordenadas personalizadas que agrega un punto al globo | Un sitio nuevo aparece con su puntaje | RF-04 |
-| [ ] | T-29 | `CompareView`: fijar de 2 a 4 sitios o fechas y verlos lado a lado | Se comparan dos sitios de punta a punta sin instrucciones (RNF-05) | RF-11 |
+| [x] | T-25 | Seleccionar un sitio con clic y abrir su panel de métricas | El panel muestra elevación solar, horas de luz y ventanas | RF-09 |
+| [x] | T-26 | `SkyView`: Sol y Tierra sobre el horizonte en un panorama de 360° | Las posiciones coinciden con las de `/sky` | RF-07 |
+| [x] | T-27 | Contadores de tiempo hasta el ocaso solar y terrestre | Los valores coinciden con T-13 | RF-08 |
+| [x] | T-28 | Formulario de coordenadas personalizadas que agrega un punto al globo | Un sitio nuevo aparece con su puntaje | RF-04 |
+| [x] | T-29 | `CompareView`: fijar de 2 a 4 sitios o fechas y verlos lado a lado | Se comparan dos sitios de punta a punta sin instrucciones (RNF-05) | RF-11 |
 
 **Aquí termina el producto mínimo.** Antes de seguir: revisión completa de la demo y corrección de errores.
 

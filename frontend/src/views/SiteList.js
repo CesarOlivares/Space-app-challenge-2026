@@ -1,18 +1,16 @@
 // Ranking de sitios con los valores numéricos de cada puntaje (RNF-06).
 
+import { escapeHtml } from "../format.js";
 import { encode, notViableReason } from "./encoding.js";
 
 const CATEGORY_LABELS = {
   historico: "Histórico",
   reciente: "Reciente",
   candidato: "Candidato",
+  personalizado: "Personalizado",
 };
 
-function escape(text) {
-  const div = document.createElement("div");
-  div.textContent = text ?? "";
-  return div.innerHTML;
-}
+const escape = escapeHtml;
 
 export class SiteList {
   constructor(root, { onSelect, onHover }) {
@@ -28,14 +26,22 @@ export class SiteList {
       const row = e.target.closest("[data-site-id]");
       if (row) onSelect(row.dataset.siteId);
     });
+    this.list.addEventListener("keydown", (e) => {
+      const row = e.target.closest("[data-site-id]");
+      if (row && (e.key === "Enter" || e.key === " ")) {
+        e.preventDefault();
+        onSelect(row.dataset.siteId);
+      }
+    });
     this.list.addEventListener("mouseover", (e) => {
       onHover(e.target.closest("[data-site-id]")?.dataset.siteId ?? null);
     });
     this.list.addEventListener("mouseleave", () => onHover(null));
   }
 
+  // Recibe el mapa compartido de sitios (catálogo + personalizados).
   setSites(sites) {
-    this.sites = new Map(sites.map((s) => [s.id, s]));
+    this.sites = sites;
   }
 
   setScores(scores) {
@@ -55,7 +61,8 @@ export class SiteList {
   #render() {
     const southOnly = this.filter.checked;
     const rows = this.scores
-      .filter((s) => !southOnly || this.sites.get(s.site_id)?.lat <= -75)
+      .filter((s) => this.sites.has(s.site_id))
+      .filter((s) => !southOnly || this.sites.get(s.site_id).lat <= -75)
       .sort((a, b) => b.viable - a.viable || b.scores.total - a.scores.total);
 
     this.list.innerHTML = rows.map((score) => {
