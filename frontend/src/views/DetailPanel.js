@@ -96,12 +96,11 @@ function windowsList(windows) {
 }
 
 export class DetailPanel {
-  constructor(root, { onClose, onCompare, onRemove, onFindBestDates, onUseDate }) {
+  constructor(root, { onClose, onRemove, onFindBestDates, onUseDate }) {
     this.root = root;
     this.body = root.querySelector(".detail-body");
     this.root.querySelector(".detail-close").addEventListener("click", onClose);
     this.body.addEventListener("click", (e) => {
-      if (e.target.closest("[data-action=compare]")) onCompare(this.siteId);
       if (e.target.closest("[data-action=remove]")) onRemove(this.siteId);
       if (e.target.closest("[data-action=best-dates]")) onFindBestDates(this.siteId);
       const use = e.target.closest("[data-use-date]");
@@ -126,7 +125,7 @@ export class DetailPanel {
     this.body.innerHTML = `<p class="error">${escapeHtml(t("detail.error", { message }))}</p>`;
   }
 
-  render(sky, timeline, { inCompare, compareFull }) {
+  render(sky, timeline) {
     const { site, config } = sky;
     const days = config.window_days;
     this.siteId = site.id;
@@ -146,9 +145,6 @@ export class DetailPanel {
     const source = site.source?.url
       ? `<a href="${escapeHtml(site.source.url)}" target="_blank" rel="noopener">${escapeHtml(site.source.name)}</a>`
       : "";
-    const compareButton = inCompare
-      ? `<button type="button" disabled>${t("detail.inCompare")}</button>`
-      : `<button type="button" data-action="compare" ${compareFull ? `disabled title="${t("detail.compareFull")}"` : ""}>${t("detail.addCompare")}</button>`;
     const removeButton = site.category === "personalizado"
       ? `<button type="button" data-action="remove">${t("detail.remove")}</button>` : "";
 
@@ -201,7 +197,7 @@ export class DetailPanel {
         <div class="best-results" aria-live="polite"></div>
       </div>
 
-      <div class="actions">${compareButton}${removeButton}</div>
+      <div class="actions">${removeButton}</div>
       ${source ? `<p class="caption">${t("detail.source", { source })}</p>` : ""}`;
 
     const skyView = renderSky(this.body.querySelector(".sky-container"), sky, timeline);

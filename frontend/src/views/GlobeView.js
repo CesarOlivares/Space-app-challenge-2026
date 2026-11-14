@@ -8,6 +8,9 @@ const MARKER_LIFT = 0.004; // radios lunares que el marcador flota sobre el terr
 const SEGMENTS_FLAT = [192, 96]; // malla sin relieve
 const SEGMENTS_RELIEF = [512, 256]; // con relieve: más vértices para que el desplazamiento se vea suave
 const DEFAULT_DISTANCE = 3.7;
+// Portada: la Luna enorme y recortada a la derecha, como una foto de cabecera.
+const HERO_DISTANCE = 2.1;
+const HERO_OFFSET_X = 0.26; // fracción del ancho que la Luna se corre hacia la derecha
 // Casi bajo el polo; la pequeña componente z evita la singularidad de OrbitControls.
 // Con "reducir movimiento" activo en el sistema, la cámara salta en vez de volar.
 const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
@@ -42,21 +45,21 @@ function glowTexture() {
 }
 
 export class GlobeView {
-  // `occluded()` devuelve { left, right }: píxeles tapados por paneles a cada lado; el globo se centra en el resto.
-  constructor(canvas, {
-    onHover = () => {},
-    onSelect = () => {},
-    onReliefStatus = () => {},
-    occluded = () => ({ left: 0, right: 0 }),
-  } = {}) {
+  constructor(canvas, { onHover = () => {}, onSelect = () => {}, onReliefStatus = () => {} } = {}) {
     this.canvas = canvas;
-    this.occluded = occluded;
     this.onHover = onHover;
     this.onSelect = onSelect;
     this.markers = new Map(); // id → { group, core, outline, glow, radius }
     this.hoveredId = null;
     this.selectedId = null;
     this.transition = null;
+    this.selectedIds = new Set();
+    // Encuadre: "hero" (portada) u "overview" (Luna entera). `frame` desplaza la Luna en pantalla
+    // (fracción del ancho y del alto) y `markerFade` hace aparecer los puntos al alejar la cámara.
+    this.framing = "overview";
+    this.frame = { x: 0, y: 0 };
+    this.markerFade = 1;
+    this.illumination = null;
     this.relief = { enabled: true, exaggeration: 3, meta: null, field: null, status: "loading" };
     this.quality = "auto"; // auto | standard | high
     this.colors = { standard: null, high: null, highLoading: false };
@@ -324,22 +327,65 @@ export class GlobeView {
   }
 
   // Ubica el Sol según el punto subsolar: el terminador queda donde corresponde.
-  setIllumination({ subsolar }) {
-    this.sun.position.copy(latLonToVector(subsolar.lat, subsolar.lon, 10));
+  setIllumination(illumination) {
+    this.illumination = illumination;
+    this.sun.position.copy(latLonToVector(illumination.subsolar.lat, illumination.subsolar.lon, 10));
+    // La portada mira de modo que el terminador quede a la izquierda: se reapunta al cambiar la fecha.
+    if (this.framing === "hero" && !this.transition) this.setFraming("hero", { animate: false });
   }
 
-  select(id) {
-    this.selectedId = id;
+  // Sitios elegidos (puede haber varios, p. ej. para compararlos): se les dibuja un contorno.
+  setSelection(ids) {
+    this.selectedIds = new Set(ids);
     for (const [markerId, marker] of this.markers) {
-      marker.outline.visible = markerId === id;
+      marker.outline.visible = this.selectedIds.has(markerId);
     }
   }
 
-  focusSite(id) {
+  setHover(id) {
+    this.hoveredId = id;
+  }
+
+  // Centra un sitio. `zoomTo`: distancia máxima de la cámara; si ya está más cerca, no la aleja.
+  focusSite(id, { zoomTo = 1.9 } = {}) {
     const marker = this.markers.get(id);
     if (!marker) return;
-    const distance = Math.min(this.camera.position.length(), 1.9);
+    const distance = Math.min(this.camera.position.length(), zoomTo);
     this.#flyTo(marker.group.position.clone().normalize(), distance);
+  }
+
+  // ---- Encuadres: portada y vista completa ----
+
+  #framingTarget(name) {
+    const earth = this.illumination?.subearth ?? { lat: 0, lon: 0 };
+    if (name === "overview") {
+      return { direction: latLonToVector(earth.lat, earth.lon).normalize(), distance: this.#fitDistance(), x: 0, y: 0, fade: 1 };
+    }
+    // Portada: se mira la Luna desde un punto 70° al oeste del subsolar, así el día queda a la derecha
+    // y el terminador a la izquierda, como en la imagen de referencia.
+    const sunLon = this.illumination?.subsolar.lon ?? 70;
+    const direction = latLonToVector(8, sunLon - 70).normalize();
+    // En pantallas verticales la Luna baja, debajo del texto, en vez de ir a la derecha.
+    if (this.camera.aspect < 0.9) return { direction, distance: this.#fitDistance() * 0.8, x: 0, y: 0.3, fade: 0 };
+    return { direction, distance: HERO_DISTANCE, x: HERO_OFFSET_X, y: 0, fade: 0 };
+  }
+
+  // Cambia de encuadre, con animación (alejar la cámara hasta ver toda la Luna) o de golpe.
+  setFraming(name, { animate = true, durationMs = 1900 } = {}) {
+    this.framing = name;
+    this.controls.enabled = name !== "hero"; // en la portada la composición no se mueve
+    this.canvas.dataset.framing = name;
+    const target = this.#framingTarget(name);
+    if (!animate || reducedMotion.matches) {
+      this.transition = null;
+      this.camera.position.copy(target.direction.multiplyScalar(target.distance));
+      this.frame.x = target.x;
+      this.frame.y = target.y;
+      this.markerFade = target.fade;
+      this.#applyViewOffset();
+      return;
+    }
+    this.#flyTo(target.direction, target.distance, durationMs, target);
   }
 
   focusSouthPole() {
@@ -358,12 +404,15 @@ export class GlobeView {
     return Math.max(DEFAULT_DISTANCE, 1.1 / Math.sin(Math.min(halfV, halfH)));
   }
 
-  #flyTo(direction, distance, durationMs = 900) {
+  // `frame`: { x, y, fade } de llegada; si se omite, el desplazamiento y los puntos quedan como están.
+  #flyTo(direction, distance, durationMs = 900, frame = null) {
     this.transition = {
       from: this.camera.position.clone(),
       fromDistance: this.camera.position.length(),
       to: direction,
       toDistance: distance,
+      fromFrame: { ...this.frame, fade: this.markerFade },
+      toFrame: frame ?? { ...this.frame, fade: this.markerFade },
       start: null,
       durationMs: reducedMotion.matches ? 0 : durationMs,
     };
@@ -383,15 +432,24 @@ export class GlobeView {
       : fromDir.applyAxisAngle(axis.normalize(), angle * ease);
     const distance = t.fromDistance + (t.toDistance - t.fromDistance) * ease;
     this.camera.position.copy(dir.multiplyScalar(distance));
+    const lerp = (a, b, u) => a + (b - a) * u;
+    this.frame.x = lerp(t.fromFrame.x, t.toFrame.x, ease);
+    this.frame.y = lerp(t.fromFrame.y, t.toFrame.y, ease);
+    // Los puntos aparecen en la segunda mitad del viaje, cuando ya se ve casi toda la Luna.
+    const late = Math.min(1, Math.max(0, (k - 0.45) / 0.55));
+    this.markerFade = lerp(t.fromFrame.fade, t.toFrame.fade, late * late * (3 - 2 * late));
+    this.#applyViewOffset();
     if (k === 1) this.transition = null;
   }
 
   // Los marcadores mantienen un tamaño aproximadamente constante en pantalla,
   // así los sitios cercanos del polo sur se separan al acercarse.
   #updateMarkerScale() {
+    this.markerGroup.visible = this.markerFade > 0.01;
+    if (!this.markerGroup.visible) return;
     const zoom = THREE.MathUtils.clamp((this.camera.position.length() - 1) / (DEFAULT_DISTANCE - 1), 0.04, 1.6);
     for (const marker of this.markers.values()) {
-      const r = marker.radius * zoom * (marker.site.id === this.hoveredId ? 1.3 : 1);
+      const r = marker.radius * zoom * this.markerFade * (marker.site.id === this.hoveredId ? 1.3 : 1);
       marker.core.scale.setScalar(r);
       marker.outline.scale.setScalar(r * 1.45);
       marker.glow.scale.setScalar(r * (marker.glowScale ?? 4));
@@ -415,10 +473,17 @@ export class GlobeView {
     if (!width || !height) return;
     this.renderer.setSize(width, height, false);
     this.camera.aspect = width / height;
-    const { left, right } = this.occluded();
-    const shift = (right - left) / 2;
-    if (shift !== 0) this.camera.setViewOffset(width, height, shift, 0, width, height);
-    else this.camera.clearViewOffset();
+    // Al girar el teléfono o cambiar el tamaño de la ventana, la portada se vuelve a componer.
+    if (this.framing === "hero" && !this.transition) this.setFraming("hero", { animate: false });
+    this.#applyViewOffset();
+  }
+
+  // Corre la Luna en pantalla: x positivo a la derecha, y positivo hacia abajo (fracciones del tamaño).
+  #applyViewOffset() {
+    const { clientWidth: width, clientHeight: height } = this.canvas;
+    if (!width || !height) return;
+    if (this.frame.x === 0 && this.frame.y === 0) this.camera.clearViewOffset();
+    else this.camera.setViewOffset(width, height, -this.frame.x * width, -this.frame.y * height, width, height);
     this.camera.updateProjectionMatrix();
   }
 
@@ -428,6 +493,7 @@ export class GlobeView {
       ((event.clientX - rect.left) / rect.width) * 2 - 1,
       -((event.clientY - rect.top) / rect.height) * 2 + 1,
     );
+    if (!this.markerGroup.visible) return null; // en la portada los puntos no se ven ni se eligen
     this.raycaster.setFromCamera(this.pointer, this.camera);
     const cores = [...this.markers.values()].map((m) => m.core);
     // Se incluye la Luna para que los sitios de la cara oculta no se puedan elegir a través de ella.

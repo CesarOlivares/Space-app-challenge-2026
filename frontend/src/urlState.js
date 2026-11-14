@@ -29,27 +29,29 @@ export function readUrlState() {
     const [lat, lon, ...name] = item.split(",");
     return { lat: Number(lat), lon: Number(lon), name: name.join(",") };
   }).filter((c) => Number.isFinite(c.lat) && Number.isFinite(c.lon));
-  // cmp=ref@fecha|ref@fecha (ref = id del catálogo o "lat,lon")
-  const compare = (params.get("cmp") || "").split("|").filter(Boolean).map((item) => {
+  // sel=ref|ref|ref: sitios elegidos (id del catálogo o "lat,lon"). Se leen también ?site= y ?cmp= de
+  // los enlaces antiguos; de cmp=ref@fecha solo se toma el sitio.
+  const selected = (params.get("sel") || "").split("|").filter(Boolean);
+  if (params.get("site")) selected.push(params.get("site").replace(/^custom:/, ""));
+  for (const item of (params.get("cmp") || "").split("|").filter(Boolean)) {
     const at = item.lastIndexOf("@");
-    return { ref: item.slice(0, at), date: parseDate(item.slice(at + 1)) };
-  }).filter((c) => c.ref && c.date);
+    selected.push(at > 0 ? item.slice(0, at) : item);
+  }
 
   return {
     date: parseDate(params.get("date")),
-    site: params.get("site"),
+    selected: [...new Set(selected)],
     mode: params.get("mode"),
     lang: params.get("lang"),
     config,
     custom,
-    compare,
   };
 }
 
-export function writeUrlState({ date, site, mode, lang, config, custom, compare }) {
+export function writeUrlState({ date, selected, mode, lang, config, custom }) {
   const params = new URLSearchParams();
   if (date) params.set("date", isoUtc(date));
-  if (site) params.set("site", site);
+  if (selected?.length) params.set("sel", selected.join("|"));
   if (mode) params.set("mode", mode);
   if (lang) params.set("lang", lang);
   for (const [key, [param, , format]] of Object.entries(CONFIG_KEYS)) {
@@ -57,9 +59,6 @@ export function writeUrlState({ date, site, mode, lang, config, custom, compare 
   }
   if (custom.length) {
     params.set("custom", custom.map((c) => [c.lat, c.lon, c.name].filter((v) => v !== "").join(",")).join("|"));
-  }
-  if (compare.length) {
-    params.set("cmp", compare.map((c) => `${c.ref}@${isoUtc(c.date)}`).join("|"));
   }
   const query = params.toString().replace(/%2C/g, ",").replace(/%7C/g, "|").replace(/%40/g, "@").replace(/%3A/g, ":");
   // Se conserva el hash: es la sección de la app (#intro, #explorar, #comparar).

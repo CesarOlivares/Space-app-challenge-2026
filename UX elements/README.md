@@ -27,6 +27,8 @@ El sistema visual vive en `frontend/src/design-system.css` (tokens y componentes
 - Tipografía: [tipografia/README.md](tipografia/README.md)
 - Íconos: el kit está en `iconos/` (fuente de diseño); los aprobados se copian a `frontend/assets/icons/` y se registran en `icons.js` con un nombre semántico.
 
+El engranaje (`iconos/hud-gear.svg`) lo dibujó el rediseño minimalista en el estilo del kit: el kit original no traía uno. Falta que quien lleve el diseño lo apruebe o lo reemplace.
+
 Componentes disponibles: encabezado de sección numerado, marco HUD biselado con esquinas de acento, botón (normal y principal), filete, dato ancla con fuente.
 
 ## Restricciones al proponer cambios

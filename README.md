@@ -7,6 +7,8 @@ Lunar Site Explorer: un globo lunar 3D para comparar sitios y fechas de aterriza
 - [API: rutas y formato de las respuestas](docs/API.md)
 - [Modelo matemático y fuentes de los criterios](docs/modelo/README.md)
 - [Ciclo 2: rediseño visual, relieve 3D y estructura en tres partes](docs/CICLO-2-VISUAL.md)
+- [Rediseño minimalista: portada, vista general mínima y comparación por selección](docs/REDISENO-MINIMALISTA.md)
+- [Cómo integrar la topografía](docs/INTEGRAR-TOPOGRAFIA.md)
 - [UX elements: elementos visuales para el frontend](UX%20elements/README.md)
 
 ## Requisitos
@@ -40,7 +42,8 @@ Opcional: `./run.sh data --dem` descarga además el modelo de elevación polar d
 
 ## Uso rápido
 
-- **Intro:** se muestra la primera vez y luego se recuerda; `/?intro` la vuelve a mostrar con el gancho.
+- **Portada:** se muestra la primera vez y luego se recuerda; `/?intro` la vuelve a mostrar. "Comenzar" aleja la cámara hasta ver toda la Luna con solo los puntos.
+- **Elegir sitios:** un clic en un punto muestra su ficha; con dos o más elegidos (hasta 4) aparece el botón **Comparar**. El engranaje abre toda la configuración.
 - **Tres partes**, con barra de navegación: `#intro` (01), `#explorar` (02) y `#comparar` (03). Una dirección con un escenario compartido abre directo en la vista general.
 
 - **Simple / Técnico:** el modo simple explica cada resultado en lenguaje llano; el técnico muestra métricas, ventanas y ajustes del puntaje.
