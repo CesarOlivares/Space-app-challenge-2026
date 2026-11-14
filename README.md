@@ -31,6 +31,8 @@ La primera ejecución crea el entorno virtual en `backend/.venv` e instala las d
 
 Una vez descargados los datos, la aplicación funciona sin conexión a internet.
 
+Opcional: `./run.sh data --dem` descarga además el modelo de elevación polar de LOLA (116 MB). Solo hace falta para recalcular las máscaras de horizonte (`./run.sh horizons`) o para que las coordenadas personalizadas del polo sur usen el relieve real.
+
 ## Pruebas
 
 ```bash

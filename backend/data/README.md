@@ -4,7 +4,8 @@
 |---|---|---|
 | `sites.json` | Catálogo curado de sitios de aterrizaje | Sí |
 | `kernels/` | Kernels SPICE de efemérides y orientación lunar | No, se descargan con `./run.sh data` |
-| `horizons/` | Máscaras de horizonte por terreno (fase 7) | Sí, cuando existan |
+| `horizons/` | Máscaras de horizonte por terreno de los sitios al sur de 80° S | Sí; se recalculan con `./run.sh horizons` |
+| `dem/` | DEM polar LOLA `LDEM_75S_120M` (116 MB) | No; opcional, con `./run.sh data --dem` |
 
 Las texturas del globo y Three.js también se descargan con `./run.sh data`, en `frontend/public/textures/` y `frontend/vendor/`.
 
@@ -49,3 +50,11 @@ Valores de `precision`:
 1. Buscar la coordenada en una fuente primaria, en este orden: tabla de coordenadas LROC, páginas de imágenes de LROC o NASA, Gazetteer de la IAU.
 2. Convertir la longitud al rango [-180, 180].
 3. Agregar la entrada y correr `./run.sh test`: `tests/test_sites_catalog.py` valida campos, rangos e identificadores.
+
+## Horizonte por terreno
+
+`horizons/<id>.json` guarda, para cada sitio del catálogo al sur de 80° S, la elevación del horizonte real cada 0,5° de azimut. Se calcula con el DEM `LDEM_75S_120M` de LOLA: desde el sitio, con el observador a 2 m de altura, se recorre el terreno hasta 150 km en cada dirección, teniendo en cuenta la curvatura lunar (`backend/app/models/terrain.py`).
+
+- La aplicación usa estas máscaras sin necesitar el DEM.
+- Con el DEM descargado, las coordenadas personalizadas al sur de 80° S también obtienen horizonte por terreno, calculado al vuelo (~0,3 s la primera vez).
+- Al agregar un sitio polar al catálogo, o al cambiar sus coordenadas, hay que ejecutar `./run.sh data --dem` y luego `./run.sh horizons`.

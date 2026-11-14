@@ -7,7 +7,7 @@ Todas las rutas cuelgan de `/api` y responden JSON. Con el servidor levantado, l
 - **Sitios.** Se indican por su `id` del catálogo (`im-2`) o como coordenadas `lat,lon` en grados, con longitud este en [-180, 180] (`-89.5,120`). Los sitios por coordenadas reciben el id `custom:<lat>,<lon>`.
 - **Fechas.** Formato ISO 8601. Una fecha sin zona horaria se toma como UTC; las respuestas siempre van en UTC con sufijo `Z`. Si se omite `date`, se usa la hora UTC actual redondeada hacia abajo.
 - **Ángulos.** En grados. El azimut se mide desde el norte hacia el este, en [0, 360). La elevación es respecto del horizonte local. No hay refracción, porque la Luna no tiene atmósfera.
-- **Horizonte.** Cada cuerpo informa `horizon`: hoy siempre `"esferico"`; en la fase 7 se agrega `"terreno"` para los sitios con datos LOLA (RNF-04).
+- **Horizonte.** Cada cuerpo informa `horizon`: `"terreno"` si se usó el relieve real de LOLA (sitios al sur de 80° S) o `"esferico"` si no hay datos de relieve (RNF-04). Las respuestas detalladas (`/sky`, `/compare`) incluyen además un objeto `horizon` con el perfil del relieve cada 1° de azimut (`profile_deg`, 360 valores, `null` si es esférico), la fuente, el radio considerado y la altura del observador.
 - **Ventanas.** Lista de intervalos de visibilidad dentro de la serie. `open_start` u `open_end` indican que el intervalo ya estaba en curso al inicio o sigue después del final, es decir, que el corte lo pone la ventana y no un ocaso real.
 - **`null` en tiempos.** `hours_until_set: null` significa que el cuerpo **no se pone** durante la ventana. `hours_until_rise: null` significa que **no sale**. Un valor de `0` significa que el evento ya ocurrió: el cuerpo ya está visible (salida) o ya está bajo el horizonte (ocaso).
 
@@ -146,7 +146,8 @@ Detalle de un sitio: posición del Sol y la Tierra al aterrizar, tiempos hasta e
     "…": "mismos campos que sun"
   },
   "site": {"id": "apollo-17", "…": "igual que en /api/sites"},
-  "config": {"window_days": 14.0, "step_hours": 0.5, "…": "…"}
+  "config": {"window_days": 14.0, "step_hours": 0.5, "…": "…"},
+  "horizon": {"kind": "esferico", "profile_deg": null}
 }
 ```
 
@@ -180,7 +181,7 @@ Serie temporal para la línea de tiempo y la animación. Parámetros: `days` (po
 }
 ```
 
-`horizon_deg` es la elevación del horizonte en el azimut del cuerpo en cada instante: hoy es igual al margen, pero con terreno real (fase 7) cambia con el azimut.
+`horizon_deg` es la elevación del horizonte en el azimut del cuerpo en cada instante, margen incluido. Con horizonte esférico es constante; con terreno cambia con el azimut, y el cuerpo es visible cuando `elevation_deg` la supera.
 
 ### `POST /api/compare`
 

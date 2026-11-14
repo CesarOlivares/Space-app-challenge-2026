@@ -252,10 +252,10 @@ Las tareas se hacen en orden: cada una parte de lo que dejó la anterior. Una ta
 
 | ✓ | ID | Tarea | Verificación | RF |
 |---|---|---|---|---|
-| [ ] | T-33 | Elegir los sitios polares que tendrán terreno real y descargar su modelo de elevación LOLA | Datos descargados con script reproducible | RF-16 |
-| [ ] | T-34 | Script que precalcula la máscara de horizonte (elevación por azimut) de cada sitio | Archivos de máscara generados en `data/horizons/` | RF-16 |
-| [ ] | T-35 | `horizon.py` usa la máscara cuando existe; la respuesta indica qué horizonte se usó | Un sitio polar da resultados distintos con y sin terreno | RF-16 |
-| [ ] | T-36 | `SkyView` dibuja el perfil del terreno y la interfaz indica el tipo de horizonte (RNF-04) | El perfil se ve y la etiqueta aparece | RF-16 |
+| [x] | T-33 | Elegir los sitios polares que tendrán terreno real y descargar su modelo de elevación LOLA | Datos descargados con script reproducible | RF-16 |
+| [x] | T-34 | Script que precalcula la máscara de horizonte (elevación por azimut) de cada sitio | Archivos de máscara generados en `data/horizons/` | RF-16 |
+| [x] | T-35 | `horizon.py` usa la máscara cuando existe; la respuesta indica qué horizonte se usó | Un sitio polar da resultados distintos con y sin terreno | RF-16 |
+| [x] | T-36 | `SkyView` dibuja el perfil del terreno y la interfaz indica el tipo de horizonte (RNF-04) | El perfil se ve y la etiqueta aparece | RF-16 |
 
 ### Fase 8 — Entrega
 

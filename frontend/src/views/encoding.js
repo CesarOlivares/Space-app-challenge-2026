@@ -35,7 +35,9 @@ export function encode(score) {
 
 export function notViableReason(score) {
   const reasons = [];
-  if (!score.sun.visible) reasons.push("Sol bajo el horizonte");
-  if (!score.earth.visible) reasons.push("Tierra bajo el horizonte");
+  // Sobre 0° pero no visible: lo tapa el relieve (o no alcanza el margen pedido).
+  const why = (body, name) => (body.elevation_deg > 0 ? `${name} tapado por el relieve` : `${name} bajo el horizonte`);
+  if (!score.sun.visible) reasons.push(why(score.sun, "Sol"));
+  if (!score.earth.visible) reasons.push(why(score.earth, "Tierra").replace("tapado", "tapada"));
   return reasons.join(" · ");
 }

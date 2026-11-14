@@ -62,18 +62,25 @@ def test_sitio_ecuatorial_de_noche_no_es_viable(ephemeris, catalog):
 
 
 def test_orientacion_de_paneles(ephemeris, catalog):
-    # 15/12/2026: amanece en Apollo 11 (Sol alto los días siguientes) y en IM-2 el Sol ronda los 2°.
+    # 15/12/2026: amanece en Apollo 11 (Sol alto los días siguientes); en Chang'e 7 el Sol ronda los 2°.
     date = datetime.fromisoformat("2026-12-15T00:00:00+00:00")
 
     def energy(site_id, panel):
         return evaluate(ephemeris, catalog[site_id], date, ScoringConfig(panel=panel)).energy
 
-    # Por tiempo de luz ambos saturan; con paneles planos el Sol bajo del polo rinde poco.
-    assert energy("apollo-11", "tiempo") == energy("im-2", "tiempo") == 100
-    assert energy("apollo-11", "horizontal") > energy("im-2", "horizontal") + 20
-    # Con paneles verticales el polo aprovecha casi todo y el ecuador pierde con el Sol alto.
-    assert energy("im-2", "vertical") > 99
-    assert energy("apollo-11", "vertical") < energy("im-2", "vertical")
+    # Con paneles planos el Sol bajo del polo rinde poco; con paneles verticales casi todo.
+    assert energy("apollo-11", "horizontal") > energy("change-7", "horizontal") + 20
+    assert energy("change-7", "vertical") > energy("change-7", "horizontal") + 30
+    assert energy("apollo-11", "tiempo") == 100
+
+
+def test_relieve_tapa_el_sol_aunque_este_sobre_el_horizonte_esferico(ephemeris, catalog):
+    # IM-2 al 15/12/2026: el Sol está a 2,2° pero el relieve de LOLA lo tapa.
+    result = evaluate(ephemeris, catalog["im-2"], datetime.fromisoformat("2026-12-15T00:00:00+00:00"))
+    assert result.sun.horizon == "terreno"
+    assert result.sun.elevation_deg > 2
+    assert not result.sun.visible
+    assert not result.viable
 
 
 def test_panel_desconocido():
@@ -86,4 +93,5 @@ def test_puntajes_en_rango(ephemeris, catalog):
         result = evaluate(ephemeris, site, LANDING)
         for score in (result.energy, result.communication, result.total):
             assert 0 <= score <= 100
-        assert result.sun.horizon == "esferico"
+        expected = "terreno" if site.lat <= -80 else "esferico"
+        assert result.sun.horizon == result.earth.horizon == expected

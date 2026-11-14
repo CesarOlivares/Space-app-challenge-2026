@@ -2,7 +2,8 @@
 # Levanta la aplicación completa (API + frontend) en http://localhost:8000
 #   ./run.sh        levanta el servidor
 #   ./run.sh test   corre las pruebas
-#   ./run.sh data   descarga kernels, texturas y Three.js
+#   ./run.sh data   descarga kernels, texturas y Three.js (--dem: también el DEM polar LOLA, 116 MB)
+#   ./run.sh horizons  recalcula las máscaras de horizonte con el DEM
 set -euo pipefail
 
 cd "$(dirname "$0")/backend"
@@ -28,6 +29,7 @@ fi
 case "${1:-}" in
   test) exec .venv/bin/python -m pytest ;;
   data) exec .venv/bin/python scripts/download_data.py "${@:2}" ;;
+  horizons) exec .venv/bin/python scripts/compute_horizons.py ;;
 esac
 
 if [ ! -f data/kernels/de440s.bsp ]; then

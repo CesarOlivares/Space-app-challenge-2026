@@ -855,3 +855,23 @@ select {
     display: none;
   }
 }
+
+/* Relieve en el cielo y la línea de tiempo */
+
+.sky-terrain {
+  fill: #2a2d33;
+  opacity: 0.92;
+}
+
+.sky-zero {
+  stroke: rgba(255, 255, 255, 0.35);
+  stroke-width: 0.6;
+  stroke-dasharray: 3 3;
+}
+
+.timeline-horizon {
+  fill: none;
+  stroke-width: 0.9;
+  stroke-dasharray: 2 2;
+  opacity: 0.8;
+}

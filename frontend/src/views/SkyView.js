@@ -43,7 +43,8 @@ function trailSegments(azimuths, elevations) {
 
 // Devuelve { setCursor(i) }: marca la posición de ambos cuerpos en la muestra i de `timeline`.
 export function renderSky(container, sky, timeline = null, { height = 150, compact = false } = {}) {
-  const values = [sky.sun.elevation_deg, sky.earth.elevation_deg];
+  const profile = sky.horizon?.profile_deg ?? null; // relieve real cada 1° de azimut, o null
+  const values = [sky.sun.elevation_deg, sky.earth.elevation_deg, ...(profile ?? [])];
   if (timeline) values.push(...timeline.sun.elevation_deg, ...timeline.earth.elevation_deg);
   const [bottom, top] = elevationRange(values);
   const y = (elevation) => ((top - elevation) / (top - bottom)) * height;
@@ -60,8 +61,10 @@ export function renderSky(container, sky, timeline = null, { height = 150, compa
   svg.append(el("defs"), clip);
 
   // Cielo y suelo; sin atmósfera el cielo es negro también de día.
-  svg.append(el("rect", { x: 0, y: 0, width: WIDTH, height: y(0), class: "sky-bg" }));
-  svg.append(el("rect", { x: 0, y: y(0), width: WIDTH, height: height - y(0), class: "sky-ground" }));
+  svg.append(el("rect", { x: 0, y: 0, width: WIDTH, height, class: "sky-bg" }));
+  if (!profile) {
+    svg.append(el("rect", { x: 0, y: y(0), width: WIDTH, height: height - y(0), class: "sky-ground" }));
+  }
 
   const step = top - bottom > 40 ? 15 : 5;
   for (let e = Math.ceil(bottom / step) * step; e <= top; e += step) {
@@ -69,7 +72,8 @@ export function renderSky(container, sky, timeline = null, { height = 150, compa
     svg.append(el("line", { x1: 0, x2: WIDTH, y1: y(e), y2: y(e), class: "sky-grid" }));
     if (!compact) svg.append(el("text", { x: 3, y: y(e) - 2, class: "sky-tick" }, `${e}°`));
   }
-  svg.append(el("line", { x1: 0, x2: WIDTH, y1: y(0), y2: y(0), class: "sky-horizon" }));
+  // Con relieve, la línea de 0° queda como referencia del horizonte geométrico.
+  svg.append(el("line", { x1: 0, x2: WIDTH, y1: y(0), y2: y(0), class: profile ? "sky-zero" : "sky-horizon" }));
   for (const [az, label] of [[0, "N"], [90, "E"], [180, "S"], [270, "O"], [360, "N"]]) {
     svg.append(el("text", { x: az, y: height + 11, class: "sky-cardinal", "text-anchor": az === 0 ? "start" : az === 360 ? "end" : "middle" }, label));
   }
@@ -95,12 +99,21 @@ export function renderSky(container, sky, timeline = null, { height = 150, compa
     }
   }
 
+  if (profile) {
+    const ridge = profile.map((e, az) => `${az},${y(e).toFixed(2)}`);
+    ridge.push(`${WIDTH},${y(profile[0]).toFixed(2)}`);
+    layer.append(el("polygon", { points: `0,${height} ${ridge.join(" ")} ${WIDTH},${height}`, class: "sky-terrain" }));
+    layer.append(el("polyline", { points: ridge.join(" "), class: "sky-horizon" }));
+  }
+
   for (const body of ["sun", "earth"]) {
     const { azimuth_deg: az, elevation_deg: elev } = sky[body];
     const { color, label } = BODIES[body];
     const below = elev < bottom;
     const cy = below ? height - 6 : y(elev);
-    svg.append(el("circle", { cx: az, cy, r: compact ? 4 : 5.5, fill: color, class: below ? "sky-body below" : "sky-body" }));
+    // Atenuado si está bajo el horizonte local (terreno o esfera).
+    const hidden = below || !sky[body].visible;
+    svg.append(el("circle", { cx: az, cy, r: compact ? 4 : 5.5, fill: color, class: hidden ? "sky-body below" : "sky-body" }));
     const anchor = az > WIDTH - 50 ? "end" : "start";
     const dx = anchor === "end" ? -8 : 8;
     svg.append(el("text", { x: az + dx, y: cy - 6, class: "sky-label", "text-anchor": anchor, fill: color },

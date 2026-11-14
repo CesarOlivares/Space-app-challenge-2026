@@ -15,10 +15,12 @@ ROOT = Path(__file__).resolve().parents[2]
 KERNELS = ROOT / "backend" / "data" / "kernels"
 TEXTURES = ROOT / "frontend" / "public" / "textures"
 VENDOR = ROOT / "frontend" / "vendor"
+DEM = ROOT / "backend" / "data" / "dem"
 
 NAIF = "https://naif.jpl.nasa.gov/pub/naif/generic_kernels"
 SVS = "https://svs.gsfc.nasa.gov/vis/a000000/a004700/a004720"
 THREE = "https://cdn.jsdelivr.net/npm/three@0.170.0"
+LOLA = "https://pds-geosciences.wustl.edu/lro/lro-l-lola-3-rdr-v1/lrolol_1xxx/data/lola_gdr/polar/img"
 
 # (url, destino, tamaño en bytes)
 FILES = [
@@ -38,6 +40,14 @@ FILES = [
 ]
 
 
+# Opcional (--dem): solo hace falta para recalcular máscaras de horizonte o para
+# calcular el horizonte por terreno de coordenadas personalizadas del polo sur.
+DEM_FILES = [
+    (f"{LOLA}/ldem_75s_120m.lbl", DEM / "ldem_75s_120m.lbl", 4991),
+    (f"{LOLA}/ldem_75s_120m.img", DEM / "ldem_75s_120m.img", 116250752),
+]
+
+
 def download(url: str, dest: Path, size: int, force: bool) -> None:
     if not force and dest.exists() and dest.stat().st_size == size:
         print(f"  ok      {dest.relative_to(ROOT)}")
@@ -45,7 +55,7 @@ def download(url: str, dest: Path, size: int, force: bool) -> None:
     dest.parent.mkdir(parents=True, exist_ok=True)
     tmp = dest.with_suffix(dest.suffix + ".part")
     print(f"  bajando {dest.relative_to(ROOT)} ({size / 1e6:.1f} MB)")
-    with urllib.request.urlopen(url, timeout=60) as response, open(tmp, "wb") as out:
+    with urllib.request.urlopen(url, timeout=300) as response, open(tmp, "wb") as out:
         shutil.copyfileobj(response, out)
     if tmp.stat().st_size != size:
         tmp.unlink()
@@ -70,9 +80,10 @@ def convert_texture(force: bool) -> None:
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--force", action="store_true", help="volver a descargar todo")
+    parser.add_argument("--dem", action="store_true", help="incluir el DEM polar LOLA (116 MB)")
     args = parser.parse_args()
 
-    for url, dest, size in FILES:
+    for url, dest, size in FILES + (DEM_FILES if args.dem else []):
         download(url, dest, size, args.force)
     convert_texture(args.force)
     print("Datos listos.")

@@ -5,6 +5,9 @@ from __future__ import annotations
 from dataclasses import asdict
 from datetime import datetime, timedelta
 
+import numpy as np
+
+from app.models.horizon import SphericalHorizon, TerrainHorizon, horizon_for
 from app.models.scoring import BodyMetrics, ScoringConfig, SiteEvaluation
 from app.models.site import Site
 from app.models.windows import Interval
@@ -80,4 +83,20 @@ def evaluation_json(result: SiteEvaluation, detailed: bool) -> dict:
     if detailed:
         data["site"] = site_json(result.site)
         data["config"] = config_json(result.config)
+        data["horizon"] = horizon_json(horizon_for(result.site))
     return data
+
+
+def horizon_json(horizon: SphericalHorizon) -> dict:
+    """Tipo de horizonte y, si es por terreno, su perfil cada 1° de azimut (sin margen)."""
+    if not isinstance(horizon, TerrainHorizon):
+        return {"kind": horizon.kind, "profile_deg": None}
+    mask = horizon.mask
+    profile = TerrainHorizon(mask).elevation(np.arange(0, 360, 1.0))
+    return {
+        "kind": horizon.kind,
+        "source": mask.source,
+        "observer_height_m": mask.observer_height_m,
+        "max_distance_km": mask.max_distance_km,
+        "profile_deg": [round(v, 2) for v in profile.tolist()],
+    }

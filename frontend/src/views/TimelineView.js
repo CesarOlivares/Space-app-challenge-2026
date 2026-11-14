@@ -24,7 +24,10 @@ export function renderTimeline(container, timeline, { onScrub = () => {} } = {})
   const hours = timeline.times.map((t) => (new Date(t).getTime() - start) / 3.6e6);
   const total = hours[hours.length - 1] || 1;
   const x = (h) => (h / total) * WIDTH;
-  const [bottom, top] = elevationRange([...timeline.sun.elevation_deg, ...timeline.earth.elevation_deg]);
+  const [bottom, top] = elevationRange([
+    ...timeline.sun.elevation_deg, ...timeline.earth.elevation_deg,
+    ...timeline.sun.horizon_deg, ...timeline.earth.horizon_deg,
+  ]);
   const y = (e) => CHART_TOP + ((top - Math.max(bottom, Math.min(top, e))) / (top - bottom)) * CHART_HEIGHT;
   const toHours = (iso) => (new Date(iso).getTime() - start) / 3.6e6;
 
@@ -50,7 +53,7 @@ export function renderTimeline(container, timeline, { onScrub = () => {} } = {})
   svg.append(el("rect", { x: 0, y: CHART_TOP, width: WIDTH, height: CHART_HEIGHT, class: "timeline-bg" }));
   svg.append(el("rect", { x: 0, y: y(0), width: WIDTH, height: CHART_TOP + CHART_HEIGHT - y(0), class: "timeline-ground" }));
   svg.append(el("line", { x1: 0, x2: WIDTH, y1: y(0), y2: y(0), class: "sky-horizon" }));
-  svg.append(el("text", { x: WIDTH - 2, y: y(0) - 2, class: "sky-tick", "text-anchor": "end" }, "horizonte"));
+  svg.append(el("text", { x: WIDTH - 2, y: y(0) - 2, class: "sky-tick", "text-anchor": "end" }, "0°"));
   svg.append(el("text", { x: WIDTH - 2, y: CHART_TOP + 8, class: "sky-tick", "text-anchor": "end" }, `${top}°`));
 
   // Marcas por día.
@@ -58,6 +61,18 @@ export function renderTimeline(container, timeline, { onScrub = () => {} } = {})
   for (let d = 0; d * 24 <= total; d += dayStep) {
     svg.append(el("line", { x1: x(d * 24), x2: x(d * 24), y1: CHART_TOP, y2: CHART_TOP + CHART_HEIGHT, class: "sky-grid" }));
     svg.append(el("text", { x: x(d * 24) + (d === 0 ? 1 : 0), y: HEIGHT - 3, class: "sky-cardinal", "text-anchor": d === 0 ? "start" : "middle" }, `d${d}`));
+  }
+
+  // Con relieve, cada cuerpo tiene su propio horizonte (el del azimut en que está): línea punteada.
+  const terrain = timeline.sun.horizon === "terreno";
+  if (terrain) {
+    for (const body of ["earth", "sun"]) {
+      svg.append(el("polyline", {
+        points: timeline[body].horizon_deg.map((e, i) => `${x(hours[i]).toFixed(2)},${y(e).toFixed(2)}`).join(" "),
+        class: "timeline-horizon",
+        stroke: COLORS[body],
+      }));
+    }
   }
 
   for (const body of ["earth", "sun"]) {
@@ -77,7 +92,9 @@ export function renderTimeline(container, timeline, { onScrub = () => {} } = {})
 
   const readout = document.createElement("p");
   readout.className = "caption timeline-readout";
-  const idle = "Pasa el cursor o el dedo por el gráfico para ver cada momento.";
+  const idle = (timeline.sun.horizon === "terreno"
+    ? "Punteado: el relieve en la dirección de cada cuerpo; es visible cuando su línea va por encima. "
+    : "") + "Pasa el cursor o el dedo por el gráfico para ver cada momento.";
   readout.textContent = idle;
 
   const hit = el("rect", { x: 0, y: 0, width: WIDTH, height: HEIGHT, fill: "transparent" });

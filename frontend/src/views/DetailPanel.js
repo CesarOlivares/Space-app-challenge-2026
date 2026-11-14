@@ -42,6 +42,14 @@ export function countdown(body, data, windowDays) {
   };
 }
 
+function horizonText(horizon) {
+  if (horizon.kind !== "terreno") {
+    return "Horizonte esférico: sin datos de relieve para este sitio (solo hay para el polo sur, al sur de 80° S).";
+  }
+  return `Horizonte con el relieve real (${escapeHtml(horizon.source)}, ${horizon.max_distance_km} km a la redonda,
+    observador a ${horizon.observer_height_m} m). La línea gris punteada marca 0°.`;
+}
+
 function scoreBar(label, value, hint) {
   return `
     <div class="bar" title="${escapeHtml(hint)}">
@@ -122,7 +130,7 @@ export class DetailPanel {
       <h3>Cielo desde el sitio</h3>
       <div class="sky-container"></div>
       <p class="caption">Posición al aterrizar y trayectoria durante ${days} días (un punto por día).
-        Horizonte ${sky.sun.horizon === "esferico" ? "esférico, sin relieve local" : "con relieve LOLA"}.</p>
+        ${horizonText(sky.horizon)}</p>
 
       <h3>Línea de tiempo</h3>
       <div class="timeline-container"></div>

@@ -50,8 +50,16 @@ def test_pesos_cambian_el_puntaje_global(client):
 def test_sky_para_catalogo_y_coordenadas(client, ref):
     data = client.get(f"/api/sites/{ref}/sky", params={"date": DATE}).json()
     assert data["site"]["lat"] == pytest.approx(-84.7906)
-    assert data["sun"]["horizon"] == "esferico"
+    assert data["horizon"]["kind"] == data["sun"]["horizon"]
     assert {"hours_until_set", "set_time", "windows"} <= data["earth"].keys()
+
+
+def test_sky_incluye_el_perfil_del_terreno(client):
+    terrain = client.get("/api/sites/im-2/sky", params={"date": DATE}).json()["horizon"]
+    assert terrain["kind"] == "terreno"
+    assert len(terrain["profile_deg"]) == 360
+    sphere = client.get("/api/sites/apollo-11/sky", params={"date": DATE}).json()["horizon"]
+    assert sphere == {"kind": "esferico", "profile_deg": None}
 
 
 def test_sky_tiempo_hasta_ocaso(client):
