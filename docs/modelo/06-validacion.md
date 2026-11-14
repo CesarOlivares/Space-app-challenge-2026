@@ -11,12 +11,16 @@ Todas las comprobaciones están automatizadas en `backend/tests/` y corren con `
 | Altura del DEM | Elevación de IM-1 publicada por NASA: 2579 m | DEM: 2592 m | `test_terrain.py::test_alturas_conocidas` |
 | Altura del DEM | Cumbre de Mons Malapert (~4,9 km) y fondo de Shackleton (~−2,8 km) | Dentro de la tolerancia | `test_terrain.py` |
 | Máscaras versionadas | Recalculadas con el DEM | Idénticas | `test_terrain.py` |
+| Visibilidad media de la Tierra (18,6 años) | Capa `AVGVISIB_EARTH` del producto 69 de PGDA (NASA Goddard), 340 puntos al sur de 80° S | Correlación 0,991, error medio 1,0 punto porcentual (observador a 0 m) | [validacion-motor.md](investigacion/validacion-motor.md) |
+| Visibilidad media del Sol (18,6 años) | Capa `AVGVISIB` del producto 69 de PGDA, mismos 340 puntos | Correlación 0,993, error medio 1,2 puntos | [validacion-motor.md](investigacion/validacion-motor.md) |
+| Luz y sombra día a día en 2027 | Simulaciones NASA SVS 5027 y 4930 (relieve LOLA), 140 y 41 sitios | Coincidencia 89 % y 84 %; 93 % y 91 % con el Sol a más de 1° del horizonte | [validacion-motor.md](investigacion/validacion-motor.md) |
 | Catálogo | Coordenadas dibujadas sobre la textura LROC: cada sitio cae en su accidente geográfico | Revisión visual (fase 1) | — |
 
 Los casos de Horizons se regeneran con `backend/scripts/fetch_horizons_cases.py`.
 
 ## Pendiente
 
-- [ ] Validar el horizonte por terreno con una fuente externa (ver [03 · Horizonte](03-horizonte.md)).
-- [ ] Comparar los tiempos de ocaso de un sitio polar con una simulación de iluminación publicada.
+- [x] Validar el horizonte por terreno con una fuente externa: PGDA 69 y NASA SVS, ver [validacion-motor.md](investigacion/validacion-motor.md).
+- [ ] Comparar los tiempos de ocaso de un sitio polar con una simulación de iluminación publicada. Avance: luz y sombra diaria contra NASA SVS; falta la hora exacta de los cruces (cuadros cada 2 h).
+- [ ] Revisar las cumbres (Mons Malapert): el motor da 53 % de luz en 2027 y el SVS 100 %; probar con el DEM de 20 m.
 - [ ] Repetir la validación de Horizons en otra época (p. ej. 2028) para cubrir otra fase de la libración.

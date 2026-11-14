@@ -1,0 +1,342 @@
+{
+ "control": {
+  "fondo_shackleton_psr_oficial": true,
+  "acuerdo_psr_oficial_vs_aprox_en_80S": {
+   "oficial_y_aprox": 1368775,
+   "solo_oficial": 769543,
+   "solo_aprox": 16828
+  },
+  "pendiente_100m_en_sitios": {
+   "mediana": 2.65,
+   "max": 6.42,
+   "sitios_le_8": 130
+  },
+  "pendiente_120m_en_sitios": {
+   "mediana": 2.34,
+   "max": 5.49
+  },
+  "rugosidad_100m_en_sitios_m": {
+   "mediana": 0.459
+  },
+  "rugosidad_100m_zona_m": {
+   "p50": 0.563,
+   "p90": 1.075
+  }
+ },
+ "variantes": [
+  {
+   "variante": "A: v2 (pendiente 120 m, sombra aproximada)",
+   "sitios_factibles": 130,
+   "percentil_mediano_sitios": 95.6,
+   "sitios_en_top10%": 0.708,
+   "linea_base_aleatoria": 0.049,
+   "div0_top50": {
+    "cerca": 0.54,
+    "regiones": 5
+   },
+   "div0_top100": {
+    "cerca": 0.51,
+    "regiones": 5
+   },
+   "div15_top50": {
+    "cerca": 0.3,
+    "regiones": 11
+   },
+   "div15_top100": {
+    "cerca": 0.22,
+    "regiones": 16
+   }
+  },
+  {
+   "variante": "B: pendiente 100 m de PGDA",
+   "sitios_factibles": 130,
+   "percentil_mediano_sitios": 95.6,
+   "sitios_en_top10%": 0.708,
+   "linea_base_aleatoria": 0.049,
+   "div0_top50": {
+    "cerca": 0.54,
+    "regiones": 5
+   },
+   "div0_top100": {
+    "cerca": 0.51,
+    "regiones": 5
+   },
+   "div15_top50": {
+    "cerca": 0.32,
+    "regiones": 11
+   },
+   "div15_top100": {
+    "cerca": 0.23,
+    "regiones": 16
+   }
+  },
+  {
+   "variante": "C: B + sombra permanente oficial",
+   "sitios_factibles": 130,
+   "percentil_mediano_sitios": 94.4,
+   "sitios_en_top10%": 0.685,
+   "linea_base_aleatoria": 0.049,
+   "div0_top50": {
+    "cerca": 0.5,
+    "regiones": 5
+   },
+   "div0_top100": {
+    "cerca": 0.47,
+    "regiones": 5
+   },
+   "div15_top50": {
+    "cerca": 0.34,
+    "regiones": 12
+   },
+   "div15_top100": {
+    "cerca": 0.29,
+    "regiones": 16
+   }
+  },
+  {
+   "variante": "D: C + rugosidad 100 m",
+   "sitios_factibles": 130,
+   "percentil_mediano_sitios": 95.4,
+   "sitios_en_top10%": 0.638,
+   "linea_base_aleatoria": 0.049,
+   "div0_top50": {
+    "cerca": 0.44,
+    "regiones": 4
+   },
+   "div0_top100": {
+    "cerca": 0.46,
+    "regiones": 5
+   },
+   "div15_top50": {
+    "cerca": 0.32,
+    "regiones": 9
+   },
+   "div15_top100": {
+    "cerca": 0.27,
+    "regiones": 15
+   }
+  }
+ ],
+ "top20_D_diversos": [
+  {
+   "lat": -84.464,
+   "lon_este": 19.16,
+   "S": 0.879,
+   "sol": 0.54,
+   "tierra": 1.0,
+   "pendiente_100m": 2.9,
+   "rugosidad_100m_m": 0.2,
+   "region_artemis_cercana": "MMP",
+   "dist_sitio_artemis_km": 8.4
+  },
+  {
+   "lat": -84.667,
+   "lon_este": 25.87,
+   "S": 0.879,
+   "sol": 0.561,
+   "tierra": 1.0,
+   "pendiente_100m": 2.5,
+   "rugosidad_100m_m": 0.16,
+   "region_artemis_cercana": "MMP",
+   "dist_sitio_artemis_km": 5.1
+  },
+  {
+   "lat": -84.076,
+   "lon_este": 42.57,
+   "S": 0.878,
+   "sol": 0.537,
+   "tierra": 1.0,
+   "pendiente_100m": 3.5,
+   "rugosidad_100m_m": 0.18,
+   "region_artemis_cercana": "MMP",
+   "dist_sitio_artemis_km": 6.9
+  },
+  {
+   "lat": -83.611,
+   "lon_este": 291.51,
+   "S": 0.877,
+   "sol": 0.537,
+   "tierra": 0.995,
+   "pendiente_100m": 4.5,
+   "rugosidad_100m_m": 0.2,
+   "region_artemis_cercana": "PCB",
+   "dist_sitio_artemis_km": 1.7
+  },
+  {
+   "lat": -84.817,
+   "lon_este": 38.37,
+   "S": 0.874,
+   "sol": 0.545,
+   "tierra": 1.0,
+   "pendiente_100m": 6.8,
+   "rugosidad_100m_m": 0.2,
+   "region_artemis_cercana": "MMP",
+   "dist_sitio_artemis_km": 4.9
+  },
+  {
+   "lat": -83.693,
+   "lon_este": 39.53,
+   "S": 0.873,
+   "sol": 0.552,
+   "tierra": 1.0,
+   "pendiente_100m": 5.4,
+   "rugosidad_100m_m": 0.24,
+   "region_artemis_cercana": "MMP",
+   "dist_sitio_artemis_km": 16.3
+  },
+  {
+   "lat": -84.139,
+   "lon_este": 26.68,
+   "S": 0.873,
+   "sol": 0.523,
+   "tierra": 1.0,
+   "pendiente_100m": 1.2,
+   "rugosidad_100m_m": 0.17,
+   "region_artemis_cercana": "MMP",
+   "dist_sitio_artemis_km": 3.2
+  },
+  {
+   "lat": -84.059,
+   "lon_este": 32.42,
+   "S": 0.871,
+   "sol": 0.517,
+   "tierra": 1.0,
+   "pendiente_100m": 5.8,
+   "rugosidad_100m_m": 0.17,
+   "region_artemis_cercana": "MMP",
+   "dist_sitio_artemis_km": 11.5
+  },
+  {
+   "lat": -85.474,
+   "lon_este": 340.95,
+   "S": 0.87,
+   "sol": 0.539,
+   "tierra": 1.0,
+   "pendiente_100m": 2.5,
+   "rugosidad_100m_m": 0.23,
+   "region_artemis_cercana": "HW",
+   "dist_sitio_artemis_km": 33.1
+  },
+  {
+   "lat": -83.595,
+   "lon_este": 326.15,
+   "S": 0.87,
+   "sol": 0.537,
+   "tierra": 1.0,
+   "pendiente_100m": 4.5,
+   "rugosidad_100m_m": 0.16,
+   "region_artemis_cercana": "HW",
+   "dist_sitio_artemis_km": 93.6
+  },
+  {
+   "lat": -85.613,
+   "lon_este": 347.9,
+   "S": 0.869,
+   "sol": 0.501,
+   "tierra": 1.0,
+   "pendiente_100m": 5.8,
+   "rugosidad_100m_m": 0.07,
+   "region_artemis_cercana": "MMA",
+   "dist_sitio_artemis_km": 22.2
+  },
+  {
+   "lat": -85.449,
+   "lon_este": 30.88,
+   "S": 0.864,
+   "sol": 0.514,
+   "tierra": 0.992,
+   "pendiente_100m": 3.8,
+   "rugosidad_100m_m": 0.23,
+   "region_artemis_cercana": "MMO",
+   "dist_sitio_artemis_km": 1.5
+  },
+  {
+   "lat": -83.034,
+   "lon_este": 335.01,
+   "S": 0.863,
+   "sol": 0.516,
+   "tierra": 1.0,
+   "pendiente_100m": 6.0,
+   "rugosidad_100m_m": 0.24,
+   "region_artemis_cercana": "MMA",
+   "dist_sitio_artemis_km": 107.6
+  },
+  {
+   "lat": -85.943,
+   "lon_este": 356.34,
+   "S": 0.861,
+   "sol": 0.532,
+   "tierra": 1.0,
+   "pendiente_100m": 6.1,
+   "rugosidad_100m_m": 0.23,
+   "region_artemis_cercana": "MMA",
+   "dist_sitio_artemis_km": 0.9
+  },
+  {
+   "lat": -83.996,
+   "lon_este": 12.53,
+   "S": 0.861,
+   "sol": 0.501,
+   "tierra": 1.0,
+   "pendiente_100m": 6.8,
+   "rugosidad_100m_m": 0.26,
+   "region_artemis_cercana": "MMP",
+   "dist_sitio_artemis_km": 32.6
+  },
+  {
+   "lat": -84.27,
+   "lon_este": 37.71,
+   "S": 0.86,
+   "sol": 0.505,
+   "tierra": 1.0,
+   "pendiente_100m": 3.2,
+   "rugosidad_100m_m": 0.21,
+   "region_artemis_cercana": "MMP",
+   "dist_sitio_artemis_km": 3.2
+  },
+  {
+   "lat": -84.443,
+   "lon_este": 358.02,
+   "S": 0.859,
+   "sol": 0.509,
+   "tierra": 0.978,
+   "pendiente_100m": 5.3,
+   "rugosidad_100m_m": 0.23,
+   "region_artemis_cercana": "MMA",
+   "dist_sitio_artemis_km": 45.6
+  },
+  {
+   "lat": -85.999,
+   "lon_este": 3.54,
+   "S": 0.858,
+   "sol": 0.486,
+   "tierra": 1.0,
+   "pendiente_100m": 5.3,
+   "rugosidad_100m_m": 0.25,
+   "region_artemis_cercana": "MMA",
+   "dist_sitio_artemis_km": 0.6
+  },
+  {
+   "lat": -83.775,
+   "lon_este": 6.14,
+   "S": 0.857,
+   "sol": 0.48,
+   "tierra": 0.993,
+   "pendiente_100m": 0.7,
+   "rugosidad_100m_m": 0.22,
+   "region_artemis_cercana": "MMP",
+   "dist_sitio_artemis_km": 52.7
+  },
+  {
+   "lat": -83.576,
+   "lon_este": 321.6,
+   "S": 0.855,
+   "sol": 0.464,
+   "tierra": 1.0,
+   "pendiente_100m": 4.8,
+   "rugosidad_100m_m": 0.21,
+   "region_artemis_cercana": "HW",
+   "dist_sitio_artemis_km": 95.8
+  }
+ ]
+}
