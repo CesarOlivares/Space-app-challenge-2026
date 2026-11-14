@@ -22,6 +22,7 @@ import { getLang, LANGUAGES, onLangChange, setLang, siteName, t } from "./i18n.j
 import { createRouter } from "./router.js";
 import { readUrlState, writeUrlState } from "./urlState.js";
 import { CompareStory } from "./views/CompareStory.js";
+import { LearnView } from "./views/LearnView.js";
 import { Controls } from "./views/Controls.js";
 import { CustomSiteForm } from "./views/CustomSiteForm.js";
 import { BEST_DATES_DAYS, BEST_DATES_STEP_HOURS, DetailPanel } from "./views/DetailPanel.js";
@@ -221,6 +222,10 @@ const compareStory = new CompareStory(document.getElementById("story-root"), {
     loadCompare();
   },
 });
+const learnView = new LearnView(document.getElementById("learn-root"), {
+  onGoExplore: () => router.go("explorar"),
+  onExample: (example) => runExample(example),
+});
 let comparePromise = null;
 let comparing = false; // el zoom hacia los sitios está en curso
 
@@ -299,7 +304,7 @@ const router = createRouter({
   // Quien ya vio la portada abre directo en la vista general; "Inicio" (#intro) siempre la muestra.
   defaultSection: () => (stored.get("introSeen") ? "explorar" : "intro"),
   onChange: (section, previous) => {
-    globe.setActive(section !== "comparar" && !stage.isOpen);
+    globe.setActive((section === "intro" || section === "explorar") && !stage.isOpen);
     if (section === "intro") {
       globe.setFraming("hero", { animate: previous === "explorar" });
     } else if (section === "explorar" && !entering) {
@@ -411,6 +416,7 @@ onLangChange(() => {
   list.refresh();
   renderSelection();
   compareStory.refresh();
+  learnView.render();
   if (state.selectedId) loadActive();
 });
 
@@ -597,24 +603,6 @@ for (const button of reliefButtons) {
   });
 }
 
-const demoSelect = document.getElementById("demo-scenario");
-if (demoSelect) {
-  demoSelect.addEventListener("change", async () => {
-    const val = demoSelect.value;
-    if (!val) return;
-    if (val === "artemis-south") {
-      await loadDate(new Date("2026-12-15T00:00:00Z"));
-      globe.focusSouthPole();
-      select("mons-mouton");
-    } else if (val === "im1-slope") {
-      await loadDate(new Date("2026-12-15T00:00:00Z"));
-      select("im-1");
-    } else if (val === "apollo11-flat") {
-      await loadDate(new Date("2026-12-15T00:00:00Z"));
-      select("apollo-11");
-    }
-  });
-}
 
 // --- Sitios personalizados ------------------------------------------------
 
@@ -654,6 +642,24 @@ function siteForRef(ref) {
   const match = /^(-?[\d.]+),(-?[\d.]+)$/.exec(ref);
   const id = match ? `custom:${Number(match[1]).toFixed(4)},${Number(match[2]).toFixed(4)}` : ref;
   return state.sites.get(id);
+}
+
+// Ejemplo guiado (sección Aprender): abre la herramienta ya configurada.
+async function runExample({ ids, date, pole = false, compare = false }) {
+  router.go("explorar");
+  const when = new Date(date);
+  controls.setDate(when);
+  await loadDate(when);
+  if (compare) {
+    state.selected = ids.filter((id) => state.sites.has(id));
+    applySelection();
+    await sleep(reducedMotion.matches ? 0 : 900); // deja que la cámara termine de alejarse
+    openCompare();
+    return;
+  }
+  state.selected = ids.filter((id) => state.sites.has(id)).slice(0, 1);
+  applySelection({ fly: true });
+  if (pole) globe.focusSouthPole();
 }
 
 // --- Comparación ------------------------------------------------------------

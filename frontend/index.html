@@ -10,6 +10,7 @@
     <link rel="stylesheet" href="src/styles.css" />
     <link rel="stylesheet" href="src/minimal.css" />
     <link rel="stylesheet" href="src/story.css" />
+    <link rel="stylesheet" href="src/learn.css" />
     <script type="importmap">
       {
         "imports": {
@@ -32,6 +33,7 @@
         <li><a href="#intro" data-nav="intro"><span class="nav-num">01</span><span data-i18n="nav.intro">Inicio</span></a></li>
         <li><a href="#explorar" data-nav="explorar"><span class="nav-num">02</span><span data-i18n="nav.explore">Explorar</span></a></li>
         <li><a href="#comparar" data-nav="comparar"><span class="nav-num">03</span><span data-i18n="nav.compare">Comparar</span></a></li>
+        <li><a href="#aprender" data-nav="aprender"><span class="nav-num">04</span><span data-i18n="nav.learn">Aprender</span></a></li>
       </ul>
       <div class="segmented" role="group" data-i18n-attr="aria-label: controls.langGroup">
         <button type="button" data-lang="es" aria-pressed="true" lang="es">ES</button>
@@ -49,7 +51,11 @@
         <p class="hero-coords" aria-hidden="true"><span data-i18n="hero.subsolar">Subsolar</span> <span id="hero-coords">—</span></p>
         <div class="hero-copy">
           <h1 id="hero-title" class="hero-title" tabindex="-1" data-i18n="hero.title">Bienvenido al Moonland Planificator</h1>
-          <a class="cta" href="#explorar" data-hero-start><span data-i18n="hero.start">Comenzar</span></a>
+          <p class="hero-purpose" data-i18n="hero.purpose"></p>
+          <div class="hero-actions">
+            <a class="cta" href="#explorar" data-hero-start><span data-i18n="hero.start">Comenzar</span></a>
+            <a class="hero-link" href="#aprender" data-i18n="hero.learn">Aprender cómo funciona</a>
+          </div>
         </div>
         <ul class="hero-facts">
           <li><span class="fact-label" data-i18n="hero.f1.label">Tiempo</span><span data-i18n="hero.f1.text"></span></li>
@@ -156,14 +162,6 @@
                 <p><span class="swatch" style="--c:#0ea5e9"></span><span class="swatch" style="--c:#ea580c"></span> <span data-i18n="layers.b"></span></p>
                 <p><span class="swatch" style="--c:#2dd4bf"></span> <span data-i18n="layers.safe"></span></p>
               </div>
-              <label class="demo-picker"><span data-i18n="demo.label">Escenario de ejemplo</span>
-                <select id="demo-scenario">
-                  <option value="" data-i18n="demo.placeholder">Seleccionar escenario…</option>
-                  <option value="artemis-south" data-i18n="demo.artemis">Artemis III</option>
-                  <option value="im1-slope" data-i18n="demo.im1">CLPS IM-1</option>
-                  <option value="apollo11-flat" data-i18n="demo.apollo">Apollo 11</option>
-                </select>
-              </label>
             </section>
 
             <details class="custom tech-only">
@@ -231,13 +229,7 @@
               </form>
             </details>
 
-            <details class="custom learn simple-open">
-              <summary data-i18n="learn.title">¿Por qué es difícil elegir dónde aterrizar?</summary>
-              <p data-i18n="learn.p1"></p>
-              <p data-i18n="learn.p2"></p>
-              <p data-i18n="learn.p3"></p>
-              <p data-i18n="learn.p4"></p>
-            </details>
+            <a class="btn learn-link" href="#aprender" data-i18n="learn.more">Aprender más</a>
 
             <div class="buttons">
               <button type="button" id="copy-link" data-i18n="controls.copyLink">Copiar enlace</button>
@@ -306,6 +298,10 @@
       <section id="sec-comparar" class="page page--compare" hidden aria-labelledby="cmpsec-title">
         <h1 id="cmpsec-title" class="sr-only" tabindex="-1" data-i18n="cmpsec.title">Comparación</h1>
         <div id="story-root"></div>
+      </section>
+      <!-- 04 · Aprender: educadores, estudiantes y curiosos (LearnView.js). -->
+      <section id="sec-aprender" class="page page--learn" hidden aria-labelledby="learn-title">
+        <div id="learn-root"></div>
       </section>
     </main>
 

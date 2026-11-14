@@ -1,0 +1,61 @@
+/* Sección 04 · Aprender y portada con propósito. Ver views/LearnView.js. */
+
+.page--learn {
+  position: fixed;
+  z-index: 5;
+  inset: var(--nav-h) 0 0 0;
+  overflow-y: auto;
+  background: var(--bg);
+  padding: var(--space-5) var(--space-4) var(--space-6);
+}
+
+.learn { width: min(980px, 100%); margin: 0 auto; display: grid; gap: var(--space-5); }
+.learn h2 { margin: 0 0 var(--space-3); font-size: 0.8rem; letter-spacing: 0.14em; text-transform: uppercase; color: var(--accent); }
+.learn h3 { margin: 0 0 4px; font-size: 1rem; }
+.learn p { margin: 0; }
+.learn-lead { max-width: 68ch; font-size: 1.05rem; line-height: 1.55; color: var(--ink-muted); }
+.learn-sub { margin: 0 0 var(--space-3); color: var(--ink-muted); font-size: var(--fs-body); }
+
+.learn-cards, .learn-examples, .learn-limits { margin: 0; padding: 0; list-style: none; display: grid; gap: var(--space-3); }
+.learn-cards { grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); }
+
+.learn-cards li {
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr);
+  gap: var(--space-3);
+  padding: var(--space-4);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--surface);
+}
+.learn-cards .icon { width: 44px; height: 44px; color: var(--accent); }
+.learn-cards p { color: var(--ink-muted); font-size: var(--fs-body); line-height: 1.5; }
+
+.learn-examples li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  padding: var(--space-4);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--surface);
+}
+.learn-examples p { color: var(--ink-muted); font-size: var(--fs-body); }
+.learn-examples .btn { flex: none; }
+
+.learn-limits { list-style: disc; padding-left: 20px; gap: var(--space-2); color: var(--ink-muted); max-width: 72ch; }
+.learn-limits + .learn-sub { margin-top: var(--space-3); }
+.learn > section > .btn { margin-top: var(--space-2); }
+
+/* Portada: propósito y dos entradas. */
+.hero-purpose { margin: -16px 0 0; max-width: 46ch; font-size: 1.05rem; line-height: 1.5; color: var(--ink-muted); }
+.hero-actions { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-4) var(--space-5); }
+.hero-link { color: var(--ink); font-size: 0.8rem; letter-spacing: 0.12em; text-transform: uppercase; text-underline-offset: 6px; }
+.hero-link:hover { color: var(--accent); }
+.learn-link { display: block; text-align: center; }
+
+@media (max-width: 700px) {
+  .learn-examples li { flex-direction: column; align-items: stretch; }
+  .hero-purpose { margin-top: 0; font-size: 0.95rem; }
+}

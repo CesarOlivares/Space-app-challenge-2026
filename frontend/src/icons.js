@@ -31,6 +31,7 @@ export const ICONS = {
   kpiTerrain: "hud_3d_terrain_wireframe_mesh",
   kpiShield: "comet_meteor_fireball",
   kpiTotal: "rocket_launch_solid",
+  phases: "celestial_crescent_phases_ring",
   reticle: "hud_crosshair_lock_reticle",
   // Secciones
   globe: "wireframe-globe-isometric",
