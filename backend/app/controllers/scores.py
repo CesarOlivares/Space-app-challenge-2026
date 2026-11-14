@@ -1,4 +1,6 @@
 from datetime import datetime, timedelta
+from functools import lru_cache
+import math
 
 from fastapi import APIRouter, Depends, Query
 import numpy as np
@@ -14,8 +16,15 @@ from app.controllers.deps import (
 )
 from app.controllers.serializers import config_json, evaluation_json, iso
 from app.models.ephemeris import Ephemeris, as_utc
-from app.models.scoring import ScoringConfig, evaluate, evaluate_all
+from app.models.scoring import (
+    ScoringConfig,
+    compute_asteroid_protection_score,
+    compute_landing_ease_score,
+    evaluate,
+    evaluate_all,
+)
 from app.models.site import Site
+from app.models.terrain import evaluate_terrain
 
 router = APIRouter(prefix="/api", tags=["puntajes"])
 
@@ -116,3 +125,49 @@ def scores_matrix(
         "dates": [iso(d) for d in dates],
         "sites": sites_data,
     }
+
+
+@lru_cache(maxsize=1)
+def _build_risk_grid(max_slope_deg: float = 15.0) -> dict:
+    """Builds and caches a 72x36 global lunar risk grid for on-globe heatmap overlays."""
+    cols, rows = 72, 36
+    lon_step = 360.0 / cols
+    lat_step = 180.0 / rows
+    cells = []
+    for r in range(rows):
+        lat = -90.0 + (r + 0.5) * lat_step
+        lat_rad = math.radians(lat)
+        for c in range(cols):
+            lon = -180.0 + (c + 0.5) * lon_step
+            lon_rad = math.radians(lon)
+            metrics = evaluate_terrain(lat, lon)
+            # Estimate regional ridge shielding from basin depth and polar/highland relief.
+            basin_shield = max(0.0, (-metrics.elevation_m) / 2500.0) * 35.0
+            ridge_wave = 28.0 * (
+                0.5 + 0.5 * math.sin(3.0 * lat_rad + 2.0 * lon_rad)
+            ) * (0.4 + 0.6 * abs(math.sin(lat_rad)))
+            raw_shield = min(100.0, max(0.0, basin_shield + ridge_wave))
+            landing_ease = compute_landing_ease_score(metrics, max_slope_deg=max_slope_deg)
+            asteroid_protection = compute_asteroid_protection_score(raw_shield, metrics.slope_deg)
+            cells.append({
+                "lat": round(lat, 2),
+                "lon": round(lon, 2),
+                "slope_deg": round(metrics.slope_deg, 2),
+                "landing_ease": round(landing_ease, 1),
+                "asteroid_protection": round(asteroid_protection, 1),
+            })
+    return {
+        "cols": cols,
+        "rows": rows,
+        "lon_step_deg": lon_step,
+        "lat_step_deg": lat_step,
+        "cells": cells,
+    }
+
+
+@router.get("/risk-grid")
+def risk_grid(
+    max_slope_deg: float = Query(15.0, gt=2.0, le=45.0, description="Max safe slope threshold in degrees"),
+) -> dict:
+    """Returns a cached 72x36 global grid of Landing Ease (A) and Asteroid Protection (B) scores."""
+    return _build_risk_grid(round(float(max_slope_deg), 1))

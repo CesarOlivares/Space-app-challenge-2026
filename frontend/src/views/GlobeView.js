@@ -102,6 +102,169 @@ function glowTexture() {
   return new THREE.CanvasTexture(canvas);
 }
 
+/**
+ * Computes a quaternion aligning local +X (East), +Y (Up), +Z (North)
+ * to the lunar surface tangent plane at (lat, lon).
+ * @param {number} lat - Latitude in degrees.
+ * @param {number} lon - East longitude in degrees.
+ * @returns {THREE.Quaternion}
+ */
+function localTangentQuaternion(lat, lon) {
+  const up = latLonToVector(lat, lon, 1).normalize();
+  const lo = THREE.MathUtils.degToRad(lon);
+  const east = new THREE.Vector3(-Math.sin(lo), 0, -Math.cos(lo)).normalize();
+  const north = new THREE.Vector3().crossVectors(up, east).normalize();
+  const basis = new THREE.Matrix4().makeBasis(east, up, north);
+  return new THREE.Quaternion().setFromRotationMatrix(basis);
+}
+
+/**
+ * Builds a 36-azimuth 3D Mountain Shield Crown BufferGeometry around a site marker.
+ * Local +Z = North (0 deg), +X = East (90 deg), +Y = Up (radial).
+ * @param {number[]} [profile36] - 36 horizon elevation angles in degrees at 10 deg steps.
+ * @returns {THREE.BufferGeometry}
+ */
+function buildShieldCrownGeometry(profile36) {
+  const n = 36;
+  const radius = 1.42;
+  const baseH = 0.08;
+  const positions = [];
+  const colors = [];
+
+  const profile = Array.isArray(profile36) && profile36.length === n
+    ? profile36
+    : new Array(n).fill(0);
+
+  for (let i = 0; i < n; i++) {
+    const a0 = THREE.MathUtils.degToRad(i * 10);
+    const a1 = THREE.MathUtils.degToRad((i + 1) * 10);
+    const hVal = Math.max(0, Number(profile[i]) || 0);
+    const height = baseH + Math.min(25, hVal) * 0.055;
+
+    const x0 = radius * Math.sin(a0);
+    const z0 = radius * Math.cos(a0);
+    const x1 = radius * Math.sin(a1);
+    const z1 = radius * Math.cos(a1);
+
+    // Triangle 1 & 2 forming the extruded wall segment
+    positions.push(
+      x0, 0, z0,
+      x1, 0, z1,
+      x1, height, z1,
+      x0, 0, z0,
+      x1, height, z1,
+      x0, height, z0,
+    );
+
+    let r, g, b;
+    if (hVal > 2.0) {
+      const k = Math.min(1, hVal / 18.0);
+      r = 0.05 + 0.08 * k;
+      g = 0.65 + 0.30 * k;
+      b = 0.92 + 0.08 * k; // glowing cyan/blue shield
+    } else {
+      r = 0.94;
+      g = hVal > 0.5 ? 0.62 : 0.27;
+      b = 0.22; // exposed sector (amber/red)
+    }
+    for (let v = 0; v < 6; v++) {
+      colors.push(r, g, b);
+    }
+  }
+
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute("position", new THREE.Float32BufferAttribute(positions, 3));
+  geo.setAttribute("color", new THREE.Float32BufferAttribute(colors, 3));
+  geo.computeVertexNormals();
+  return geo;
+}
+
+/**
+ * Maps a risk score or mode to an RGBA tuple [r, g, b, a] for the on-globe heatmap.
+ * @param {"risk-a"|"risk-b"|"safe-havens"} mode - Active risk visualization mode.
+ * @param {number} slopeDeg - Local slope in degrees.
+ * @param {number} ease - Landing Ease score (0-100).
+ * @param {number} shield - Asteroid Protection score (0-100).
+ * @returns {[number, number, number, number]}
+ */
+function riskCellColor(mode, slopeDeg, ease, shield) {
+  if (mode === "risk-a") {
+    if (slopeDeg <= 5.0 || ease >= 78) return [16, 200, 145, 190]; // Emerald/Cyan flat
+    if (slopeDeg <= 10.0 || ease >= 50) return [245, 165, 25, 185]; // Amber moderate
+    return [225, 45, 55, 205]; // Crimson steep risk
+  }
+  if (mode === "risk-b") {
+    if (shield >= 45) return [14, 165, 233, 205]; // Deep Cyan sheltered
+    if (shield >= 22) return [56, 189, 248, 165]; // Moderate shield
+    return [234, 88, 12, 185]; // Orange/Red exposed plateau
+  }
+  // safe-havens: Combined A + B
+  if (ease >= 65 && shield >= 32) return [45, 212, 191, 215]; // Optimal Safe Haven
+  if (ease >= 50) return [100, 116, 139, 110]; // Landable but exposed
+  return [185, 28, 28, 155]; // Steep hazard
+}
+
+/**
+ * Generates a smooth bilinear-interpolated RGBA CanvasTexture from the 72x36 risk grid.
+ * @param {Object} grid - Grid payload from GET /api/risk-grid.
+ * @param {"risk-a"|"risk-b"|"safe-havens"} mode - Active risk layer mode.
+ * @returns {THREE.CanvasTexture}
+ */
+function buildRiskOverlayTexture(grid, mode) {
+  const { cols, rows, cells } = grid;
+  const w = 288;
+  const h = 144;
+  const canvas = document.createElement("canvas");
+  canvas.width = w;
+  canvas.height = h;
+  const ctx = canvas.getContext("2d");
+  const img = ctx.createImageData(w, h);
+  const px = img.data;
+
+  for (let py = 0; py < h; py++) {
+    // py=0 is North (+90), py=h-1 is South (-90); grid row 0 is South (-90)
+    const latFrac = 1.0 - (py + 0.5) / h;
+    const gr = Math.max(0, Math.min(rows - 1.001, latFrac * rows - 0.5));
+    const r0 = Math.floor(gr);
+    const r1 = Math.min(rows - 1, r0 + 1);
+    const fr = gr - r0;
+
+    for (let pxIdx = 0; pxIdx < w; pxIdx++) {
+      const lonFrac = (pxIdx + 0.5) / w;
+      const gc = ((lonFrac * cols - 0.5) % cols + cols) % cols;
+      const c0 = Math.floor(gc);
+      const c1 = (c0 + 1) % cols;
+      const fc = gc - c0;
+
+      const c00 = cells[r0 * cols + c0];
+      const c10 = cells[r0 * cols + c1];
+      const c01 = cells[r1 * cols + c0];
+      const c11 = cells[r1 * cols + c1];
+
+      const bilerp = (k) =>
+        (c00[k] * (1 - fc) + c10[k] * fc) * (1 - fr) +
+        (c01[k] * (1 - fc) + c11[k] * fc) * fr;
+
+      const [r, g, b, a] = riskCellColor(
+        mode,
+        bilerp("slope_deg"),
+        bilerp("landing_ease"),
+        bilerp("asteroid_protection"),
+      );
+      const off = (py * w + pxIdx) * 4;
+      px[off] = r;
+      px[off + 1] = g;
+      px[off + 2] = b;
+      px[off + 3] = a;
+    }
+  }
+
+  ctx.putImageData(img, 0, 0);
+  const tex = new THREE.CanvasTexture(canvas);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  return tex;
+}
+
 export class GlobeView {
   constructor(canvas, { onHover = () => {}, onSelect = () => {}, onReliefStatus = () => {} } = {}) {
     this.canvas = canvas;
@@ -119,6 +282,9 @@ export class GlobeView {
     this.markerFade = 1;
     this.illumination = null;
     this.surfaceMode = "lroc";
+    this.layerMode = "surface";
+    this.riskGrid = null;
+    this.riskTextures = new Map();
     this.lolaTexture = null;
     this.relief = { enabled: true, exaggeration: 3, meta: null, field: null, status: "loading" };
     this.quality = "auto"; // auto | standard | high
@@ -178,6 +344,18 @@ export class GlobeView {
       new THREE.MeshStandardMaterial({ map: color, roughness: 1, metalness: 0 }),
     );
     this.scene.add(this.moon);
+    this.riskOverlay = new THREE.Mesh(
+      new THREE.SphereGeometry(1.0025, 192, 96),
+      new THREE.MeshStandardMaterial({
+        transparent: true,
+        opacity: 0.82,
+        roughness: 0.95,
+        metalness: 0,
+        depthWrite: false,
+      }),
+    );
+    this.riskOverlay.visible = false;
+    this.scene.add(this.riskOverlay);
     // Use a lightweight sphere for pointer raycasting instead of the 131k-vertex relief mesh.
     this.pickSphere = new THREE.Mesh(new THREE.SphereGeometry(1, 48, 24));
     this.#loadRelief();
@@ -204,6 +382,10 @@ export class GlobeView {
       material.displacementMap = height;
       material.normalMap = normal;
       material.needsUpdate = true;
+      if (this.riskOverlay) {
+        this.riskOverlay.material.displacementMap = height;
+        this.riskOverlay.material.needsUpdate = true;
+      }
       this.relief.meta = meta;
       this.relief.field = new HeightField(height.image, meta);
       this.lolaTexture = buildLolaTexture(height.image);
@@ -235,6 +417,10 @@ export class GlobeView {
     material.displacementBias = (meta.min_m / radius) * on;
     // El mapa guarda las pendientes multiplicadas por normal_gain: se compensa aquí.
     material.normalScale.setScalar((on / meta.normal_gain) || 0);
+    if (this.riskOverlay) {
+      this.riskOverlay.material.displacementScale = material.displacementScale;
+      this.riskOverlay.material.displacementBias = material.displacementBias;
+    }
     this.#placeMarkers();
   }
 
@@ -357,6 +543,40 @@ export class GlobeView {
     this.setRelief({ enabled: true, exaggeration: factor });
   }
 
+  /**
+   * Stores the global 72x36 risk grid and refreshes the active risk overlay if needed.
+   * @param {Object} grid - Grid payload from GET /api/risk-grid.
+   */
+  setRiskGrid(grid) {
+    this.riskGrid = grid;
+    for (const tex of this.riskTextures.values()) tex.dispose();
+    this.riskTextures.clear();
+    if (this.layerMode !== "surface") {
+      this.setLayerMode(this.layerMode);
+    }
+  }
+
+  /**
+   * Switches the on-globe surface visualization layer.
+   * @param {"surface"|"risk-a"|"risk-b"|"safe-havens"} mode - Active lunar layer mode.
+   */
+  setLayerMode(mode) {
+    this.layerMode = mode;
+    if (!this.riskOverlay) return;
+    if (mode === "surface" || !this.riskGrid) {
+      this.riskOverlay.visible = false;
+      return;
+    }
+    let tex = this.riskTextures.get(mode);
+    if (!tex) {
+      tex = buildRiskOverlayTexture(this.riskGrid, mode);
+      this.riskTextures.set(mode, tex);
+    }
+    this.riskOverlay.material.map = tex;
+    this.riskOverlay.material.needsUpdate = true;
+    this.riskOverlay.visible = true;
+  }
+
   removeSite(id) {
     const marker = this.markers.get(id);
     if (!marker) return;
@@ -395,15 +615,52 @@ export class GlobeView {
         }),
       );
 
-      group.add(glow, outline, core);
+      // Local tangent-aligned tactical group for Evaluation A (pad ring) & B (shield crown)
+      const tacticalGroup = new THREE.Group();
+      tacticalGroup.quaternion.copy(localTangentQuaternion(site.lat, site.lon));
+
+      const padGeo = new THREE.RingGeometry(0.55, 0.98, 32);
+      padGeo.rotateX(-Math.PI / 2);
+      const padRing = new THREE.Mesh(
+        padGeo,
+        new THREE.MeshBasicMaterial({
+          color: 0x22c55e,
+          side: THREE.DoubleSide,
+          transparent: true,
+          opacity: 0.9,
+        }),
+      );
+
+      const shieldCrown = new THREE.Mesh(
+        buildShieldCrownGeometry(null),
+        new THREE.MeshBasicMaterial({
+          vertexColors: true,
+          side: THREE.DoubleSide,
+          transparent: true,
+          opacity: 0.88,
+        }),
+      );
+
+      tacticalGroup.add(padRing, shieldCrown);
+      group.add(glow, outline, core, tacticalGroup);
       this.markerGroup.add(group);
-      this.markers.set(site.id, { site, group, core, outline, glow, radius: 0.01 });
+      this.markers.set(site.id, {
+        site,
+        group,
+        core,
+        outline,
+        glow,
+        tacticalGroup,
+        padRing,
+        shieldCrown,
+        radius: 0.01,
+      });
     }
   }
 
   /**
-   * Updates 3D surface marker radius, glow intensity, and viability color
-   * from the latest site evaluation scores.
+   * Updates 3D surface marker radius, glow intensity, viability color,
+   * Evaluation A touchdown pad ring, and Evaluation B 3D Mountain Shield Crown.
    * @param {Array<Object>} scores - Site score payloads from /api/scores or /api/sites/{id}/sky.
    */
   setScores(scores) {
@@ -416,6 +673,24 @@ export class GlobeView {
       marker.glow.material.color.set(color);
       marker.glow.material.opacity = glow;
       marker.glowScale = 3 + 5 * glow;
+
+      // Update Evaluation A inner touchdown pad ring
+      const topo = score.topography ?? {};
+      const ease = score.scores?.landing_ease ?? topo.landing_ease_score ?? 80;
+      const slopeOk = topo.slope_ok !== false;
+      if (!slopeOk) {
+        marker.padRing.material.color.setHex(0xef4444); // Red: exceeds max_slope_deg
+      } else if (ease >= 70) {
+        marker.padRing.material.color.setHex(0x22c55e); // Emerald: flat & safe
+      } else {
+        marker.padRing.material.color.setHex(0xf59e0b); // Amber: moderate
+      }
+
+      // Update Evaluation B outer 3D Mountain Shield Crown
+      if (Array.isArray(topo.horizon_shield_profile_deg) && topo.horizon_shield_profile_deg.length === 36) {
+        marker.shieldCrown.geometry.dispose();
+        marker.shieldCrown.geometry = buildShieldCrownGeometry(topo.horizon_shield_profile_deg);
+      }
     }
   }
 
@@ -546,6 +821,9 @@ export class GlobeView {
       marker.core.scale.setScalar(r);
       marker.outline.scale.setScalar(r * 1.45);
       marker.glow.scale.setScalar(r * (marker.glowScale ?? 4));
+      if (marker.tacticalGroup) {
+        marker.tacticalGroup.scale.setScalar(r * 1.25);
+      }
     }
   }
 
@@ -586,24 +864,37 @@ export class GlobeView {
       ((event.clientX - rect.left) / rect.width) * 2 - 1,
       -((event.clientY - rect.top) / rect.height) * 2 + 1,
     );
-    if (!this.markerGroup.visible) return null; // en la portada los puntos no se ven ni se eligen
+    if (!this.markerGroup.visible) return { id: null, zone: null };
     this.raycaster.setFromCamera(this.pointer, this.camera);
     const cores = [...this.markers.values()].map((m) => m.core);
     // Se incluye la Luna para que los sitios de la cara oculta no se puedan elegir a través de ella.
     const [hit] = this.raycaster.intersectObjects([this.pickSphere, ...cores], false);
-    return hit?.object.userData.siteId ?? null;
+    if (!hit) return { id: null, zone: null };
+    const siteId = hit.object.userData.siteId ?? null;
+    if (siteId) return { id: siteId, zone: null };
+
+    if (this.layerMode !== "surface" && this.riskGrid) {
+      const p = hit.point.clone().normalize();
+      const lat = THREE.MathUtils.radToDeg(Math.asin(THREE.MathUtils.clamp(p.y, -1, 1)));
+      const lon = THREE.MathUtils.radToDeg(Math.atan2(-p.z, p.x));
+      const { cols, rows, cells } = this.riskGrid;
+      const r = Math.max(0, Math.min(rows - 1, Math.floor(((lat + 90) / 180) * rows)));
+      const c = ((Math.floor(((lon + 180) / 360) * cols) % cols) + cols) % cols;
+      return { id: null, zone: { lat, lon, cell: cells[r * cols + c] } };
+    }
+    return { id: null, zone: null };
   }
 
   #bindPointer() {
     let downAt = null;
     this.canvas.addEventListener("pointerdown", (e) => { downAt = [e.clientX, e.clientY]; });
     this.canvas.addEventListener("pointermove", (e) => {
-      const id = this.#pick(e);
+      const { id, zone } = this.#pick(e);
       if (id !== this.hoveredId) {
         this.hoveredId = id;
         this.canvas.style.cursor = id ? "pointer" : "";
       }
-      this.onHover(id, e.clientX, e.clientY);
+      this.onHover(id, e.clientX, e.clientY, zone);
     });
     this.canvas.addEventListener("pointerleave", () => {
       this.hoveredId = null;
@@ -612,7 +903,7 @@ export class GlobeView {
     this.canvas.addEventListener("pointerup", (e) => {
       // Un arrastre para rotar no cuenta como clic.
       if (!downAt || Math.hypot(e.clientX - downAt[0], e.clientY - downAt[1]) > 5) return;
-      const id = this.#pick(e);
+      const { id } = this.#pick(e);
       if (id) this.onSelect(id);
     });
   }

@@ -8,6 +8,7 @@ import {
   fetchBestDates,
   fetchComparison,
   fetchIllumination,
+  fetchRiskGrid,
   fetchScores,
   fetchSites,
   fetchSky,
@@ -121,31 +122,54 @@ function syncUrl() {
 }
 
 /**
- * Displays the hover tooltip for a lunar site marker.
+ * Displays the hover tooltip for a lunar site marker or risk zone on the 3D Moon.
  * @param {string|null} id - Site identifier.
  * @param {number} x - Pointer clientX in pixels.
  * @param {number} y - Pointer clientY in pixels.
+ * @param {Object|null} [zone] - Optional risk-grid zone payload when hovering terrain.
  */
-function showTooltip(id, x, y) {
+function showTooltip(id, x, y, zone = null) {
+  if (!id && zone?.cell) {
+    const { lat, lon, cell } = zone;
+    const slopeLabel = cell.slope_deg <= 5 ? "Flat" : cell.slope_deg <= 10 ? "Moderate" : "Steep";
+    tooltip.replaceChildren(...[
+      ["strong", `Lunar Zone (${lat.toFixed(1)}°, ${lon.toFixed(1)}°)`],
+      ["span", `A) Landing Ease: ${Math.round(cell.landing_ease)}/100 (Slope: ${cell.slope_deg.toFixed(1)}° — ${slopeLabel})`],
+      ["span", `B) Asteroid Shield: ${Math.round(cell.asteroid_protection)}/100`],
+    ].map(([tag, text]) => Object.assign(document.createElement(tag), { textContent: text })));
+    tooltip.hidden = false;
+    tooltip.style.left = `${Math.min(x + 14, window.innerWidth - tooltip.offsetWidth - 8)}px`;
+    tooltip.style.top = `${y + 14}px`;
+    return;
+  }
+
   const site = state.sites.get(id);
   const score = state.scores.get(id);
   if (!site || !score) {
     tooltip.hidden = true;
     return;
   }
-  const { total, energy, communication, terrain } = score.scores;
-  const slopeDeg = score.topography?.slope_deg;
-  const terrainText = terrain != null ? ` · T ${Math.round(terrain)}` : "";
-  const slopeText = slopeDeg != null ? ` · ${slopeDeg.toFixed(1)}°` : "";
-  const verdict = score.viable
-    ? t("verdict.viableTooltip")
-    : t("verdict.notViableBecause", { reason: notViableReason(score) });
-  tooltip.replaceChildren(...[
-    ["strong", siteName(site)],
-    ["span", `${t("tooltip.scores", { total: Math.round(total), energy: Math.round(energy), communication: Math.round(communication) })}${terrainText}`],
-    ["span", `${t("tooltip.bodies", { sun: score.sun.elevation_deg.toFixed(1), earth: score.earth.elevation_deg.toFixed(1) })}${slopeText}`],
-    ["em", verdict],
-  ].map(([tag, text]) => Object.assign(document.createElement(tag), { textContent: text })));
+  const { total, energy, communication } = score.scores;
+  const topo = score.topography ?? {};
+  const ease = score.scores?.landing_ease ?? topo.landing_ease_score ?? score.scores?.terrain;
+  const shield = score.scores?.asteroid_protection ?? topo.asteroid_protection_score ?? score.scores?.asteroid;
+  const slopeDeg = topo.slope_deg;
+  const blockedPct = topo.solid_angle_shielded_pct;
+  const slopeClass = slopeDeg == null ? "" : slopeDeg <= 5 ? "Flat" : slopeDeg <= 10 ? "Moderate" : "Steep";
+  const verdict = score.viable ? "GO" : `NO-GO: ${notViableReason(score)}`;
+
+  const lines = [
+    ["strong", `${siteName(site)} · ${verdict}`],
+    ["span", `P ${Math.round(total)} · E ${Math.round(energy)} · C ${Math.round(communication)}`],
+  ];
+  if (ease != null && slopeDeg != null) {
+    lines.push(["span", `A) Landing Ease: ${Math.round(ease)}/100 (Slope: ${slopeDeg.toFixed(1)}° — ${slopeClass})`]);
+  }
+  if (shield != null) {
+    const occText = blockedPct != null ? ` (Mountain Occlusion: ${blockedPct.toFixed(1)}% sky blocked)` : "";
+    lines.push(["span", `B) Asteroid Shield: ${Math.round(shield)}/100${occText}`]);
+  }
+  tooltip.replaceChildren(...lines.map(([tag, text]) => Object.assign(document.createElement(tag), { textContent: text })));
   tooltip.hidden = false;
   tooltip.style.left = `${Math.min(x + 14, window.innerWidth - tooltip.offsetWidth - 8)}px`;
   tooltip.style.top = `${y + 14}px`;
@@ -154,7 +178,7 @@ function showTooltip(id, x, y) {
 // --- Vistas ---------------------------------------------------------------
 
 const globe = new GlobeView(document.getElementById("globe"), {
-  onHover: (id, x, y) => showTooltip(id, x, y),
+  onHover: (id, x, y, zone) => showTooltip(id, x, y, zone),
   // Sin los archivos de relieve (./run.sh data --no-hires) se avisa y se desactivan los controles.
   onReliefStatus: (status) => {
     for (const el of document.querySelectorAll("#relief-on, #relief-ex")) el.disabled = status !== "ready";
@@ -308,6 +332,52 @@ function setLegend(open) {
 gear.addEventListener("click", () => setDrawer(drawer.hidden));
 document.getElementById("drawer-close").addEventListener("click", () => {
   setDrawer(false);
+});
+
+// Moon Layer Switcher pill bar (Surface / Risk A / Risk B / Safe Havens)
+let riskGridLoadedForSlope = null;
+async function ensureRiskGrid() {
+  const slope = state.config.maxSlopeDeg ?? 15;
+  if (riskGridLoadedForSlope === slope) return;
+  try {
+    const grid = await fetchRiskGrid(slope);
+    riskGridLoadedForSlope = slope;
+    globe.setRiskGrid(grid);
+  } catch {
+    /* keep existing overlay if network fails */
+  }
+}
+
+const layerBar = document.getElementById("moon-layer-bar");
+if (layerBar) {
+  layerBar.addEventListener("click", async (e) => {
+    const btn = e.target.closest("button[data-layer]");
+    if (!btn) return;
+    const layer = btn.dataset.layer;
+    for (const b of layerBar.querySelectorAll("button[data-layer]")) {
+      b.setAttribute("aria-pressed", String(b === btn));
+    }
+    if (layer !== "surface") await ensureRiskGrid();
+    globe.setLayerMode(layer);
+  });
+}
+
+// LOLA / LROC surface texture switcher
+const surfaceToggle = document.querySelector(".surface-toggle");
+const lolaColorbar = document.getElementById("lola-colorbar");
+if (surfaceToggle) {
+  surfaceToggle.addEventListener("click", (e) => {
+    const btn = e.target.closest("button[data-surface]");
+    if (!btn) return;
+    const mode = btn.dataset.surface;
+    for (const b of surfaceToggle.querySelectorAll("button[data-surface]")) {
+      b.classList.toggle("active", b === btn);
+      b.setAttribute("aria-pressed", String(b === btn));
+    }
+    if (lolaColorbar) lolaColorbar.hidden = mode !== "lola";
+    globe.setSurfaceMode(mode);
+  });
+}
   gear.focus();
 });
 legendToggle.addEventListener("click", () => setLegend(legendCard.hidden));

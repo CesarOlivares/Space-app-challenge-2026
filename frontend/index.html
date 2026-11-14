@@ -264,6 +264,14 @@
           </dl>
         </section>
 
+        <!-- Floating Moon Layer Switcher pill bar for surface and dual risk overlays -->
+        <div id="moon-layer-bar" class="glass moon-layer-bar" role="group" aria-label="Moon Layer Switcher">
+          <button type="button" data-layer="surface" aria-pressed="true">[1] True Lunar Surface</button>
+          <button type="button" data-layer="risk-a" aria-pressed="false">[2] Risk A: Landing Ease</button>
+          <button type="button" data-layer="risk-b" aria-pressed="false">[3] Risk B: Asteroid Shield</button>
+          <button type="button" data-layer="safe-havens" aria-pressed="false">[4] Safe Havens (A+B)</button>
+        </div>
+
         <!-- Punto de enganche: vistas adicionales (p. ej. la topografía) se montan aquí. Ver docs/INTEGRAR-TOPOGRAFIA.md. -->
         <div id="stage" class="stage" hidden role="region" aria-labelledby="stage-title">
           <div class="stage-head">

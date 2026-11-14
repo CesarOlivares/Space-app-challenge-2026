@@ -1450,3 +1450,39 @@ a.btn {
   font-size: var(--fs-small);
   text-align: right;
 }
+
+/* Floating Moon Layer Switcher pill bar */
+.moon-layer-bar {
+  position: fixed;
+  top: 72px;
+  right: 18px;
+  z-index: 25;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 6px 8px;
+  border-radius: 999px;
+}
+
+.moon-layer-bar button {
+  background: transparent;
+  color: var(--ink-muted, #cbd5e1);
+  border: 1px solid rgba(148, 163, 184, 0.25);
+  border-radius: 999px;
+  padding: 5px 11px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 140ms ease, color 140ms ease, border-color 140ms ease;
+}
+
+.moon-layer-bar button[aria-pressed="true"] {
+  background: rgba(34, 211, 238, 0.18);
+  color: #f8fafc;
+  border-color: rgba(34, 211, 238, 0.65);
+}
+
+.moon-layer-bar button:hover {
+  color: #ffffff;
+  border-color: rgba(255, 255, 255, 0.45);
+}

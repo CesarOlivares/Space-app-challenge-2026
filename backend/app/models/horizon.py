@@ -60,6 +60,56 @@ class SphericalHorizon:
         elev = np.maximum(0.0, self.elevation(az))
         return float(round(float(np.mean(np.cos(np.radians(elev)) ** 2)), 4))
 
+    def solid_angle_shielded_pct(self) -> float:
+        """Computes percentage of upper-hemisphere solid angle blocked by terrain.
+
+        Uses (100 / N) * sum(sin(max(0, h(az)))) over 1-degree azimuth bins.
+
+        Returns:
+            Shielded solid-angle percentage in [0.0, 100.0].
+        """
+        az = np.arange(0.0, 360.0, 1.0)
+        elev = np.maximum(0.0, self.elevation(az))
+        return float(round(float(100.0 * np.mean(np.sin(np.radians(elev)))), 2))
+
+    def approach_clearance_pct(self, glide_slope_deg: float = 18.0) -> float:
+        """Computes percentage of azimuths clear below the EDL approach glide slope.
+
+        Args:
+            glide_slope_deg: Final approach glide-slope angle in degrees.
+
+        Returns:
+            Percentage of 360 azimuth bins where horizon_deg < glide_slope_deg.
+        """
+        az = np.arange(0.0, 360.0, 1.0)
+        elev = self.elevation(az)
+        return float(round(float(100.0 * np.mean(elev < glide_slope_deg)), 2))
+
+    def ballistic_shield_raw(self, ref_ridge_deg: float = 15.0) -> float:
+        """Computes raw low-angle ballistic shielding against grazing meteoroids and ejecta.
+
+        Uses (100 / N) * sum(min(1.0, max(0, h(az)) / ref_ridge_deg)).
+
+        Args:
+            ref_ridge_deg: Reference mountain ridge height in degrees for full shielding.
+
+        Returns:
+            Raw ballistic shielding score in [0.0, 100.0].
+        """
+        az = np.arange(0.0, 360.0, 1.0)
+        elev = np.maximum(0.0, self.elevation(az))
+        return float(round(float(100.0 * np.mean(np.minimum(1.0, elev / ref_ridge_deg))), 2))
+
+    def horizon_profile_36(self) -> list[float]:
+        """Samples the horizon profile at 36 azimuths (10-degree steps from North).
+
+        Returns:
+            List of 36 non-negative horizon elevation angles in degrees.
+        """
+        az = np.arange(0.0, 360.0, 10.0)
+        elev = np.maximum(0.0, self.elevation(az))
+        return [round(float(v), 2) for v in elev.tolist()]
+
 
 class TerrainHorizon(SphericalHorizon):
     """Horizonte real del relieve, más el margen."""
