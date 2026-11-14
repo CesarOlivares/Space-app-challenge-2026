@@ -641,6 +641,7 @@ export class GlobeView {
           opacity: 0.9,
         }),
       );
+      padRing.userData.siteId = site.id;
 
       const shieldCrown = new THREE.Mesh(
         buildShieldCrownGeometry(null),
@@ -877,14 +878,28 @@ export class GlobeView {
     );
     if (!this.markerGroup.visible) return { id: null, zone: null, point: null };
     this.raycaster.setFromCamera(this.pointer, this.camera);
-    const cores = [...this.markers.values()].map((m) => m.core);
-    // Include the Moon sphere so far-side sites cannot be selected through it.
-    const [hit] = this.raycaster.intersectObjects([this.pickSphere, ...cores], false);
-    if (!hit) return { id: null, zone: null, point: null };
-    const siteId = hit.object.userData.siteId ?? null;
-    if (siteId) return { id: siteId, zone: null, point: null };
 
-    const p = hit.point.clone().normalize();
+    const pickables = [];
+    for (const m of this.markers.values()) {
+      pickables.push(m.core);
+      if (m.padRing) pickables.push(m.padRing);
+    }
+    const [markerHit] = this.raycaster.intersectObjects(pickables, false);
+    const [sphereHit] = this.raycaster.intersectObjects([this.pickSphere], false);
+
+    // Accept marker hit if it is on the camera-facing hemisphere (even when relief dips below R=1.0).
+    if (markerHit) {
+      const markerPos = markerHit.object.getWorldPosition(new THREE.Vector3());
+      const toCam = this.camera.position.clone().sub(markerPos).normalize();
+      const normal = markerPos.clone().normalize();
+      if (normal.dot(toCam) > -0.05) {
+        return { id: markerHit.object.userData.siteId ?? null, zone: null, point: null };
+      }
+    }
+
+    if (!sphereHit) return { id: null, zone: null, point: null };
+
+    const p = sphereHit.point.clone().normalize();
     const lat = THREE.MathUtils.radToDeg(Math.asin(THREE.MathUtils.clamp(p.y, -1, 1)));
     const lon = THREE.MathUtils.radToDeg(Math.atan2(-p.z, p.x));
     const point = { lat: Number(lat.toFixed(4)), lon: Number(lon.toFixed(4)) };
