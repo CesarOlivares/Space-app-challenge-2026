@@ -4,6 +4,26 @@ Segundo ciclo de trabajo. Parte de lo construido en el ciclo 1 (fases 0–8, ver
 
 **Meta para hoy en la noche:** app con las tres partes, el sistema visual aplicado y el globo en mayor resolución. Lo marcado como **P2** se hace solo si sobra tiempo.
 
+## Estado del ciclo
+
+Se actualiza al subir cada fase. Rama de trabajo: `ciclo-2-visual`.
+
+| Fase | Estado | Archivos principales |
+|---|---|---|
+| V0 Sistema visual | Hecha (falta la revisión del equipo, V-05) | `frontend/src/design-system.css`, `icons.js`, `design-system.html` |
+| V1 Tres partes | Hecha | `frontend/src/router.js`, `index.html` |
+| V2 Intro | **En curso** | `frontend/src/views/IntroView.js`, `frontend/src/intro.css` |
+| V3 Globo en alta resolución | Libre | `frontend/src/views/GlobeView.js`, `scripts/download_data.py` |
+| V4 Relieve del polo sur | Libre (después de V3) | archivo nuevo |
+| V5 Rediseño de la vista general | Libre | `frontend/src/views/*`, `styles.css` |
+| V6 Comparación por periodos | Libre | backend: ruta nueva en `app/controllers/`; frontend: archivo nuevo |
+| V7 Animaciones | Libre, después de V2 y V5 | — |
+| V8 Auditoría · V9 Despliegue | Al final | — |
+
+**Cómo tomar una fase libre:** crear una rama desde `ciclo-2-visual`, tocar solo los archivos de su fila (así no se pisan con otra persona) y avisar para fusionar. Cada fase nueva va en su propio archivo (`views/…`, `*.css`) cuando se puede; `styles.css` y `main.js` los comparten varias fases, así que ahí conviene commits chicos y frecuentes.
+
+Para probar: `./run.sh` y abrir http://localhost:8000. El sistema visual se ve en `/design-system.html`.
+
 ## Objetivos
 
 1. **Tres partes en la página:**
