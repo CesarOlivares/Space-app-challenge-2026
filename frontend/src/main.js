@@ -332,6 +332,7 @@ function setLegend(open) {
 gear.addEventListener("click", () => setDrawer(drawer.hidden));
 document.getElementById("drawer-close").addEventListener("click", () => {
   setDrawer(false);
+  gear.focus();
 });
 
 // Moon Layer Switcher pill bar (Surface / Risk A / Risk B / Safe Havens)
@@ -378,8 +379,6 @@ if (surfaceToggle) {
     globe.setSurfaceMode(mode);
   });
 }
-  gear.focus();
-});
 legendToggle.addEventListener("click", () => setLegend(legendCard.hidden));
 document.addEventListener("keydown", (event) => {
   if (event.key !== "Escape") return;
