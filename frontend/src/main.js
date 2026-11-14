@@ -644,6 +644,8 @@ async function addCustomSite(lat, lon, name, { selectIt = true } = {}) {
 }
 
 function removeCustomSite(id) {
+  const site = state.sites.get(id);
+  if (!site || site.category !== "personalizado") return; // historic/catalog pins are immutable
   state.sites.delete(id);
   state.scores.delete(id);
   globe.removeSite(id);
