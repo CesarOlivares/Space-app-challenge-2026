@@ -30,15 +30,34 @@ export function fetchSites() {
   return request("/api/sites").then((data) => data.sites);
 }
 
+/**
+ * Fetches scores and topography metrics for all catalog sites at a given date.
+ * Includes `weight_terrain` and `max_slope_deg` via `configParams(config)`.
+ * @param {Date} date - Landing date in UTC.
+ * @param {import("./views/SettingsPanel.js").DEFAULT_CONFIG} config - Scoring configuration.
+ * @returns {Promise<Object>}
+ */
 export function fetchScores(date, config) {
   return request("/api/scores", { params: { date: isoUtc(date), ...configParams(config) } });
 }
 
+/**
+ * Fetches subsolar and subearth points for a given date.
+ * @param {Date} date - Landing date in UTC.
+ * @returns {Promise<Object>}
+ */
 export function fetchIllumination(date) {
   return request("/api/illumination", { params: { date: isoUtc(date) } });
 }
 
-// `ref` es el id del catálogo o "lat,lon".
+/**
+ * Fetches full sky, horizon, and topography evaluation for a catalog id or "lat,lon".
+ * Includes `weight_terrain` and `max_slope_deg` via `configParams(config)`.
+ * @param {string} ref - Site id or "lat,lon" coordinates.
+ * @param {Date} date - Landing date in UTC.
+ * @param {import("./views/SettingsPanel.js").DEFAULT_CONFIG} config - Scoring configuration.
+ * @returns {Promise<Object>}
+ */
 export function fetchSky(ref, date, config) {
   return request(`/api/sites/${encodeURIComponent(ref)}/sky`, {
     params: { date: isoUtc(date), ...configParams(config) },
@@ -57,6 +76,13 @@ export function fetchTimeline(ref, date, config) {
   });
 }
 
+/**
+ * Compares 2 to 4 site-date scenarios with full illumination and topography metrics.
+ * Includes `weight_terrain` and `max_slope_deg` via `configParams(config)`.
+ * @param {Array<{ ref: string, date: Date }>} scenarios - Scenarios to evaluate.
+ * @param {import("./views/SettingsPanel.js").DEFAULT_CONFIG} config - Scoring configuration.
+ * @returns {Promise<Object>}
+ */
 export function fetchComparison(scenarios, config) {
   return request("/api/compare", {
     params: configParams(config),

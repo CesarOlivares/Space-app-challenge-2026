@@ -27,9 +27,32 @@ const leftColumn = document.getElementById("left");
 const sidebar = document.getElementById("sidebar");
 const compareBar = document.getElementById("compare-bar");
 
+/**
+ * Global application state.
+ * @type {{
+ *   sites: Map<string, Object>,
+ *   scores: Map<string, Object>,
+ *   illumination: Object|null,
+ *   date: Date|null,
+ *   config: {
+ *     weightEnergy: number,
+ *     weightTerrain: number,
+ *     maxSlopeDeg: number,
+ *     windowDays: number,
+ *     sunMarginDeg: number,
+ *     earthMarginDeg: number,
+ *     panel: string
+ *   },
+ *   playing: boolean,
+ *   selectedId: string|null,
+ *   compare: Array<{ ref: string, date: Date, name: string }>,
+ *   request: number,
+ *   detailRequest: number
+ * }}
+ */
 const state = {
-  sites: new Map(), // catálogo + personalizados, por id
-  scores: new Map(), // por id, para la fecha actual
+  sites: new Map(), // catalog + custom sites, keyed by id
+  scores: new Map(), // keyed by id, for the active landing date
   illumination: null,
   date: null,
   config: { ...DEFAULT_CONFIG },
