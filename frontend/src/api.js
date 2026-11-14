@@ -7,5 +7,5 @@ async function getJson(path) {
 }
 
 export function fetchHealth() {
-  return getJson("/health");
+  return getJson("/api/health");
 }

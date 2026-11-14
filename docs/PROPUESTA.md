@@ -110,13 +110,13 @@ Python porque las bibliotecas de efemérides precisas (Skyfield, SPICE) están a
 
 | Ruta | Función |
 |---|---|
-| `GET /sites` | Catálogo de sitios |
-| `GET /scores?date=…` | Puntajes de todos los sitios para una fecha (alimenta el globo) |
-| `GET /sites/{id}/sky?date=…` | Posición actual del Sol y la Tierra, tiempos hasta el ocaso |
-| `GET /sites/{id}/timeline?date=…&days=…` | Serie temporal de elevaciones y ventanas |
-| `POST /compare` | Métricas de varios pares sitio-fecha |
+| `GET /api/sites` | Catálogo de sitios |
+| `GET /api/scores?date=…` | Puntajes de todos los sitios para una fecha (alimenta el globo) |
+| `GET /api/sites/{id}/sky?date=…` | Posición actual del Sol y la Tierra, tiempos hasta el ocaso |
+| `GET /api/sites/{id}/timeline?date=…&days=…` | Serie temporal de elevaciones y ventanas |
+| `POST /api/compare` | Métricas de varios pares sitio-fecha |
 
-Los sitios personalizados se envían como `lat,lon` en lugar de `id`.
+Los sitios personalizados se envían como `lat,lon` en lugar de `id`. Formato completo de las respuestas en [API.md](API.md).
 
 ### Vista
 
@@ -211,11 +211,11 @@ Las tareas se hacen en orden: cada una parte de lo que dejó la anterior. Una ta
 
 | ✓ | ID | Tarea | Verificación | RF |
 |---|---|---|---|---|
-| [ ] | T-15 | Acordar y documentar el formato JSON de las cinco rutas | Ejemplos de respuesta guardados; la vista puede avanzar con ellos | — |
-| [ ] | T-16 | `GET /sites` y `GET /scores` | Devuelven el catálogo completo con puntajes para una fecha | RF-03, RF-10 |
-| [ ] | T-17 | `GET /sites/{id}/sky` y `GET /sites/{id}/timeline`, con soporte de `lat,lon` | Responden para un sitio del catálogo y para uno personalizado | RF-04, RF-08, RF-12 |
-| [ ] | T-18 | `POST /compare` y manejo de errores de entrada | Entradas inválidas devuelven un error claro, no una excepción | RF-11 |
-| [ ] | T-19 | Caché por fecha y muestreo grueso para `/scores` | `/scores` responde en menos de 1 s (RNF-01) | — |
+| [x] | T-15 | Acordar y documentar el formato JSON de las cinco rutas | Ejemplos de respuesta guardados; la vista puede avanzar con ellos | — |
+| [x] | T-16 | `GET /sites` y `GET /scores` | Devuelven el catálogo completo con puntajes para una fecha | RF-03, RF-10 |
+| [x] | T-17 | `GET /sites/{id}/sky` y `GET /sites/{id}/timeline`, con soporte de `lat,lon` | Responden para un sitio del catálogo y para uno personalizado | RF-04, RF-08, RF-12 |
+| [x] | T-18 | `POST /compare` y manejo de errores de entrada | Entradas inválidas devuelven un error claro, no una excepción | RF-11 |
+| [x] | T-19 | Caché por fecha y muestreo grueso para `/scores` | `/scores` responde en menos de 1 s (RNF-01) | — |
 
 ### Fase 4 — Globo
 

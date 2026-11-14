@@ -16,6 +16,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import datetime
+from functools import lru_cache
 
 import numpy as np
 
@@ -146,3 +147,10 @@ def evaluate(ephemeris: Ephemeris, site: Site, landing: datetime,
         total=total_score(energy, communication, config),
         viable=sun.visible and earth.visible,
     )
+
+
+@lru_cache(maxsize=128)
+def evaluate_all(ephemeris: Ephemeris, sites: tuple[Site, ...], landing: datetime,
+                 config: ScoringConfig = ScoringConfig()) -> tuple[SiteEvaluation, ...]:
+    """Evalúa varios sitios para una fecha; el resultado queda en caché por (sitios, fecha, config)."""
+    return tuple(evaluate(ephemeris, site, landing, config) for site in sites)
