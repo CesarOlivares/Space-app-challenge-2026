@@ -4,6 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Moonland Planificator</title>
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='14' fill='%23c9ccd6'/%3E%3Ccircle cx='11' cy='12' r='3' fill='%238a8fa3'/%3E%3Ccircle cx='20' cy='19' r='4' fill='%238a8fa3'/%3E%3C/svg%3E" />
     <meta name="description" content="Compare lunar landing sites and dates by sunlight and direct-to-Earth visibility." />
     <link rel="preload" href="fonts/archivo-var.woff2" as="font" type="font/woff2" crossorigin />
     <link rel="stylesheet" href="src/design-system.css" />
@@ -127,7 +128,7 @@
               <div class="buttons" role="group" data-i18n-attr="aria-label: controls.viewGroup">
                 <button type="button" data-view="near-side" data-i18n="controls.nearSide">Vista desde la Tierra</button>
                 <button type="button" data-view="south-pole" data-i18n="controls.southPole">Polo sur</button>
-                <button type="button" id="place-pin-toggle" aria-pressed="false">Place Pin on Moon</button>
+                <button type="button" id="place-pin-toggle" aria-pressed="false" data-i18n="pin.place">Colocar pin en la Luna</button>
               </div>
               <div class="relief" id="relief" role="group" data-i18n-attr="aria-label: relief.group">
                 <label class="check"><input type="checkbox" id="relief-on" checked /> <span data-i18n="relief.show">Mostrar relieve</span></label>
@@ -214,8 +215,8 @@
               <summary data-i18n="list.title">Sitios</summary>
               <div class="list-header">
                 <label><input type="checkbox" id="filter-south-pole" /> <span data-i18n="list.southOnly">Solo polo sur</span></label>
-                <button type="button" id="clear-selection" class="small">Clear selection</button>
-                <button type="button" id="clear-pins" class="small">Clear pins</button>
+                <button type="button" id="clear-selection" class="small" data-i18n="list.clearSelection">Quitar selección</button>
+                <button type="button" id="clear-pins" class="small" data-i18n="list.clearPins">Quitar pines</button>
                 <button type="button" id="export-csv" class="small" data-i18n="list.csv">Exportar CSV</button>
               </div>
               <p class="list-hint" data-i18n="list.hint"></p>

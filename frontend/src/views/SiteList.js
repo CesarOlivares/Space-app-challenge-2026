@@ -82,14 +82,14 @@ export class SiteList {
       const shieldVal = asteroid_protection ?? asteroid;
       const slopeDeg = score.topography?.slope_deg;
       const slopeText = slopeDeg != null ? ` · ${num(slopeDeg, 1)}°` : "";
-      const easeText = easeVal != null ? ` · Ease ${Math.round(easeVal)}` : "";
-      const shieldText = shieldVal != null ? ` · Shield ${Math.round(shieldVal)}` : "";
+      const easeText = easeVal != null ? ` · ${t("list.ease")} ${Math.round(easeVal)}` : "";
+      const shieldText = shieldVal != null ? ` · ${t("list.shield")} ${Math.round(shieldVal)}` : "";
       // Written reason (not just title) so screen readers and touch devices can read it.
       const status = score.viable
         ? `<span class="status ok">${t("verdict.viable")}</span>`
         : `<span class="status bad">${t("verdict.notViable")}</span><span class="reason">${escape(notViableReason(score))}</span>`;
       const removePinBtn = site.category === "personalizado"
-        ? `<button type="button" class="small remove-pin" data-remove-site="${escape(site.id)}" aria-label="Remove pin" title="Remove pin">✕</button>`
+        ? `<button type="button" class="small remove-pin" data-remove-site="${escape(site.id)}" aria-label="${escape(t("pin.remove"))}" title="${escape(t("pin.remove"))}">✕</button>`
         : "";
       return `
         <li data-site-id="${escape(site.id)}" aria-selected="${this.selectedIds.has(site.id)}" tabindex="0">

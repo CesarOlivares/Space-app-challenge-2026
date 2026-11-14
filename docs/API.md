@@ -238,7 +238,8 @@ Parámetros:
 - `start`: fecha de inicio (ISO 8601 UTC).
 - `days`: duración en días (1 a 90, por defecto 30).
 - `step_hours`: separación en horas entre muestras (1 a 48, por defecto 12).
-- `sites`: lista opcional de IDs o coordenadas separados por coma.
+- `date`: alias de `start`.
+- `sites`: lista opcional de IDs o coordenadas `lat,lon` separados por `|`.
 
 `GET /api/scores/matrix?start=2026-12-01T00:00:00Z&days=30&step_hours=12`
 

@@ -1,0 +1,40 @@
+name: tests
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  pytest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: backend/requirements.txt
+
+      - name: Instalar dependencias
+        run: pip install -r backend/requirements.txt
+
+      # Kernels de efemérides y DEM polar: sin ellos las pruebas de terreno se saltan,
+      # así que se descargan para que el CI pruebe lo mismo que se entrega.
+      - name: Cachear datos externos
+        uses: actions/cache@v4
+        with:
+          path: |
+            backend/data/kernels
+            backend/data/dem
+          key: datos-${{ hashFiles('backend/scripts/download_data.py') }}
+
+      - name: Descargar datos
+        working-directory: backend
+        run: python scripts/download_data.py --dem --no-hires
+
+      - name: Pruebas
+        working-directory: backend
+        run: python -m pytest -rs

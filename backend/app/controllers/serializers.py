@@ -7,10 +7,10 @@ from datetime import datetime, timedelta
 
 import numpy as np
 
-from app.models.horizon import SphericalHorizon, TerrainHorizon, horizon_for
+from app.models.horizon import SphericalHorizon, TerrainHorizon, get_dem, horizon_for
 from app.models.scoring import BodyMetrics, ScoringConfig, SiteEvaluation
 from app.models.site import Site
-from app.models.terrain import TerrainCutout, TerrainMetrics, evaluate_terrain
+from app.models.terrain import PolarDEM, TerrainCutout, TerrainMetrics, evaluate_terrain
 from app.models.windows import Interval
 
 
@@ -31,6 +31,7 @@ def topography_json(
     asteroid_protection_score: float | None = None,
     horizon_shield_profile_deg: tuple[float, ...] | list[float] | None = None,
     relief_data: bool | None = None,
+    dem_missing: bool | None = None,
 ) -> dict:
     """Serializes TerrainMetrics and dual hazard metrics into the API topography payload.
 
@@ -57,6 +58,10 @@ def topography_json(
     if relief_data is not None:
         # False: horizonte esférico (sin DEM alrededor); protección y blindaje no se pueden estimar.
         payload["relief_data"] = relief_data
+    if dem_missing:
+        # El sitio queda dentro de la cobertura del DEM, pero este servidor no lo tiene: el horizonte
+        # es esférico y el veredicto puede ser más optimista que con el relieve real.
+        payload["dem_missing"] = True
     if slope_ok is not None:
         payload["slope_ok"] = slope_ok
     if solid_angle_shielded_pct is not None:
@@ -144,6 +149,7 @@ def evaluation_json(result: SiteEvaluation, detailed: bool) -> dict:
             asteroid_protection_score=result.asteroid_protection_score,
             horizon_shield_profile_deg=result.horizon_shield_profile_deg or None,
             relief_data=result.has_relief_data,
+            dem_missing=not result.has_relief_data and PolarDEM.covers(result.site.lat) and get_dem() is None,
         ),
         "sun": body_json(result.sun, result.landing, detailed),
         "earth": body_json(result.earth, result.landing, detailed),

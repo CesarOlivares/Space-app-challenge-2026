@@ -42,7 +42,7 @@ function solarColor(solarPct) {
  */
 function combinedColor(slopeDeg, solarPct, maxSlopeDeg) {
   if (slopeDeg > maxSlopeDeg || slopeDeg > 10.0) return "#d55e00"; // Severe tip-over risk
-  if (solarPct != null && solarPct < 25.0) return "#1e2238"; // Permanent shadow / freezing risk
+  if (solarPct != null && solarPct < 25.0) return "#1e2238"; // Poca luz en la ventana (no es sombra permanente)
   if (slopeDeg <= 5.0 && (solarPct == null || solarPct >= 60.0)) return "#36d399"; // Optimal touchdown zone!
   if (slopeDeg <= 10.0 && (solarPct == null || solarPct >= 40.0)) return "#e69f00"; // Acceptable compromise
   return "#965b25";
@@ -63,9 +63,9 @@ export function renderTerrainPatch(container, patch, maxSlopeDeg = 15.0) {
   const controls = document.createElement("div");
   controls.className = "terrain-patch-controls";
   controls.innerHTML = `
-    <button type="button" class="terrain-patch-btn active" data-layer="slope">📐 Pendiente</button>
-    <button type="button" class="terrain-patch-btn" data-layer="solar" ${!patch.solar ? "disabled title='Datos solares no disponibles'" : ""}>☀️ Luz Solar</button>
-    <button type="button" class="terrain-patch-btn" data-layer="combined" ${!patch.solar ? "disabled title='Datos solares no disponibles'" : ""}>🎯 Aptitud</button>
+    <button type="button" class="terrain-patch-btn active" data-layer="slope">${t("patch.layerSlope")}</button>
+    <button type="button" class="terrain-patch-btn" data-layer="solar" ${!patch.solar ? `disabled title="${t("patch.noSolar")}"` : ""}>${t("patch.layerSolar")}</button>
+    <button type="button" class="terrain-patch-btn" data-layer="combined" ${!patch.solar ? `disabled title="${t("patch.noSolar")}"` : ""}>${t("patch.layerCombined")}</button>
   `;
 
   const canvas = document.createElement("canvas");
@@ -97,11 +97,11 @@ export function renderTerrainPatch(container, patch, maxSlopeDeg = 15.0) {
 
   const updateLegend = () => {
     if (currentLayer === "solar" && patch.solar) {
-      legend.innerHTML = `Luz media: <b>${patch.solar.mean_solar_pct}%</b> · Púrpura &lt;20% (sombra) · Cobre 20–70% · Dorado &gt;70%`;
+      legend.textContent = t("patch.legendSolar", { mean: patch.solar.mean_solar_pct });
     } else if (currentLayer === "combined" && patch.solar) {
-      legend.innerHTML = `Zona óptima: <b>${patch.solar.optimal_landing_pct}%</b> · Verde: Apta (≤10° y ≥50% luz) · Rojo: Pendiente crítica · Azul: Frío extremo`;
+      legend.textContent = t("patch.legendCombined", { pct: patch.solar.optimal_landing_pct });
     } else {
-      legend.innerHTML = `Relieve (${patch.size}×${patch.size} celdas, ${patch.spacing_m} m/celda) · Verde ≤5° · Ámbar 5–10° · Rojo &gt;10°`;
+      legend.textContent = t("patch.legendSlope", { size: patch.size, spacing: patch.spacing_m });
     }
   };
 

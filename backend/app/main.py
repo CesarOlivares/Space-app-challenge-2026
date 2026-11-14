@@ -29,8 +29,7 @@ app = FastAPI(title="Lunar Site Explorer", lifespan=lifespan)
 app.add_middleware(GZipMiddleware, minimum_size=1000)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
+    allow_origins=["*"],  # API pública sin sesión ni cookies; en un despliegue con dominio propio, restringir aquí
     allow_methods=["*"],
     allow_headers=["*"],
 )

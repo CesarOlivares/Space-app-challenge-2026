@@ -145,7 +145,7 @@ export function fetchScoresMatrix(startDate, { days = 30, stepHours = 12, sites 
     ...configParams(config),
   };
   if (sites && sites.length) {
-    params.sites = sites.join(",");
+    params.sites = sites.join("|");
   }
   return request("/api/scores/matrix", { params });
 }

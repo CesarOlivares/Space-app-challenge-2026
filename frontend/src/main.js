@@ -145,8 +145,8 @@ function placeTooltip(lines, x, y) {
 function showTooltip(id, x, y, zone = null, point = null) {
   if (!id && globe.placeMode && point) {
     tooltip.replaceChildren(...[
-      ["strong", `Place Point (${point.lat.toFixed(2)}°, ${point.lon.toFixed(2)}°)`],
-      ["span", "Click on the 3D Moon to evaluate this location"],
+      ["strong", t("pin.tipTitle", { lat: point.lat.toFixed(2), lon: point.lon.toFixed(2) })],
+      ["span", t("pin.tipHint")],
     ].map(([tag, text]) => Object.assign(document.createElement(tag), { textContent: text })));
     tooltip.hidden = false;
     tooltip.style.left = `${Math.min(x + 14, window.innerWidth - tooltip.offsetWidth - 8)}px`;
@@ -200,7 +200,9 @@ function showTooltip(id, x, y, zone = null, point = null) {
 
 const globe = new GlobeView(document.getElementById("globe"), {
   onHover: (id, x, y, zone, point) => showTooltip(id, x, y, zone, point),
-  onPlacePoint: (lat, lon) => addCustomSite(lat, lon, ""),
+  onPlacePoint: (lat, lon) => {
+    addCustomSite(lat, lon, "").catch((error) => showToast(t("pin.failed", { reason: error.message })));
+  },
   // Sin los archivos de relieve (./run.sh data --no-hires) se avisa y se desactivan los controles.
   onReliefStatus: (status) => {
     for (const el of document.querySelectorAll("#relief-on, #relief-ex")) el.disabled = status !== "ready";
@@ -561,7 +563,7 @@ async function loadActive() {
     const [sky, timeline, patch] = await Promise.all([
       fetchSky(ref, state.date, state.config),
       fetchTimeline(ref, state.date, state.config),
-      fetchTerrainPatch(ref, 25, state.date, state.config.window_days).catch(() => null),
+      fetchTerrainPatch(ref, 25, state.date, state.config.windowDays).catch(() => null),
     ]);
     if (request !== state.detailRequest) return;
     sky.site = { ...sky.site, ...site }; // conserva nombres y traducciones del lado del cliente

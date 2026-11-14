@@ -22,6 +22,7 @@ from app.models.terrain import HorizonMask, PolarDEM, compute_mask
 DATA_DIR = Path(__file__).resolve().parents[2] / "data"
 MASKS_DIR = DATA_DIR / "horizons"
 CACHE_DIR = MASKS_DIR / "cache"
+MAX_CACHED_MASKS = 200
 DEM_DIR = DATA_DIR / "dem"
 
 
@@ -158,6 +159,9 @@ def terrain_mask(site_id: str, lat: float, lon: float) -> HorizonMask | None:
         mask = compute_mask(dem, lat, lon)
         try:
             CACHE_DIR.mkdir(parents=True, exist_ok=True)
+            # Tope para que un despliegue público no pueda llenar el disco con coordenadas distintas.
+            if sum(1 for _ in CACHE_DIR.glob("custom_*.json")) >= MAX_CACHED_MASKS:
+                return mask
             cache_path.write_text(json.dumps(mask.to_json(site_id), indent=2), encoding="utf-8")
         except Exception:
             pass

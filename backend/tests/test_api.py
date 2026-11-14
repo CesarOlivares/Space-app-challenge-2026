@@ -190,7 +190,7 @@ def test_scores_matrix_periodo(client):
 
 
 def test_scores_matrix_filtrado_sitios(client):
-    res = client.get("/api/scores/matrix", params={"start": DATE, "days": 5, "step_hours": 24, "sites": "im-2,apollo-11"})
+    res = client.get("/api/scores/matrix", params={"start": DATE, "days": 5, "step_hours": 24, "sites": "im-2|apollo-11"})
     assert res.status_code == 200
     data = res.json()
     assert [s["id"] for s in data["sites"]] == ["im-2", "apollo-11"]
@@ -261,3 +261,38 @@ def test_risk_grid_endpoint(client):
     assert north["slope_deg"] is None and north["landing_ease"] is None
 
 
+
+
+def test_matrix_respeta_la_fecha_start_y_acepta_coordenadas(client):
+    res = client.get(
+        "/api/scores/matrix",
+        params={"start": "2027-06-01T00:00:00Z", "days": 2, "step_hours": 24, "sites": "im-2|-85.0,10"},
+    )
+    assert res.status_code == 200
+    data = res.json()
+    assert data["start"].startswith("2027-06-01")
+    assert len(data["sites"]) == 2
+
+
+def test_pesos_de_terreno_y_proteccion_tienen_maximo(client):
+    for name in ("weight_terrain", "weight_protection"):
+        res = client.get("/api/scores", params={"date": DATE, name: 1e9})
+        assert res.status_code == 422
+
+
+def test_aviso_si_falta_el_dem_en_un_punto_polar(client, monkeypatch):
+    import app.controllers.serializers as ser
+    import app.models.scoring as scoring
+    from app.models.horizon import SphericalHorizon
+
+    polar = "-84.7906,29.1957"
+    sky = client.get(f"/api/sites/{polar}/sky", params={"date": DATE}).json()
+    assert "dem_missing" not in sky["topography"]  # con DEM no hay aviso
+
+    # Servidor sin DEM: todo cae al horizonte esférico.
+    spherical = lambda site, margin_deg=0.0: SphericalHorizon(margin_deg)  # noqa: E731
+    monkeypatch.setattr(ser, "get_dem", lambda: None)
+    monkeypatch.setattr(ser, "horizon_for", spherical)
+    monkeypatch.setattr(scoring, "horizon_for", spherical)
+    sky = client.get(f"/api/sites/{polar}/sky", params={"date": DATE}).json()
+    assert sky["topography"]["dem_missing"] is True

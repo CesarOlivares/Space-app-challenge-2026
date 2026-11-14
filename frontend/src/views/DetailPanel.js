@@ -175,6 +175,11 @@ export class DetailPanel {
     const removeButton = site.category === "personalizado"
       ? `<button type="button" data-action="remove">${t("detail.remove")}</button>` : "";
 
+    // Avisos de procedencia: qué parte del resultado es relieve real y cuál es un supuesto.
+    const provenance = [];
+    if (topo.dem_missing) provenance.push(`<p class="slope-warning" role="alert">${t("detail.demMissing")}</p>`);
+    else if (hasSlope && topo.relief_data === false) provenance.push(`<p class="caption">${t("detail.horizonAssumed")}</p>`);
+    const dataNotes = provenance.join("");
     const noProtection = (sky.scores.asteroid_protection ?? sky.scores.asteroid) == null;
     const protectionBar = noProtection
       ? `<div class="bar nodata-bar" title="${escapeHtml(t("detail.protectionNone"))}"><span>${t("detail.protection")}</span><span class="track"></span><b>${t("detail.noData")}</b></div>`
@@ -212,6 +217,7 @@ export class DetailPanel {
       ${protectionBar}
       ${scoreBar("detail.total", sky.scores.total, "detail.totalHint")}
       ${sky.viable ? "" : `<p class="caption">${t("detail.refNote")}</p>`}
+      ${dataNotes}
 
       <details class="fold" data-fold="sky">
         <summary>${t("detail.skyGroup")}</summary>

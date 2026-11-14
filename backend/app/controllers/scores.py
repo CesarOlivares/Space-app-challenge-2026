@@ -104,20 +104,22 @@ def compare(
 
 @router.get("/scores/matrix")
 def scores_matrix(
-    start: datetime = Depends(landing_date),
+    start: datetime | None = Query(None, description="Fecha de inicio en ISO 8601 UTC (también se acepta `date`)"),
+    date: datetime | None = Query(None, description="Alias de `start`"),
     days: float = Query(30.0, gt=0, le=90, description="Rango de evaluación en días"),
     step_hours: float = Query(12.0, ge=1.0, le=48.0, description="Separación en horas entre fechas evaluadas"),
-    sites: str | None = Query(None, description="IDs o coordenadas separados por coma. Si se omite, evalúa todo el catálogo"),
+    sites: str | None = Query(None, description="IDs o coordenadas `lat,lon` separados por `|`. Si se omite, evalúa todo el catálogo"),
     config: ScoringConfig = Depends(coarse_config),
     ephemeris: Ephemeris = Depends(get_ephemeris),
     catalog: dict[str, Site] = Depends(get_catalog),
 ) -> dict:
     """Matriz temporal de viabilidad y puntajes para múltiples sitios a lo largo de un rango de fechas (V6)."""
     if sites:
-        target_sites = tuple(resolve_site(ref.strip(), catalog) for ref in sites.split(",") if ref.strip())
+        target_sites = tuple(resolve_site(ref.strip(), catalog) for ref in sites.split("|") if ref.strip())
     else:
         target_sites = tuple(catalog.values())
 
+    start = landing_date(start if start is not None else date)
     count = int(np.floor(days * 24 / step_hours + 1e-9)) + 1
     if count > 500:
         raise ValueError(f"demasiadas fechas ({count}); máximo 500. Aumenta 'step_hours' o reduce 'days'.")
@@ -251,5 +253,6 @@ def _build_risk_grid(max_slope_deg: float = 15.0) -> dict:
 def risk_grid(
     max_slope_deg: float = Query(15.0, gt=2.0, le=45.0, description="Max safe slope threshold in degrees"),
 ) -> dict:
-    """Returns a cached 72x36 global grid of Landing Ease (A) and Asteroid Protection (B) scores."""
+    """Returns a cached 72x36 grid: measured slope and Landing Ease (null outside the polar DEM) plus
+    coarse geometric estimates of solar exposure, Earth signal and suitability."""
     return _build_risk_grid(round(float(max_slope_deg), 1))
