@@ -255,6 +255,35 @@ def compute_asteroid_safety_score(sky_view_factor: float, roughness_m: float) ->
     return round(100.0 * (0.4 * shielding + 0.6 * smoothness), 1)
 
 
+def weighted_general_score(
+    component_scores: dict[str, float],
+    component_weights: dict[str, float],
+) -> float:
+    """Computes an extensible general weighted average across arbitrary scoring pillars.
+
+    Each key present in `component_scores` is multiplied by its non-negative weight
+    from `component_weights` (defaulting to 0.0 if omitted) and normalized by the
+    sum of active weights.
+
+    Args:
+        component_scores: Mapping of pillar name to score in [0.0, 100.0].
+        component_weights: Mapping of pillar name to non-negative weight.
+
+    Returns:
+        Normalized weighted score in [0.0, 100.0], or 0.0 if active weights sum to zero.
+    """
+    numerator = 0.0
+    denominator = 0.0
+    for key, value in component_scores.items():
+        weight = max(0.0, float(component_weights.get(key, 0.0)))
+        if weight > 0.0:
+            numerator += weight * float(value)
+            denominator += weight
+    if denominator <= 0.0:
+        return 0.0
+    return float(np.clip(numerator / denominator, 0.0, 100.0))
+
+
 def total_score(
     energy: float,
     communication: float,
@@ -267,8 +296,8 @@ def total_score(
     Formula:
         P = (w_E * E + w_C * C + w_T * T_land + w_A * A_shield) / (w_E + w_C + w_T + w_A)
 
-    When `terrain_score` is omitted (None), falls back to the legacy two-term
-    weighted average over Energy and Communication for backward compatibility.
+    Delegates to `weighted_general_score` so additional scoring pillars can be
+    integrated without duplicating normalization logic.
 
     Args:
         energy: Energy score (E) in [0, 100].
@@ -280,36 +309,21 @@ def total_score(
     Returns:
         Weighted overall score in [0.0, 100.0], or 0.0 if total weight is zero.
     """
-    if terrain_score is None:
-        weights = config.weight_energy + config.weight_communication
-        if weights <= 0.0:
-            return 0.0
-        return (config.weight_energy * energy + config.weight_communication * communication) / weights
-
-    if protection_score is None:
-        weights = config.weight_energy + config.weight_communication + config.weight_terrain
-        if weights <= 0.0:
-            return 0.0
-        return (
-            config.weight_energy * energy
-            + config.weight_communication * communication
-            + config.weight_terrain * terrain_score
-        ) / weights
-
-    weights = (
-        config.weight_energy
-        + config.weight_communication
-        + config.weight_terrain
-        + config.weight_protection
-    )
-    if weights <= 0.0:
-        return 0.0
-    return (
-        config.weight_energy * energy
-        + config.weight_communication * communication
-        + config.weight_terrain * terrain_score
-        + config.weight_protection * protection_score
-    ) / weights
+    scores_map: dict[str, float] = {
+        "energy": energy,
+        "communication": communication,
+    }
+    weights_map: dict[str, float] = {
+        "energy": config.weight_energy,
+        "communication": config.weight_communication,
+        "terrain": config.weight_terrain,
+        "protection": config.weight_protection,
+    }
+    if terrain_score is not None:
+        scores_map["terrain"] = terrain_score
+    if protection_score is not None:
+        scores_map["protection"] = protection_score
+    return weighted_general_score(scores_map, weights_map)
 
 
 def body_metrics(track: Track, margin_deg: float, site: Site, window_hours: float) -> BodyMetrics:

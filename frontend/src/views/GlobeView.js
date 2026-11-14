@@ -266,10 +266,12 @@ function buildRiskOverlayTexture(grid, mode) {
 }
 
 export class GlobeView {
-  constructor(canvas, { onHover = () => {}, onSelect = () => {}, onReliefStatus = () => {} } = {}) {
+  constructor(canvas, { onHover = () => {}, onSelect = () => {}, onPlacePoint = () => {}, onReliefStatus = () => {} } = {}) {
     this.canvas = canvas;
     this.onHover = onHover;
     this.onSelect = onSelect;
+    this.onPlacePoint = onPlacePoint;
+    this.placeMode = false;
     this.markers = new Map(); // id → { group, core, outline, glow, radius }
     this.hoveredId = null;
     this.selectedId = null;
@@ -322,6 +324,15 @@ export class GlobeView {
     this.active = true;
     canvas.dataset.active = "true";
     this.renderer.setAnimationLoop((time) => this.#frame(time));
+  }
+
+  /**
+   * Enables or disables click-to-place arbitrary point mode on the 3D Moon.
+   * @param {boolean} enabled - Whether clicking empty lunar terrain places a point.
+   */
+  setPlaceMode(enabled) {
+    this.placeMode = Boolean(enabled);
+    this.canvas.dataset.placeMode = String(this.placeMode);
   }
 
   // Pause rendering when the globe is hidden (other sections) to save GPU and battery.
@@ -864,47 +875,55 @@ export class GlobeView {
       ((event.clientX - rect.left) / rect.width) * 2 - 1,
       -((event.clientY - rect.top) / rect.height) * 2 + 1,
     );
-    if (!this.markerGroup.visible) return { id: null, zone: null };
+    if (!this.markerGroup.visible) return { id: null, zone: null, point: null };
     this.raycaster.setFromCamera(this.pointer, this.camera);
     const cores = [...this.markers.values()].map((m) => m.core);
-    // Se incluye la Luna para que los sitios de la cara oculta no se puedan elegir a través de ella.
+    // Include the Moon sphere so far-side sites cannot be selected through it.
     const [hit] = this.raycaster.intersectObjects([this.pickSphere, ...cores], false);
-    if (!hit) return { id: null, zone: null };
+    if (!hit) return { id: null, zone: null, point: null };
     const siteId = hit.object.userData.siteId ?? null;
-    if (siteId) return { id: siteId, zone: null };
+    if (siteId) return { id: siteId, zone: null, point: null };
 
+    const p = hit.point.clone().normalize();
+    const lat = THREE.MathUtils.radToDeg(Math.asin(THREE.MathUtils.clamp(p.y, -1, 1)));
+    const lon = THREE.MathUtils.radToDeg(Math.atan2(-p.z, p.x));
+    const point = { lat: Number(lat.toFixed(4)), lon: Number(lon.toFixed(4)) };
+
+    let zone = null;
     if (this.layerMode !== "surface" && this.riskGrid) {
-      const p = hit.point.clone().normalize();
-      const lat = THREE.MathUtils.radToDeg(Math.asin(THREE.MathUtils.clamp(p.y, -1, 1)));
-      const lon = THREE.MathUtils.radToDeg(Math.atan2(-p.z, p.x));
       const { cols, rows, cells } = this.riskGrid;
       const r = Math.max(0, Math.min(rows - 1, Math.floor(((lat + 90) / 180) * rows)));
       const c = ((Math.floor(((lon + 180) / 360) * cols) % cols) + cols) % cols;
-      return { id: null, zone: { lat, lon, cell: cells[r * cols + c] } };
+      zone = { lat, lon, cell: cells[r * cols + c] };
     }
-    return { id: null, zone: null };
+    return { id: null, zone, point };
   }
 
   #bindPointer() {
     let downAt = null;
     this.canvas.addEventListener("pointerdown", (e) => { downAt = [e.clientX, e.clientY]; });
     this.canvas.addEventListener("pointermove", (e) => {
-      const { id, zone } = this.#pick(e);
+      const { id, zone, point } = this.#pick(e);
       if (id !== this.hoveredId) {
         this.hoveredId = id;
-        this.canvas.style.cursor = id ? "pointer" : "";
       }
-      this.onHover(id, e.clientX, e.clientY, zone);
+      this.canvas.style.cursor = id ? "pointer" : (this.placeMode && point ? "crosshair" : "");
+      this.onHover(id, e.clientX, e.clientY, zone, point);
     });
     this.canvas.addEventListener("pointerleave", () => {
       this.hoveredId = null;
+      this.canvas.style.cursor = "";
       this.onHover(null);
     });
     this.canvas.addEventListener("pointerup", (e) => {
-      // Un arrastre para rotar no cuenta como clic.
+      // A drag to rotate the globe does not count as a click.
       if (!downAt || Math.hypot(e.clientX - downAt[0], e.clientY - downAt[1]) > 5) return;
-      const { id } = this.#pick(e);
-      if (id) this.onSelect(id);
+      const { id, point } = this.#pick(e);
+      if (id) {
+        this.onSelect(id);
+      } else if (point && (this.placeMode || e.shiftKey)) {
+        this.onPlacePoint(point.lat, point.lon);
+      }
     });
   }
 }
