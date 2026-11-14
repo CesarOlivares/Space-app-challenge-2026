@@ -2,7 +2,7 @@
 # Levanta la aplicación completa (API + frontend) en http://localhost:8000
 #   ./run.sh        levanta el servidor
 #   ./run.sh test   corre las pruebas
-#   ./run.sh data   descarga kernels, texturas y Three.js (--dem: también el DEM polar LOLA, 116 MB)
+#   ./run.sh data   descarga kernels, texturas (4K y 8K), relieve y Three.js (--dem: también el DEM polar LOLA, 116 MB; --no-hires: sin 8K ni relieve)
 #   ./run.sh horizons  recalcula las máscaras de horizonte con el DEM
 set -euo pipefail
 

@@ -6,12 +6,14 @@
 // Paleta Okabe-Ito (apta para daltonismo); el color nunca va solo: la lista
 // muestra siempre los valores numéricos (RNF-06).
 
+import { t } from "../i18n.js";
+
 // Tres categorías en vez de un degradado: los tonos intermedios de un degradado
 // naranja–celeste salen grisáceos y se confunden con el gris de "no viable".
 export const COMMUNICATION_LEVELS = [
-  { min: 95, color: "#56B4E9", label: "Tierra visible casi siempre (≥ 95 %)" }, // celeste
-  { min: 50, color: "#E69F00", label: "Tierra visible parte del tiempo" }, // naranja
-  { min: 0, color: "#D55E00", label: "Tierra visible menos de la mitad (< 50 %)" }, // bermellón
+  { min: 95, color: "#56B4E9" }, // celeste: Tierra visible casi siempre
+  { min: 50, color: "#E69F00" }, // naranja: parte del tiempo
+  { min: 0, color: "#D55E00" }, // bermellón: menos de la mitad
 ];
 
 export const NOT_VIABLE_COLOR = "#8A9099";
@@ -36,8 +38,11 @@ export function encode(score) {
 export function notViableReason(score) {
   const reasons = [];
   // Sobre 0° pero no visible: lo tapa el relieve (o no alcanza el margen pedido).
-  const why = (body, name) => (body.elevation_deg > 0 ? `${name} tapado por el relieve` : `${name} bajo el horizonte`);
-  if (!score.sun.visible) reasons.push(why(score.sun, "Sol"));
-  if (!score.earth.visible) reasons.push(why(score.earth, "Tierra").replace("tapado", "tapada"));
+  if (!score.sun.visible) {
+    reasons.push(t(score.sun.elevation_deg > 0 ? "reason.sunBlocked" : "reason.sunBelow"));
+  }
+  if (!score.earth.visible) {
+    reasons.push(t(score.earth.elevation_deg > 0 ? "reason.earthBlocked" : "reason.earthBelow"));
+  }
   return reasons.join(" · ");
 }

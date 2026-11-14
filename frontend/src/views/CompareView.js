@@ -1,23 +1,25 @@
 // Comparación lado a lado de 2 a 4 escenarios sitio-fecha.
 
 import { escapeHtml, formatDegrees, formatDuration, formatUtc } from "../format.js";
+import { siteName, t } from "../i18n.js";
 import { countdown } from "./DetailPanel.js";
 import { notViableReason } from "./encoding.js";
 import { renderSky } from "./SkyView.js";
 
 // Filas comparables; `better` indica qué valor gana para resaltarlo.
+const untilSet = (v) => (v === Infinity ? t("compare.noSet") : formatDuration(v));
 const ROWS = [
-  { label: "Puntaje global", value: (r) => r.scores.total, show: (v) => Math.round(v), better: "max" },
-  { label: "Energía", value: (r) => r.scores.energy, show: (v) => Math.round(v), better: "max" },
-  { label: "Comunicación", value: (r) => r.scores.communication, show: (v) => Math.round(v), better: "max" },
-  { label: "Elevación del Sol", value: (r) => r.sun.elevation_deg, show: (v) => formatDegrees(v) },
-  { label: "Horas de luz hasta el ocaso", value: (r) => (r.sun.visible ? r.sun.hours_until_set ?? Infinity : 0),
-    show: (v) => (v === Infinity ? "No se pone" : formatDuration(v)), better: "max" },
-  { label: "Horas de luz en la ventana", value: (r) => r.sun.visible_hours, show: formatDuration, better: "max" },
-  { label: "Elevación de la Tierra", value: (r) => r.earth.elevation_deg, show: (v) => formatDegrees(v) },
-  { label: "Contacto hasta el ocaso terrestre", value: (r) => (r.earth.visible ? r.earth.hours_until_set ?? Infinity : 0),
-    show: (v) => (v === Infinity ? "No se pone" : formatDuration(v)), better: "max" },
-  { label: "Horas de contacto en la ventana", value: (r) => r.earth.visible_hours, show: formatDuration, better: "max" },
+  { label: "compare.total", value: (r) => r.scores.total, show: (v) => Math.round(v), better: "max" },
+  { label: "detail.energy", value: (r) => r.scores.energy, show: (v) => Math.round(v), better: "max" },
+  { label: "detail.communication", value: (r) => r.scores.communication, show: (v) => Math.round(v), better: "max" },
+  { label: "compare.sunElevation", value: (r) => r.sun.elevation_deg, show: (v) => formatDegrees(v) },
+  { label: "compare.lightUntilSet", value: (r) => (r.sun.visible ? r.sun.hours_until_set ?? Infinity : 0),
+    show: untilSet, better: "max" },
+  { label: "compare.lightInWindow", value: (r) => r.sun.visible_hours, show: formatDuration, better: "max" },
+  { label: "compare.earthElevation", value: (r) => r.earth.elevation_deg, show: (v) => formatDegrees(v) },
+  { label: "compare.contactUntilSet", value: (r) => (r.earth.visible ? r.earth.hours_until_set ?? Infinity : 0),
+    show: untilSet, better: "max" },
+  { label: "compare.contactInWindow", value: (r) => r.earth.visible_hours, show: formatDuration, better: "max" },
 ];
 
 export class CompareView {
@@ -38,12 +40,20 @@ export class CompareView {
   }
 
   open() {
+    this.opener = document.activeElement; // para devolverle el foco al cerrar
     this.root.hidden = false;
     this.root.querySelector(".compare-close").focus();
   }
 
   close() {
     this.root.hidden = true;
+    this.results = null;
+    this.opener?.focus?.();
+  }
+
+  // Vuelve a dibujar con el idioma actual.
+  refresh() {
+    if (this.results) this.render(this.results);
   }
 
   showMessage(text) {
@@ -51,6 +61,7 @@ export class CompareView {
   }
 
   render(results) {
+    this.results = results;
     const best = ROWS.map((row) => {
       if (!row.better) return null;
       const values = results.map(row.value);
@@ -61,26 +72,26 @@ export class CompareView {
 
     const header = results.map((r, i) => `
       <th scope="col">
-        <button type="button" class="link" data-open="${escapeHtml(r.site.id)}">${escapeHtml(r.site.name)}</button>
+        <button type="button" class="link" data-open="${escapeHtml(r.site.id)}">${escapeHtml(siteName(r.site))}</button>
         <span class="muted">${escapeHtml(formatUtc(r.date))}</span>
-        <span class="verdict ${r.viable ? "ok" : "bad"}">${r.viable ? "Viable" : `No viable: ${escapeHtml(notViableReason(r))}`}</span>
+        <span class="verdict ${r.viable ? "ok" : "bad"}">${r.viable ? t("verdict.viable") : `${t("verdict.notViable")}: ${escapeHtml(notViableReason(r))}`}</span>
         <div class="sky-container" data-index="${i}"></div>
-        <button type="button" class="remove" data-remove="${i}" aria-label="Quitar ${escapeHtml(r.site.name)} de la comparación">Quitar</button>
+        <button type="button" class="remove" data-remove="${i}" aria-label="${escapeHtml(t("compare.removeAria", { name: siteName(r.site) }))}">${t("compare.remove")}</button>
       </th>`).join("");
 
     const body = ROWS.map((row, j) => `
       <tr>
-        <th scope="row">${row.label}</th>
+        <th scope="row">${t(row.label)}</th>
         ${results.map((r) => {
           const value = row.value(r);
           const win = best[j] !== null && value === best[j];
-          return `<td class="${win ? "best" : ""}">${escapeHtml(String(row.show(value)))}${win ? ' <span class="sr-only">(mejor)</span>' : ""}</td>`;
+          return `<td class="${win ? "best" : ""}">${escapeHtml(String(row.show(value)))}${win ? ` <span class="sr-only">${t("compare.best")}</span>` : ""}</td>`;
         }).join("")}
       </tr>`).join("");
 
     const counters = ["sun", "earth"].map((bodyName) => `
       <tr>
-        <th scope="row">${bodyName === "sun" ? "Sol" : "Tierra"}</th>
+        <th scope="row">${t(`body.${bodyName}`)}</th>
         ${results.map((r) => {
           const c = countdown(bodyName, r[bodyName], r.config.window_days);
           return `<td class="${c.tone}">${escapeHtml(c.main)}</td>`;
@@ -94,7 +105,7 @@ export class CompareView {
           <tbody>${body}${counters}</tbody>
         </table>
       </div>
-      <p class="caption">Resaltado: mejor valor de cada fila. Ventana de misión de ${results[0].config.window_days} días desde cada aterrizaje.</p>`;
+      <p class="caption">${t("compare.caption", { days: results[0].config.window_days })}</p>`;
 
     results.forEach((r, i) => {
       renderSky(this.content.querySelector(`.sky-container[data-index="${i}"]`), r, null, { height: 80, compact: true });

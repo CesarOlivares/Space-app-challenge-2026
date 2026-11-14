@@ -6,6 +6,7 @@ Lunar Site Explorer: un globo lunar 3D para comparar sitios y fechas de aterriza
 - [Propuesta, requerimientos, arquitectura y plan de trabajo](docs/PROPUESTA.md)
 - [API: rutas y formato de las respuestas](docs/API.md)
 - [Modelo matemático y fuentes de los criterios](docs/modelo/README.md)
+- [Ciclo 2: rediseño visual, relieve 3D y estructura en tres partes](docs/CICLO-2-VISUAL.md)
 - [UX elements: elementos visuales para el frontend](UX%20elements/README.md)
 
 ## Requisitos
@@ -33,7 +34,20 @@ La primera ejecución crea el entorno virtual en `backend/.venv` e instala las d
 
 Una vez descargados los datos, la aplicación funciona sin conexión a internet.
 
+`./run.sh data` también genera la textura 8K y el relieve del globo (unos 120 MB de descarga y 16 MB de archivos). Con `--no-hires` se omiten y el globo queda en 4K sin relieve.
+
 Opcional: `./run.sh data --dem` descarga además el modelo de elevación polar de LOLA (116 MB). Solo hace falta para recalcular las máscaras de horizonte (`./run.sh horizons`) o para que las coordenadas personalizadas del polo sur usen el relieve real.
+
+## Uso rápido
+
+- **Intro:** se muestra la primera vez y luego se recuerda; `/?intro` la vuelve a mostrar con el gancho.
+- **Tres partes**, con barra de navegación: `#intro` (01), `#explorar` (02) y `#comparar` (03). Una dirección con un escenario compartido abre directo en la vista general.
+
+- **Simple / Técnico:** el modo simple explica cada resultado en lenguaje llano; el técnico muestra métricas, ventanas y ajustes del puntaje.
+- **ES / EN:** idioma de la interfaz.
+- **Copiar enlace:** la dirección guarda la fecha, el sitio elegido, los ajustes, los sitios personalizados y la comparación; al abrirla se reproduce el mismo escenario.
+- **Exportar CSV:** puntajes de todos los sitios para la fecha actual.
+- **Mejores fechas:** en el detalle de un sitio, busca las mejores fechas de aterrizaje de los próximos 30 días.
 
 ## Pruebas
 

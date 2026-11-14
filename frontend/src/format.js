@@ -1,16 +1,22 @@
 // Formato de duraciones, fechas y referencias de sitio para mostrar en la interfaz.
 
-const dateFormat = new Intl.DateTimeFormat("es", {
-  day: "numeric",
-  month: "short",
-  year: "numeric",
-  hour: "2-digit",
-  minute: "2-digit",
-  timeZone: "UTC",
-});
+import { t } from "./i18n.js";
+
+const formatters = new Map();
 
 export function formatUtc(value) {
-  return `${dateFormat.format(new Date(value))} UTC`;
+  const locale = t("locale");
+  if (!formatters.has(locale)) {
+    formatters.set(locale, new Intl.DateTimeFormat(locale, {
+      day: "numeric",
+      month: "short",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+      timeZone: "UTC",
+    }));
+  }
+  return `${formatters.get(locale).format(new Date(value))} UTC`;
 }
 
 export function formatDuration(hours) {

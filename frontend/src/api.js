@@ -57,6 +57,12 @@ export function fetchTimeline(ref, date, config) {
   });
 }
 
+export function fetchBestDates(ref, date, config, { days, stepHours }) {
+  return request(`/api/sites/${encodeURIComponent(ref)}/best-dates`, {
+    params: { date: isoUtc(date), days, step_hours: stepHours, limit: 5, ...configParams(config) },
+  });
+}
+
 export function fetchComparison(scenarios, config) {
   return request("/api/compare", {
     params: configParams(config),
