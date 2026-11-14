@@ -22,20 +22,27 @@ def at_offset(start: datetime, hours: float | None) -> str | None:
     return None if hours is None else iso(start + timedelta(hours=hours))
 
 
-def topography_json(terrain: TerrainMetrics, slope_ok: bool | None = None) -> dict:
+def topography_json(
+    terrain: TerrainMetrics,
+    slope_ok: bool | None = None,
+    sky_view_factor: float | None = None,
+) -> dict:
     """Serializes TerrainMetrics into the API topography payload.
 
     Args:
         terrain: Evaluated terrain metrics for a site.
         slope_ok: Optional lander slope safety boolean against max_slope_deg.
+        sky_view_factor: Optional hemispherical sky visibility factor in [0, 1].
 
     Returns:
-        Dictionary containing elevation, slope, roughness, source, and optional slope_ok.
+        Dictionary containing elevation, slope, roughness, aspect, SVF, source, and optional slope_ok.
     """
     payload = {
         "elevation_m": round(terrain.elevation_m, 1),
         "slope_deg": round(terrain.slope_deg, 2),
         "roughness_m": round(terrain.roughness_m, 2),
+        "aspect_deg": round(terrain.aspect_deg, 1),
+        "sky_view_factor": round(sky_view_factor if sky_view_factor is not None else terrain.sky_view_factor, 4),
         "source": terrain.source,
     }
     if slope_ok is not None:
@@ -103,9 +110,14 @@ def evaluation_json(result: SiteEvaluation, detailed: bool) -> dict:
             "energy": round(result.energy, 1),
             "communication": round(result.communication, 1),
             "terrain": round(result.terrain_score, 1),
+            "asteroid": round(result.asteroid_score, 1),
             "total": round(result.total, 1),
         },
-        "topography": topography_json(result.terrain, slope_ok=result.slope_ok),
+        "topography": topography_json(
+            result.terrain,
+            slope_ok=result.slope_ok,
+            sky_view_factor=result.sky_view_factor,
+        ),
         "sun": body_json(result.sun, result.landing, detailed),
         "earth": body_json(result.earth, result.landing, detailed),
     }

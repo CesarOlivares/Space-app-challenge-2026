@@ -45,6 +45,19 @@ class SphericalHorizon:
     def is_visible(self, azimuth: np.ndarray, elevation: np.ndarray) -> np.ndarray:
         return self.clearance(azimuth, elevation) > 0
 
+    def sky_view_factor(self) -> float:
+        """Computes the hemispherical Sky View Factor (SVF) in [0.0, 1.0].
+
+        Uses SVF = (1/360) * sum(cos^2(max(0, h(az)))) over 1-degree azimuth bins.
+        Lower SVF implies stronger natural ballistic shielding against grazing hazards.
+
+        Returns:
+            Sky View Factor in [0.0, 1.0].
+        """
+        az = np.arange(0.0, 360.0, 1.0)
+        elev = np.maximum(0.0, self.elevation(az))
+        return float(round(float(np.mean(np.cos(np.radians(elev)) ** 2)), 4))
+
 
 class TerrainHorizon(SphericalHorizon):
     """Horizonte real del relieve, más el margen."""

@@ -173,12 +173,16 @@ class TerrainMetrics:
         slope_deg: Local surface slope in degrees (>= 0.0).
         roughness_m: Local RMS surface roughness in meters (>= 0.0).
         source: Data origin identifier ("catalog", "lola_dem", or "fallback").
+        aspect_deg: Steepest-descent slope azimuth in degrees [0.0, 360.0) clockwise from North.
+        sky_view_factor: Hemispherical sky visibility factor in [0.0, 1.0].
     """
 
     elevation_m: float
     slope_deg: float
     roughness_m: float
     source: str
+    aspect_deg: float = 0.0
+    sky_view_factor: float = 1.0
 
 
 @lru_cache(maxsize=1)
@@ -219,6 +223,7 @@ def _evaluate_lola_dem(dem: PolarDEM, lat: float, lon: float) -> TerrainMetrics 
     dz_dx = float(np.sum(patch[:, 2] - patch[:, 0])) / (6.0 * DEM_SCALE_M)
     dz_dy = float(np.sum(patch[2, :] - patch[0, :])) / (6.0 * DEM_SCALE_M)
     slope_deg = math.degrees(math.atan(math.hypot(dz_dx, dz_dy)))
+    aspect_deg = math.degrees(math.atan2(-dz_dx, dz_dy)) % 360.0
 
     coords = np.array([-DEM_SCALE_M, 0.0, DEM_SCALE_M], dtype=float)
     dx_grid, dy_grid = np.meshgrid(coords, coords)
@@ -231,6 +236,7 @@ def _evaluate_lola_dem(dem: PolarDEM, lat: float, lon: float) -> TerrainMetrics 
         slope_deg=round(max(0.0, slope_deg), 2),
         roughness_m=round(max(0.0, roughness_m), 2),
         source="lola_dem",
+        aspect_deg=round(aspect_deg, 1),
     )
 
 
@@ -253,11 +259,13 @@ def _evaluate_fallback(lat: float, lon: float) -> TerrainMetrics:
     elevation_m = -1800.0 + 3400.0 * polar_factor + 700.0 * math.cos(2.0 * lon_rad) * math.cos(lat_rad)
     slope_deg = 2.0 + 5.5 * polar_factor + 2.5 * abs(math.sin(3.0 * lat_rad + lon_rad))
     roughness_m = 0.5 + 0.9 * polar_factor + 0.4 * abs(math.cos(2.0 * lat_rad - lon_rad))
+    aspect_deg = math.degrees(math.atan2(math.sin(lon_rad), math.cos(lat_rad))) % 360.0
     return TerrainMetrics(
         elevation_m=round(elevation_m, 1),
         slope_deg=round(max(0.0, slope_deg), 2),
         roughness_m=round(max(0.0, roughness_m), 2),
         source="fallback",
+        aspect_deg=round(aspect_deg, 1),
     )
 
 
@@ -303,5 +311,81 @@ def evaluate_terrain(lat: float, lon: float, site_data: dict | None = None) -> T
             slope_deg=max(0.0, float(terrain["slope_deg"])),
             roughness_m=max(0.0, float(terrain["roughness_m"])),
             source="catalog",
+            aspect_deg=float(terrain.get("aspect_deg", 0.0)) % 360.0,
+            sky_view_factor=float(terrain.get("sky_view_factor", 1.0)),
         )
     return _evaluate_from_coordinates(round(float(lat), 6), round(float(lon), 6))
+
+
+def evaluate_terrain_patch(
+    lat: float,
+    lon: float,
+    size: int = 25,
+    site_data: dict | None = None,
+) -> dict:
+    """Generates a local `size x size` elevation and slope grid around `(lat, lon)`.
+
+    Uses the South Pole LOLA DEM when available and covered; otherwise synthesizes
+    a deterministic local relief grid matching the site's evaluated elevation, slope,
+    and roughness so the 2.5D/3D local landing zone inspector always works.
+
+    Args:
+        lat: Planetocentric latitude in degrees [-90, 90].
+        lon: East longitude in degrees [-180, 180].
+        size: Odd grid dimension (default 25 -> 25x25 cells at 120 m spacing).
+        site_data: Optional raw catalog dictionary for the site.
+
+    Returns:
+        Dictionary with `size`, `spacing_m`, `elevation_m` (2D list), `slope_deg` (2D list),
+        and `source` ("lola_dem" or "synthetic").
+    """
+    if size < 5 or size % 2 == 0:
+        raise ValueError("patch size must be an odd integer >= 5")
+
+    dem = _get_polar_dem()
+    half = size // 2
+    if dem is not None and lat <= DEM_MAX_LAT:
+        line, sample = PolarDEM.pixel(np.asarray(lat, dtype=float), np.asarray(lon, dtype=float))
+        l_idx = int(round(float(line)))
+        s_idx = int(round(float(sample)))
+        margin = half + 1
+        if margin <= l_idx <= DEM_SIZE - 1 - margin and margin <= s_idx <= DEM_SIZE - 1 - margin:
+            padded = (
+                dem.data[l_idx - margin : l_idx + margin + 1, s_idx - margin : s_idx + margin + 1].astype(float)
+                * DEM_HEIGHT_SCALE
+            )
+            dz_dx = (padded[1:-1, 2:] - padded[1:-1, :-2]) / (2.0 * DEM_SCALE_M)
+            dz_dy = (padded[2:, 1:-1] - padded[:-2, 1:-1]) / (2.0 * DEM_SCALE_M)
+            slopes = np.degrees(np.arctan(np.hypot(dz_dx, dz_dy)))
+            elev = padded[1:-1, 1:-1]
+            return {
+                "size": size,
+                "spacing_m": DEM_SCALE_M,
+                "elevation_m": np.round(elev, 1).tolist(),
+                "slope_deg": np.round(slopes, 2).tolist(),
+                "source": "lola_dem",
+            }
+
+    metrics = evaluate_terrain(lat, lon, site_data=site_data)
+    coords = (np.arange(size, dtype=float) - half) * DEM_SCALE_M
+    gx, gy = np.meshgrid(coords, coords)
+    slope_rad = math.radians(metrics.slope_deg)
+    aspect_rad = math.radians(metrics.aspect_deg)
+    grad = math.tan(slope_rad)
+    # Tilted base plane + deterministic craterlet/undulation scaled by roughness_m.
+    base_plane = metrics.elevation_m + grad * (gx * math.sin(aspect_rad) + gy * math.cos(aspect_rad))
+    phase = math.radians(lat * 7.0 + lon * 13.0)
+    undulation = metrics.roughness_m * (
+        1.2 * np.sin(gx / 280.0 + phase) * np.cos(gy / 280.0 - phase)
+        + 0.6 * np.cos((gx + gy) / 190.0 + phase)
+    )
+    elev = base_plane + undulation
+    dz_dy_g, dz_dx_g = np.gradient(elev, DEM_SCALE_M)
+    slopes = np.degrees(np.arctan(np.hypot(dz_dx_g, dz_dy_g)))
+    return {
+        "size": size,
+        "spacing_m": DEM_SCALE_M,
+        "elevation_m": np.round(elev, 1).tolist(),
+        "slope_deg": np.round(slopes, 2).tolist(),
+        "source": "synthetic",
+    }

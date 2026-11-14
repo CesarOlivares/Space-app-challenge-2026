@@ -27,7 +27,7 @@ def test_scores_de_todo_el_catalogo(client):
     assert len(data["scores"]) == 22
     first = data["scores"][0]
     assert set(first) == {"site_id", "date", "viable", "scores", "topography", "sun", "earth"}
-    assert {"energy", "communication", "terrain", "total"} == set(first["scores"])
+    assert {"energy", "communication", "terrain", "asteroid", "total"} == set(first["scores"])
     assert set(first["sun"]) == {"azimuth_deg", "elevation_deg", "visible"}
 
 

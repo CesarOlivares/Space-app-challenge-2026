@@ -103,7 +103,7 @@ class BodyMetrics:
 
 @dataclass(frozen=True)
 class SiteEvaluation:
-    """Complete landing site evaluation combining illumination, comms, and terrain safety."""
+    """Complete landing site evaluation combining illumination, comms, terrain, and ballistic safety."""
 
     site: Site
     landing: datetime
@@ -120,6 +120,8 @@ class SiteEvaluation:
     terrain: TerrainMetrics
     total: float
     viable: bool
+    asteroid_score: float = 0.0
+    sky_view_factor: float = 1.0
 
 
 def energy_score(solar_use: float, continuous_hours: float, window_hours: float) -> float:
@@ -176,6 +178,51 @@ def compute_terrain_score(terrain: TerrainMetrics, max_slope_deg: float = 15.0) 
     if terrain.slope_deg > max_slope_deg:
         return round(min(15.0, 0.3 * rough_sub), 1)
     return round(0.7 * slope_sub + 0.3 * rough_sub, 1)
+
+
+def compute_tilt_incidence_factor(
+    sun_el_deg: float,
+    sun_az_deg: float,
+    slope_deg: float,
+    aspect_deg: float,
+) -> float:
+    """Computes cosine of the solar incidence angle on a terrain-tilted solar deck.
+
+    Implements:
+        cos(theta_i) = sin(el_sun)*cos(beta) + cos(el_sun)*sin(beta)*cos(az_sun - gamma)
+
+    Args:
+        sun_el_deg: Solar elevation above the local horizontal in degrees.
+        sun_az_deg: Solar azimuth clockwise from North in degrees.
+        slope_deg: Local terrain slope beta in degrees.
+        aspect_deg: Downslope azimuth gamma in degrees.
+
+    Returns:
+        Clamped incidence factor in [0.0, 1.0].
+    """
+    el = np.radians(sun_el_deg)
+    beta = np.radians(slope_deg)
+    d_az = np.radians(sun_az_deg - aspect_deg)
+    cos_i = float(np.sin(el) * np.cos(beta) + np.cos(el) * np.sin(beta) * np.cos(d_az))
+    return max(0.0, min(1.0, cos_i))
+
+
+def compute_asteroid_safety_score(sky_view_factor: float, roughness_m: float) -> float:
+    """Computes the Asteroid & Meteoroid Safety (A) proxy score in [0.0, 100.0].
+
+    Combines natural topographical ballistic shielding (1 - SVF, 40% weight) with
+    a regolith boulder/ejecta smoothness proxy (60% weight).
+
+    Args:
+        sky_view_factor: Hemispherical sky visibility in [0.0, 1.0].
+        roughness_m: Local RMS surface roughness in meters.
+
+    Returns:
+        Ballistic & ejecta safety score rounded to 1 decimal place in [0.0, 100.0].
+    """
+    shielding = max(0.0, min(1.0, (1.0 - sky_view_factor) * 5.0))
+    smoothness = max(0.0, 1.0 - roughness_m / 4.0)
+    return round(100.0 * (0.4 * shielding + 0.6 * smoothness), 1)
 
 
 def total_score(
@@ -283,7 +330,10 @@ def evaluate(
     communication = communication_score(earth.visible_fraction)
 
     resolved_terrain = terrain or getattr(site, "terrain", None) or evaluate_terrain(site.lat, site.lon)
+    base_horizon = horizon_for(site, 0.0)
+    svf = base_horizon.sky_view_factor()
     t_score = compute_terrain_score(resolved_terrain, config.max_slope_deg)
+    a_score = compute_asteroid_safety_score(svf, resolved_terrain.roughness_m)
     slope_ok = resolved_terrain.slope_deg <= config.max_slope_deg
     overall = total_score(energy, communication, config, terrain_score=t_score)
     viable = bool(sun.visible and earth.visible and slope_ok)
@@ -304,6 +354,8 @@ def evaluate(
         terrain=resolved_terrain,
         total=overall,
         viable=viable,
+        asteroid_score=a_score,
+        sky_view_factor=svf,
     )
 
 
