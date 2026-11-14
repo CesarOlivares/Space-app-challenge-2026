@@ -182,7 +182,7 @@ Las tareas se hacen en orden: cada una parte de lo que dejó la anterior. Una ta
 
 | ✓ | ID | Tarea | Verificación |
 |---|---|---|---|
-| [ ] | T-01 | Conectar la carpeta local al repositorio de GitHub y mover `DESAFIO.md` y `PROPUESTA.md` a `docs/` | `git status` limpio y documentos visibles en GitHub |
+| [x] | T-01 | Conectar la carpeta local al repositorio de GitHub y mover `DESAFIO.md` y `PROPUESTA.md` a `docs/` | `git status` limpio y documentos visibles en GitHub |
 | [x] | T-02 | Crear la estructura de carpetas `backend/` y `frontend/` de la sección 4 | La estructura coincide con el documento |
 | [x] | T-03 | Iniciar el backend FastAPI con una ruta `GET /health` y el entorno de pruebas | `/health` responde y `pytest` corre sin pruebas fallidas |
 | [x] | T-04 | Iniciar el frontend con Three.js y una página que llama a `/health` | La página muestra la respuesta del backend |
