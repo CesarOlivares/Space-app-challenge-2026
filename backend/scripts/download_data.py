@@ -13,7 +13,9 @@ moon_relief.json. --no-hires los omite (el globo queda con la textura de 4K y si
 import argparse
 import json
 import shutil
+import ssl
 import sys
+import urllib.error
 import urllib.request
 from pathlib import Path
 
@@ -59,6 +61,27 @@ DEM_FILES = [
 ]
 
 
+def _urlopen_with_cert_fallback(url: str, timeout: int = 300):
+    """Abre una URL asegurando compatibilidad con los certificados SSL de Windows/macOS/Linux."""
+    # 1. Intentar con certifi si está instalado
+    try:
+        import certifi
+        ctx = ssl.create_default_context(cafile=certifi.where())
+        return urllib.request.urlopen(url, timeout=timeout, context=ctx)
+    except Exception:
+        pass
+
+    # 2. Intentar con el almacén estándar
+    try:
+        return urllib.request.urlopen(url, timeout=timeout)
+    except urllib.error.URLError as e:
+        # 3. Fallback para entornos Windows donde Python no enlaza el almacén de certificados
+        if "CERTIFICATE_VERIFY_FAILED" in str(e):
+            ctx_unverified = ssl._create_unverified_context()
+            return urllib.request.urlopen(url, timeout=timeout, context=ctx_unverified)
+        raise
+
+
 def download(url: str, dest: Path, size: int, force: bool) -> None:
     if not force and dest.exists() and dest.stat().st_size == size:
         print(f"  ok      {dest.relative_to(ROOT)}")
@@ -66,7 +89,7 @@ def download(url: str, dest: Path, size: int, force: bool) -> None:
     dest.parent.mkdir(parents=True, exist_ok=True)
     tmp = dest.with_suffix(dest.suffix + ".part")
     print(f"  bajando {dest.relative_to(ROOT)} ({size / 1e6:.1f} MB)")
-    with urllib.request.urlopen(url, timeout=300) as response, open(tmp, "wb") as out:
+    with _urlopen_with_cert_fallback(url, timeout=300) as response, open(tmp, "wb") as out:
         shutil.copyfileobj(response, out)
     if tmp.stat().st_size != size:
         tmp.unlink()
