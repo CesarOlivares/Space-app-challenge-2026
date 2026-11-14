@@ -134,6 +134,20 @@
         <div class="buttons">
           <button type="button" id="copy-link" data-i18n="controls.copyLink">Copiar enlace</button>
         </div>
+        <div class="relief" id="relief" role="group" data-i18n-attr="aria-label: relief.group">
+          <label class="check"><input type="checkbox" id="relief-on" checked /> <span data-i18n="relief.show">Mostrar relieve</span></label>
+          <label class="range"><span data-i18n="relief.exaggeration">Exageración vertical</span>
+            <span class="range-row"><input id="relief-ex" type="range" min="1" max="10" step="0.5" value="3" /><output id="relief-ex-out" for="relief-ex">×3</output></span>
+          </label>
+          <label class="range"><span data-i18n="relief.quality">Calidad de la textura</span>
+            <select id="quality">
+              <option value="auto" data-i18n="relief.qAuto">Automática</option>
+              <option value="standard" data-i18n="relief.qStd">Estándar (4K)</option>
+              <option value="high" data-i18n="relief.qHigh">Alta (8K)</option>
+            </select>
+          </label>
+          <p class="caption" id="relief-note" hidden data-i18n="relief.missing"></p>
+        </div>
         </div>
         <p id="status" role="status">Conectando…</p>
 

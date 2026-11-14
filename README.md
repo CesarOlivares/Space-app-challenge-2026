@@ -34,6 +34,8 @@ La primera ejecución crea el entorno virtual en `backend/.venv` e instala las d
 
 Una vez descargados los datos, la aplicación funciona sin conexión a internet.
 
+`./run.sh data` también genera la textura 8K y el relieve del globo (unos 120 MB de descarga y 16 MB de archivos). Con `--no-hires` se omiten y el globo queda en 4K sin relieve.
+
 Opcional: `./run.sh data --dem` descarga además el modelo de elevación polar de LOLA (116 MB). Solo hace falta para recalcular las máscaras de horizonte (`./run.sh horizons`) o para que las coordenadas personalizadas del polo sur usen el relieve real.
 
 ## Uso rápido

@@ -110,6 +110,11 @@ function showTooltip(id, x, y) {
 
 const globe = new GlobeView(document.getElementById("globe"), {
   onHover: (id, x, y) => showTooltip(id, x, y),
+  // Sin los archivos de relieve (./run.sh data --no-hires) se avisa y se desactivan los controles.
+  onReliefStatus: (status) => {
+    for (const el of document.querySelectorAll("#relief-on, #relief-ex")) el.disabled = status !== "ready";
+    document.getElementById("relief-note").hidden = status !== "unavailable";
+  },
   onSelect: (id) => select(id),
   occluded: () => (window.innerWidth > WIDE
     ? { left: leftColumn.offsetWidth + 16, right: sidebar.offsetWidth + 16 }
@@ -395,6 +400,39 @@ compareBar.querySelector("[data-action=clear-compare]").addEventListener("click"
   syncUrl();
   if (state.selectedId) loadDetail();
 });
+
+// Relieve y calidad del globo: se recuerdan en el navegador.
+const reliefOn = document.getElementById("relief-on");
+const reliefEx = document.getElementById("relief-ex");
+const reliefOut = document.getElementById("relief-ex-out");
+const qualitySelect = document.getElementById("quality");
+
+function applyRelief() {
+  const exaggeration = Number(reliefEx.value);
+  reliefOut.textContent = `×${exaggeration}`;
+  globe.setRelief({ enabled: reliefOn.checked, exaggeration });
+  stored.set("relief", JSON.stringify({ on: reliefOn.checked, ex: exaggeration }));
+}
+
+try {
+  const saved = JSON.parse(stored.get("relief") ?? "null");
+  if (saved) {
+    reliefOn.checked = Boolean(saved.on);
+    reliefEx.value = Number(saved.ex) || 3;
+  }
+} catch { /* valores por defecto */ }
+if (["auto", "standard", "high"].includes(stored.get("quality"))) qualitySelect.value = stored.get("quality");
+reliefOn.addEventListener("change", applyRelief);
+reliefEx.addEventListener("input", applyRelief);
+qualitySelect.addEventListener("change", () => {
+  globe.setQuality(qualitySelect.value);
+  stored.set("quality", qualitySelect.value);
+});
+applyRelief();
+globe.setQuality(qualitySelect.value);
+
+// Diagnóstico (?debug): expone el globo para medir el tiempo por cuadro y ver qué textura usa.
+if (new URLSearchParams(window.location.search).has("debug")) window.lunarDebug = { globe };
 
 // En pantallas angostas los controles secundarios se pliegan para dejar ver el globo.
 const moreToggle = document.getElementById("more-toggle");

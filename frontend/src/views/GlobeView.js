@@ -1,9 +1,12 @@
 import * as THREE from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import { encode } from "./encoding.js";
+import { HeightField } from "./heightField.js";
 
 const TEXTURES = "public/textures";
-const MARKER_ALTITUDE = 1.004; // radios lunares; apenas sobre la superficie
+const MARKER_LIFT = 0.004; // radios lunares que el marcador flota sobre el terreno
+const SEGMENTS_FLAT = [192, 96]; // malla sin relieve
+const SEGMENTS_RELIEF = [512, 256]; // con relieve: más vértices para que el desplazamiento se vea suave
 const DEFAULT_DISTANCE = 3.7;
 // Casi bajo el polo; la pequeña componente z evita la singularidad de OrbitControls.
 // Con "reducir movimiento" activo en el sistema, la cámara salta en vez de volar.
@@ -40,7 +43,12 @@ function glowTexture() {
 
 export class GlobeView {
   // `occluded()` devuelve { left, right }: píxeles tapados por paneles a cada lado; el globo se centra en el resto.
-  constructor(canvas, { onHover = () => {}, onSelect = () => {}, occluded = () => ({ left: 0, right: 0 }) } = {}) {
+  constructor(canvas, {
+    onHover = () => {},
+    onSelect = () => {},
+    onReliefStatus = () => {},
+    occluded = () => ({ left: 0, right: 0 }),
+  } = {}) {
     this.canvas = canvas;
     this.occluded = occluded;
     this.onHover = onHover;
@@ -49,6 +57,10 @@ export class GlobeView {
     this.hoveredId = null;
     this.selectedId = null;
     this.transition = null;
+    this.relief = { enabled: true, exaggeration: 3, meta: null, field: null, status: "loading" };
+    this.quality = "auto"; // auto | standard | high
+    this.colors = { standard: null, high: null, highLoading: false };
+    this.onReliefStatus = onReliefStatus;
 
     this.renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
@@ -92,24 +104,166 @@ export class GlobeView {
     if (active) this.refreshLayout();
   }
 
-  #buildMoon() {
-    const loader = new THREE.TextureLoader();
-    const color = loader.load(`${TEXTURES}/moon_color_4k.jpg`);
-    color.colorSpace = THREE.SRGBColorSpace;
-    color.anisotropy = this.renderer.capabilities.getMaxAnisotropy();
-    const relief = loader.load(`${TEXTURES}/ldem_3_8bit.jpg`);
+  // ---- Luna: textura progresiva (4K → 8K) y relieve real de LOLA ----
 
+  #buildMoon() {
+    this.loader = new THREE.TextureLoader();
+    const color = this.#loadColor("moon_color_4k.jpg");
+    this.colors.standard = color;
     this.moon = new THREE.Mesh(
-      new THREE.SphereGeometry(1, 192, 96),
-      new THREE.MeshStandardMaterial({
-        map: color,
-        bumpMap: relief,
-        bumpScale: 2.5,
-        roughness: 1,
-        metalness: 0,
-      }),
+      new THREE.SphereGeometry(1, ...SEGMENTS_FLAT),
+      new THREE.MeshStandardMaterial({ map: color, roughness: 1, metalness: 0 }),
     );
     this.scene.add(this.moon);
+    // El relieve de 131 mil vértices no se usa para apuntar: se apunta a una esfera liviana.
+    this.pickSphere = new THREE.Mesh(new THREE.SphereGeometry(1, 48, 24));
+    this.#loadRelief();
+    this.#applyQuality();
+  }
+
+  #loadColor(file) {
+    const texture = this.loader.load(`${TEXTURES}/${file}`);
+    texture.colorSpace = THREE.SRGBColorSpace;
+    texture.anisotropy = Math.min(8, this.renderer.capabilities.getMaxAnisotropy());
+    return texture;
+  }
+
+  async #loadRelief() {
+    try {
+      const response = await fetch(`${TEXTURES}/moon_relief.json`);
+      if (!response.ok) throw new Error("sin archivos de relieve (ejecutar ./run.sh data)");
+      const meta = await response.json();
+      const [height, normal] = await Promise.all([
+        this.loader.loadAsync(`${TEXTURES}/${meta.height_map}`),
+        this.loader.loadAsync(`${TEXTURES}/${meta.normal_map}`),
+      ]);
+      const material = this.moon.material;
+      material.displacementMap = height;
+      material.normalMap = normal;
+      material.needsUpdate = true;
+      this.relief.meta = meta;
+      this.relief.field = new HeightField(height.image, meta);
+      this.moon.geometry.dispose();
+      this.moon.geometry = new THREE.SphereGeometry(1, ...SEGMENTS_RELIEF);
+      this.#setReliefStatus("ready");
+      this.#applyRelief();
+    } catch {
+      this.#setReliefStatus("unavailable");
+    }
+  }
+
+  #setReliefStatus(status) {
+    this.relief.status = status;
+    this.canvas.dataset.relief = status;
+    this.onReliefStatus(status);
+  }
+
+  // Relieve activo: desplazamiento de la malla y mapa de normales, ambos con la exageración elegida.
+  #applyRelief() {
+    const { meta, enabled, exaggeration } = this.relief;
+    if (!meta) return;
+    const material = this.moon.material;
+    const on = enabled ? exaggeration : 0;
+    const radius = meta.reference_radius_m;
+    material.displacementScale = ((meta.max_m - meta.min_m) / radius) * on;
+    material.displacementBias = (meta.min_m / radius) * on;
+    // El mapa guarda las pendientes multiplicadas por normal_gain: se compensa aquí.
+    material.normalScale.setScalar((on / meta.normal_gain) || 0);
+    this.#placeMarkers();
+  }
+
+  // Radio (en radios lunares) al que flota un sitio: sobre el terreno desplazado.
+  #markerRadius(site) {
+    const { field, meta, enabled, exaggeration } = this.relief;
+    const terrain = field && enabled ? (field.heightMeters(site.lat, site.lon) / meta.reference_radius_m) * exaggeration : 0;
+    return 1 + terrain + MARKER_LIFT;
+  }
+
+  #placeMarkers() {
+    for (const marker of this.markers.values()) {
+      marker.group.position.copy(latLonToVector(marker.site.lat, marker.site.lon, this.#markerRadius(marker.site)));
+    }
+  }
+
+  // enabled: mostrar el relieve; exaggeration: factor vertical (1 = real).
+  setRelief({ enabled = this.relief.enabled, exaggeration = this.relief.exaggeration } = {}) {
+    this.relief.enabled = enabled;
+    this.relief.exaggeration = exaggeration;
+    this.#applyRelief();
+  }
+
+  // Calidad de la textura: "standard" (4K), "high" (8K) o "auto" (8K si el equipo lo aguanta).
+  setQuality(quality) {
+    this.quality = quality;
+    this.#applyQuality();
+  }
+
+  #wantsHigh() {
+    const gpuOk = this.renderer.capabilities.maxTextureSize >= 8192;
+    if (!gpuOk || this.quality === "standard") return false;
+    if (this.quality === "high") return true;
+    // auto: no en teléfonos ni en equipos con poca memoria (una textura 8K ocupa ~180 MB en la GPU).
+    const phone = window.matchMedia("(pointer: coarse)").matches;
+    return !phone && (navigator.deviceMemory ?? 8) >= 4;
+  }
+
+  async #applyQuality() {
+    const material = this.moon.material;
+    if (this.#wantsHigh()) {
+      if (!this.colors.high && !this.colors.highLoading) {
+        this.colors.highLoading = true;
+        try {
+          const texture = await this.loader.loadAsync(`${TEXTURES}/moon_color_8k.jpg`);
+          texture.colorSpace = THREE.SRGBColorSpace;
+          texture.anisotropy = Math.min(8, this.renderer.capabilities.getMaxAnisotropy());
+          this.colors.high = texture;
+        } catch {
+          /* sin textura 8K: queda la de 4K */
+        } finally {
+          this.colors.highLoading = false;
+        }
+      }
+      // La calidad pudo cambiar mientras cargaba.
+      if (this.colors.high && this.#wantsHigh()) material.map = this.colors.high;
+    } else {
+      material.map = this.colors.standard;
+      // Libera la memoria de la textura grande al volver a la estándar.
+      if (this.colors.high) {
+        this.colors.high.dispose();
+        this.colors.high = null;
+      }
+    }
+    material.needsUpdate = true;
+    this.canvas.dataset.tier = material.map === this.colors.high ? "8k" : "4k";
+  }
+
+  // Datos para diagnóstico: qué textura se usa y en qué GPU.
+  info() {
+    const gl = this.renderer.getContext();
+    const debug = gl.getExtension("WEBGL_debug_renderer_info");
+    return {
+      tier: this.canvas.dataset.tier,
+      relief: this.relief.status,
+      maxTextureSize: this.renderer.capabilities.maxTextureSize,
+      gpu: debug ? gl.getParameter(debug.UNMASKED_RENDERER_WEBGL) : "desconocida",
+      triangles: this.renderer.info.render.triangles,
+    };
+  }
+
+  // Tiempo promedio (ms) de dibujar un cuadro. Cada cuadro termina leyendo un píxel, lo que obliga
+  // a esperar a que la GPU acabe: gl.finish() por sí solo no siempre espera (p. ej. con ANGLE).
+  benchmark(frames = 20) {
+    const gl = this.renderer.getContext();
+    const pixel = new Uint8Array(4);
+    const drawOnce = () => {
+      this.moon.rotation.y += 0.01;
+      this.renderer.render(this.scene, this.camera);
+      gl.readPixels(0, 0, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, pixel);
+    };
+    drawOnce();
+    const start = performance.now();
+    for (let i = 0; i < frames; i++) drawOnce();
+    return (performance.now() - start) / frames;
   }
 
   removeSite(id) {
@@ -126,7 +280,7 @@ export class GlobeView {
   addSites(sites) {
     for (const site of sites) {
       const group = new THREE.Group();
-      group.position.copy(latLonToVector(site.lat, site.lon, MARKER_ALTITUDE));
+      group.position.copy(latLonToVector(site.lat, site.lon, this.#markerRadius(site)));
 
       const core = new THREE.Mesh(
         new THREE.SphereGeometry(1, 20, 14),
@@ -277,7 +431,7 @@ export class GlobeView {
     this.raycaster.setFromCamera(this.pointer, this.camera);
     const cores = [...this.markers.values()].map((m) => m.core);
     // Se incluye la Luna para que los sitios de la cara oculta no se puedan elegir a través de ella.
-    const [hit] = this.raycaster.intersectObjects([this.moon, ...cores], false);
+    const [hit] = this.raycaster.intersectObjects([this.pickSphere, ...cores], false);
     return hit?.object.userData.siteId ?? null;
   }
 

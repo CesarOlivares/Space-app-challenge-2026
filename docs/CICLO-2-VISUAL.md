@@ -13,8 +13,8 @@ Se actualiza al subir cada fase. Rama de trabajo: `ciclo-2-visual`.
 | V0 Sistema visual | Hecha (falta la revisión del equipo, V-05) | `frontend/src/design-system.css`, `icons.js`, `design-system.html` |
 | V1 Tres partes | Hecha | `frontend/src/router.js`, `index.html` |
 | V2 Intro | Hecha | `frontend/src/views/IntroView.js`, `frontend/src/intro.css` |
-| V3 Globo en alta resolución | Libre | `frontend/src/views/GlobeView.js`, `scripts/download_data.py` |
-| V4 Relieve del polo sur | Libre (después de V3) | archivo nuevo |
+| V3 Globo en alta resolución | Hecha | `frontend/src/views/GlobeView.js`, `heightField.js`, `backend/scripts/download_data.py` |
+| V4 Relieve del polo sur | Libre (V3 ya está) | archivo nuevo |
 | V5 Rediseño de la vista general | Libre | `frontend/src/views/*`, `styles.css` |
 | V6 Comparación por periodos | Libre | backend: ruta nueva en `app/controllers/`; frontend: archivo nuevo |
 | V7 Animaciones | Libre, después de V2 y V5 | — |
@@ -145,10 +145,21 @@ Igual que en el ciclo 1: cada fase en su rama, con verificación antes de cerrar
 
 | ✓ | ID | Tarea | Verificación |
 |---|---|---|---|
-| [ ] | V-13 | Textura de color LROC 8K (TIFF de 51 MB, convertido a JPEG), con carga progresiva: primero la 4K y luego la 8K | La primera vista aparece igual de rápido que hoy |
-| [ ] | V-14 | Relieve real con el mapa de elevación LOLA de 16 px/° (`ldem_16_uint`, 33 MB): mapa de desplazamiento y de normales | Cráteres y montañas visibles en el terminador |
-| [ ] | V-15 | Control de exageración vertical (×1 a ×10) | El relieve cambia sin recargar la página |
-| [ ] | V-16 | Rendimiento en notebook sin GPU dedicada (RNF-02) | ≥ 30 fps medidos con la pestaña visible |
+| [x] | V-13 | Textura de color LROC 8K (TIFF de 51 MB, convertido a JPEG), con carga progresiva: primero la 4K y luego la 8K | La primera vista aparece igual de rápido que hoy |
+| [x] | V-14 | Relieve real con el mapa de elevación LOLA de 16 px/° (`ldem_16_uint`, 33 MB): mapa de desplazamiento y de normales | Cráteres y montañas visibles en el terminador |
+| [x] | V-15 | Control de exageración vertical (×1 a ×10) | El relieve cambia sin recargar la página |
+| [x] | V-16 | Rendimiento en notebook sin GPU dedicada (RNF-02) | ≥ 30 fps medidos con la pestaña visible |
+
+**Decisiones de V3:**
+- **Textura progresiva:** la de 4K carga de inmediato y la de 8K (mosaico LROC, 5,9 MB) reemplaza a la de 4K cuando termina de bajar. Una textura 8K ocupa del orden de 180 MB en la GPU, así que **"Automática"** usa 8K solo si la GPU lo permite, el dispositivo no es táctil y tiene al menos 4 GB de memoria; "Estándar" y "Alta" fuerzan una u otra. Al volver a 4K se libera la memoria de la grande.
+- **Relieve real de LOLA** (global, 16 píxeles por grado, NASA SVS CGI Moon Kit). Se usó el archivo en kilómetros flotantes (`ldem_16.tif`, 66 MB) en lugar del entero de 16 bits que mencionaba el plan: no requiere decodificar un desplazamiento y evita errores de unidades. Las alturas se contrastaron con las conocidas (Apollo 11: −1,92 km frente a −1,93 km publicados; Apollo 17: −2,61 frente a −2,63).
+- **Cómo se dibuja:** malla de 512 × 256 segmentos desplazada con un mapa de alturas de 2K, más un mapa de normales de 4K calculado de las pendientes reales (guardadas ×4 para no perder precisión en 8 bits; el globo lo compensa).
+- **Controles** (en "Más controles"): mostrar u ocultar el relieve, exageración vertical de ×1 a ×10 (por defecto ×3) y calidad de la textura. Se recuerdan en el navegador.
+- **Los marcadores siguen el terreno:** su altura sale del mismo mapa, así que no quedan enterrados al exagerar el relieve.
+- **Apuntar con el mouse** usa una esfera liviana, no la malla de 272 mil triángulos.
+- **Archivos generados** por `./run.sh data` (no van a git): `moon_color_8k.jpg`, `moon_height_2k.png`, `moon_normal_4k.jpg` y `moon_relief.json`, unos 16 MB en total. `--no-hires` los omite: el globo queda en 4K sin relieve y avisa.
+- **Rendimiento (V-16):** con `?debug` el globo expone `lunarDebug.globe.benchmark()`. Medido en una GPU integrada AMD Radeon Vega 8, a 1280 × 848 y escala 1, con espera real a la GPU: unos 6 ms por cuadro en todas las configuraciones (el límite para 30 fps es 33 ms), sin diferencia medible con relieve y 8K. **No** se midió en otros equipos, ni con pantallas de escala 2, ni con la pestaña visible (el panel del navegador oculto limita la medición).
+- **Limitación conocida:** cerca de los polos la textura y el relieve se estiran, porque los mapas son rectangulares; se ven rayos radiales, más marcados con exageración alta. La vista de relieve del polo sur (V4) lo resuelve con una proyección propia. Las pendientes del mapa de normales ya se corrigieron para que no se disparen.
 
 ### V4 — Vista de relieve del polo sur · P2
 
