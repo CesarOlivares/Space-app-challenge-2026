@@ -1510,3 +1510,19 @@ a.btn {
   color: #f8fafc;
   border-color: rgba(34, 211, 238, 0.65);
 }
+
+.layer-grid .btn-suitability {
+  grid-column: 1 / -1;
+  background: rgba(52, 211, 153, 0.12);
+  border-color: rgba(52, 211, 153, 0.45);
+  color: #34d399;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.layer-grid .btn-suitability[aria-pressed="true"] {
+  background: rgba(52, 211, 153, 0.3);
+  border-color: #34d399;
+  color: #ffffff;
+  box-shadow: 0 0 14px rgba(52, 211, 153, 0.45);
+}

@@ -181,13 +181,16 @@ function buildShieldCrownGeometry(profile36) {
 
 /**
  * Maps a risk score or mode to an RGBA tuple [r, g, b, a] for the on-globe heatmap.
- * @param {"risk-a"|"risk-b"|"safe-havens"} mode - Active risk visualization mode.
+ * @param {"risk-a"|"risk-b"|"solar"|"comm"|"suitability"|"safe-havens"} mode - Active risk visualization mode.
  * @param {number} slopeDeg - Local slope in degrees.
  * @param {number} ease - Landing Ease score (0-100).
  * @param {number} shield - Asteroid Protection score (0-100).
+ * @param {number} [solar=50] - Solar exposure percentage (0-100).
+ * @param {number} [comm=100] - Earth communication line-of-sight percentage (0-100).
+ * @param {number} [suit=50] - Combined 3-variable suitability score (0-100).
  * @returns {[number, number, number, number]}
  */
-function riskCellColor(mode, slopeDeg, ease, shield) {
+function riskCellColor(mode, slopeDeg, ease, shield, solar = 50, comm = 100, suit = 50) {
   if (mode === "risk-a") {
     if (slopeDeg <= 5.0 || ease >= 78) return [16, 200, 145, 190]; // Emerald/Cyan flat
     if (slopeDeg <= 10.0 || ease >= 50) return [245, 165, 25, 185]; // Amber moderate
@@ -198,16 +201,30 @@ function riskCellColor(mode, slopeDeg, ease, shield) {
     if (shield >= 22) return [56, 189, 248, 165]; // Moderate shield
     return [234, 88, 12, 185]; // Orange/Red exposed plateau
   }
-  // safe-havens: Combined A + B
-  if (ease >= 65 && shield >= 32) return [45, 212, 191, 215]; // Optimal Safe Haven
-  if (ease >= 50) return [100, 116, 139, 110]; // Landable but exposed
-  return [185, 28, 28, 155]; // Steep hazard
+  if (mode === "solar") {
+    // Thermal radiance palette: Dark navy (shadows) -> Orange -> Warm gold (high illumination)
+    if (solar >= 65) return [250, 204, 21, 220]; // Bright gold #facc15
+    if (solar >= 45) return [249, 115, 22, 190]; // Warm amber/orange #f97316
+    if (solar >= 25) return [59, 130, 246, 160]; // Moderate blue #3b82f6
+    return [15, 23, 42, 225]; // Deep navy cold trap #0f172a
+  }
+  if (mode === "comm") {
+    // Earth Line-of-sight / Direct Signal: Green (Near side) -> Yellow (Libration) -> Red (Far side)
+    if (comm >= 75) return [34, 197, 94, 205]; // Strong green #22c55e
+    if (comm >= 25) return [234, 179, 8, 185]; // Intermittent yellow #eab308
+    return [225, 29, 72, 215]; // No direct signal / far side red #e11d48
+  }
+  // suitability / safe-havens: Combined 3-variable intersection (Slope + Solar + Comm)
+  if (suit >= 72) return [52, 211, 153, 230]; // Optimal touchdown zone: Emerald #34d399
+  if (suit >= 50) return [14, 165, 233, 195]; // Good candidate zone: Cyan #0ea5e9
+  if (suit >= 30) return [245, 158, 11, 175]; // Sub-optimal / limited resources: Amber #f59e0b
+  return [225, 29, 72, 205]; // Unsafe / steep / shadow trap: Rose/Red #e11d48
 }
 
 /**
  * Generates a smooth bilinear-interpolated RGBA CanvasTexture from the 72x36 risk grid.
  * @param {Object} grid - Grid payload from GET /api/risk-grid.
- * @param {"risk-a"|"risk-b"|"safe-havens"} mode - Active risk layer mode.
+ * @param {"risk-a"|"risk-b"|"solar"|"comm"|"suitability"|"safe-havens"} mode - Active risk layer mode.
  * @returns {THREE.CanvasTexture}
  */
 function buildRiskOverlayTexture(grid, mode) {
@@ -241,15 +258,22 @@ function buildRiskOverlayTexture(grid, mode) {
       const c01 = cells[r1 * cols + c0];
       const c11 = cells[r1 * cols + c1];
 
-      const bilerp = (k) =>
-        (c00[k] * (1 - fc) + c10[k] * fc) * (1 - fr) +
-        (c01[k] * (1 - fc) + c11[k] * fc) * fr;
+      const bilerp = (k, def = 0) => {
+        const v00 = c00[k] ?? def;
+        const v10 = c10[k] ?? def;
+        const v01 = c01[k] ?? def;
+        const v11 = c11[k] ?? def;
+        return (v00 * (1 - fc) + v10 * fc) * (1 - fr) + (v01 * (1 - fc) + v11 * fc) * fr;
+      };
 
       const [r, g, b, a] = riskCellColor(
         mode,
-        bilerp("slope_deg"),
-        bilerp("landing_ease"),
-        bilerp("asteroid_protection"),
+        bilerp("slope_deg", 5),
+        bilerp("landing_ease", 50),
+        bilerp("asteroid_protection", 30),
+        bilerp("solar_exposure", 50),
+        bilerp("earth_comm", 50),
+        bilerp("suitability", 50),
       );
       const off = (py * w + pxIdx) * 4;
       px[off] = r;
@@ -266,10 +290,11 @@ function buildRiskOverlayTexture(grid, mode) {
 }
 
 export class GlobeView {
-  constructor(canvas, { onHover = () => {}, onSelect = () => {}, onReliefStatus = () => {} } = {}) {
+  constructor(canvas, { onHover = () => {}, onSelect = () => {}, onSelectCoordinate = () => {}, onReliefStatus = () => {} } = {}) {
     this.canvas = canvas;
     this.onHover = onHover;
     this.onSelect = onSelect;
+    this.onSelectCoordinate = onSelectCoordinate;
     this.markers = new Map(); // id → { group, core, outline, glow, radius }
     this.hoveredId = null;
     this.selectedId = null;
@@ -864,36 +889,37 @@ export class GlobeView {
       ((event.clientX - rect.left) / rect.width) * 2 - 1,
       -((event.clientY - rect.top) / rect.height) * 2 + 1,
     );
-    if (!this.markerGroup.visible) return { id: null, zone: null };
+    if (!this.markerGroup.visible) return { id: null, point: null, zone: null };
     this.raycaster.setFromCamera(this.pointer, this.camera);
     const cores = [...this.markers.values()].map((m) => m.core);
     // Se incluye la Luna para que los sitios de la cara oculta no se puedan elegir a través de ella.
     const [hit] = this.raycaster.intersectObjects([this.pickSphere, ...cores], false);
-    if (!hit) return { id: null, zone: null };
+    if (!hit) return { id: null, point: null, zone: null };
     const siteId = hit.object.userData.siteId ?? null;
-    if (siteId) return { id: siteId, zone: null };
+    if (siteId) return { id: siteId, point: null, zone: null };
 
-    if (this.layerMode !== "surface" && this.riskGrid) {
-      const p = hit.point.clone().normalize();
-      const lat = THREE.MathUtils.radToDeg(Math.asin(THREE.MathUtils.clamp(p.y, -1, 1)));
-      const lon = THREE.MathUtils.radToDeg(Math.atan2(-p.z, p.x));
+    const p = hit.point.clone().normalize();
+    const lat = THREE.MathUtils.radToDeg(Math.asin(THREE.MathUtils.clamp(p.y, -1, 1)));
+    const lon = THREE.MathUtils.radToDeg(Math.atan2(-p.z, p.x));
+    let zone = null;
+    if (this.riskGrid) {
       const { cols, rows, cells } = this.riskGrid;
       const r = Math.max(0, Math.min(rows - 1, Math.floor(((lat + 90) / 180) * rows)));
       const c = ((Math.floor(((lon + 180) / 360) * cols) % cols) + cols) % cols;
-      return { id: null, zone: { lat, lon, cell: cells[r * cols + c] } };
+      zone = { lat, lon, cell: cells[r * cols + c] };
     }
-    return { id: null, zone: null };
+    return { id: null, point: { lat, lon }, zone };
   }
 
   #bindPointer() {
     let downAt = null;
     this.canvas.addEventListener("pointerdown", (e) => { downAt = [e.clientX, e.clientY]; });
     this.canvas.addEventListener("pointermove", (e) => {
-      const { id, zone } = this.#pick(e);
+      const { id, point, zone } = this.#pick(e);
       if (id !== this.hoveredId) {
         this.hoveredId = id;
-        this.canvas.style.cursor = id ? "pointer" : "";
       }
+      this.canvas.style.cursor = id ? "pointer" : (point ? "crosshair" : "");
       this.onHover(id, e.clientX, e.clientY, zone);
     });
     this.canvas.addEventListener("pointerleave", () => {
@@ -903,8 +929,12 @@ export class GlobeView {
     this.canvas.addEventListener("pointerup", (e) => {
       // Un arrastre para rotar no cuenta como clic.
       if (!downAt || Math.hypot(e.clientX - downAt[0], e.clientY - downAt[1]) > 5) return;
-      const { id } = this.#pick(e);
-      if (id) this.onSelect(id);
+      const { id, point } = this.#pick(e);
+      if (id) {
+        this.onSelect(id);
+      } else if (point) {
+        this.onSelectCoordinate(point.lat, point.lon);
+      }
     });
   }
 }

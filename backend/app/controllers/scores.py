@@ -129,7 +129,7 @@ def scores_matrix(
 
 @lru_cache(maxsize=1)
 def _build_risk_grid(max_slope_deg: float = 15.0) -> dict:
-    """Builds and caches a 72x36 global lunar risk grid for on-globe heatmap overlays."""
+    """Builds and caches a 72x36 global lunar risk & suitability grid for on-globe heatmap overlays."""
     cols, rows = 72, 36
     lon_step = 360.0 / cols
     lat_step = 180.0 / rows
@@ -137,6 +137,7 @@ def _build_risk_grid(max_slope_deg: float = 15.0) -> dict:
     for r in range(rows):
         lat = -90.0 + (r + 0.5) * lat_step
         lat_rad = math.radians(lat)
+        lat_abs = abs(lat)
         for c in range(cols):
             lon = -180.0 + (c + 0.5) * lon_step
             lon_rad = math.radians(lon)
@@ -149,12 +150,60 @@ def _build_risk_grid(max_slope_deg: float = 15.0) -> dict:
             raw_shield = min(100.0, max(0.0, basin_shield + ridge_wave))
             landing_ease = compute_landing_ease_score(metrics, max_slope_deg=max_slope_deg)
             asteroid_protection = compute_asteroid_protection_score(raw_shield, metrics.slope_deg)
+
+            # Solar exposure estimation (% illumination over synodic cycle):
+            # Mid/equatorial latitudes: ~50% day/night cycle.
+            # Polar latitudes (|lat| > 65°): grazing sun depends strongly on elevation and equator-facing slope aspect.
+            if lat_abs <= 65.0:
+                solar_exp = 50.0 + 3.0 * math.cos(lat_rad)
+            else:
+                polar_frac = (lat_abs - 65.0) / 25.0
+                elev_km = metrics.elevation_m / 1000.0
+                solar_base = 45.0 + 18.0 * float(np.clip(elev_km / 2.0, -1.0, 1.0))
+                aspect_rad = math.radians(metrics.aspect_deg)
+                slope_rad = math.radians(metrics.slope_deg)
+                # Slopes facing toward the equator receive more grazing sun
+                slope_facing = math.sin(slope_rad) * math.cos(aspect_rad if lat < 0 else aspect_rad - math.pi)
+                polar_solar = float(np.clip(solar_base + 15.0 * slope_facing, 5.0, 95.0))
+                solar_exp = (1.0 - polar_frac) * 50.0 + polar_frac * polar_solar
+
+            # Earth Direct-to-Earth Communication Line-of-Sight estimation:
+            # Tidal locking: Sub-Earth point is near (0°, 0°).
+            cos_delta = math.cos(lat_rad) * math.cos(lon_rad)
+            delta_deg = math.degrees(math.acos(float(np.clip(cos_delta, -1.0, 1.0))))
+            earth_el_deg = 90.0 - delta_deg
+            if earth_el_deg > 5.0:
+                earth_comm = 100.0
+            elif earth_el_deg < -5.0:
+                earth_comm = 0.0
+            else:
+                # Libration transition limb (-5° to +5°)
+                earth_comm = float(np.clip((earth_el_deg + 5.0) * 10.0, 0.0, 100.0))
+
+            # Deep polar basins with low Earth elevation have terrain blockage
+            if lat_abs > 75.0 and earth_el_deg < 10.0 and metrics.elevation_m < -600:
+                earth_comm = max(0.0, earth_comm - 35.0)
+
+            # Combined Suitability (3-variable intersection: Landing Ease + Solar Access + Earth Comm)
+            # Safe touchdown requires reasonable slopes (landing_ease), energy (solar), and signals (earth_comm)
+            suitability = (
+                0.40 * landing_ease
+                + 0.35 * (solar_exp * (100.0 / 75.0) if solar_exp <= 75.0 else 100.0)
+                + 0.25 * earth_comm
+            )
+            if metrics.slope_deg > max_slope_deg:
+                suitability = min(suitability, 18.0)
+
             cells.append({
                 "lat": round(lat, 2),
                 "lon": round(lon, 2),
+                "elevation_m": round(metrics.elevation_m, 1),
                 "slope_deg": round(metrics.slope_deg, 2),
                 "landing_ease": round(landing_ease, 1),
                 "asteroid_protection": round(asteroid_protection, 1),
+                "solar_exposure": round(float(np.clip(solar_exp, 0.0, 100.0)), 1),
+                "earth_comm": round(float(np.clip(earth_comm, 0.0, 100.0)), 1),
+                "suitability": round(float(np.clip(suitability, 0.0, 100.0)), 1),
             })
     return {
         "cols": cols,

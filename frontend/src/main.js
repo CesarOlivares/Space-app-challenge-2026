@@ -131,12 +131,16 @@ function syncUrl() {
 function showTooltip(id, x, y, zone = null) {
   if (!id && zone?.cell) {
     const { lat, lon, cell } = zone;
-    const slopeLabel = cell.slope_deg <= 5 ? "Flat" : cell.slope_deg <= 10 ? "Moderate" : "Steep";
-    tooltip.replaceChildren(...[
-      ["strong", `Lunar Zone (${lat.toFixed(1)}°, ${lon.toFixed(1)}°)`],
-      ["span", `A) Landing Ease: ${Math.round(cell.landing_ease)}/100 (Slope: ${cell.slope_deg.toFixed(1)}° — ${slopeLabel})`],
-      ["span", `B) Asteroid Shield: ${Math.round(cell.asteroid_protection)}/100`],
-    ].map(([tag, text]) => Object.assign(document.createElement(tag), { textContent: text })));
+    const slopeLabel = cell.slope_deg <= 5 ? "Plana" : cell.slope_deg <= 10 ? "Moderada" : "Escarpada";
+    const suit = Math.round(cell.suitability ?? 50);
+    const suitBadge = suit >= 70 ? "🟢 Óptimo" : suit >= 45 ? "🟡 Aceptable" : "🔴 No viable";
+    const lines = [
+      ["strong", `Zona Lunar (${lat.toFixed(2)}°, ${lon.toFixed(2)}°) · ${suitBadge}`],
+      ["span", `🎯 Aptitud: ${suit}/100 · 📐 Pendiente: ${cell.slope_deg.toFixed(1)}° (${slopeLabel})`],
+      ["span", `☀️ Sol: ${Math.round(cell.solar_exposure ?? 50)}% · 📡 Señal Tierra: ${Math.round(cell.earth_comm ?? 50)}%`],
+      ["span", `💡 Clic para analizar este punto específico`],
+    ];
+    tooltip.replaceChildren(...lines.map(([tag, text]) => Object.assign(document.createElement(tag), { textContent: text })));
     tooltip.hidden = false;
     tooltip.style.left = `${Math.min(x + 14, window.innerWidth - tooltip.offsetWidth - 8)}px`;
     tooltip.style.top = `${y + 14}px`;
@@ -185,6 +189,11 @@ const globe = new GlobeView(document.getElementById("globe"), {
     document.getElementById("relief-note").hidden = status !== "unavailable";
   },
   onSelect: (id) => toggleSelect(id),
+  onSelectCoordinate: (lat, lon) => {
+    const latR = Math.round(lat * 1000) / 1000;
+    const lonR = Math.round(lon * 1000) / 1000;
+    addCustomSite(latR, lonR, null, { selectIt: true });
+  },
 });
 
 const list = new SiteList(drawer, {

@@ -221,3 +221,18 @@ def test_terrain_patch_solar_endpoint(client):
     assert "sun_azimuth_deg" in solar
     assert "sun_elevation_deg" in solar
 
+
+def test_risk_grid_endpoint(client):
+    res = client.get("/api/risk-grid", params={"max_slope_deg": 12.0})
+    assert res.status_code == 200
+    data = res.json()
+    assert data["cols"] == 72
+    assert data["rows"] == 36
+    assert len(data["cells"]) == 72 * 36
+    first = data["cells"][0]
+    assert {"lat", "lon", "elevation_m", "slope_deg", "landing_ease", "asteroid_protection", "solar_exposure", "earth_comm", "suitability"} <= set(first.keys())
+    assert 0.0 <= first["solar_exposure"] <= 100.0
+    assert 0.0 <= first["earth_comm"] <= 100.0
+    assert 0.0 <= first["suitability"] <= 100.0
+
+
