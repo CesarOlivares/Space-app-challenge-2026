@@ -1,6 +1,6 @@
 // Ranking de sitios con los valores numéricos de cada puntaje (RNF-06).
 
-import { escapeHtml } from "../format.js";
+import { escapeHtml, num } from "../format.js";
 import { siteName, t } from "../i18n.js";
 import { encode, notViableReason } from "./encoding.js";
 
@@ -74,7 +74,7 @@ export class SiteList {
       const easeVal = landing_ease ?? terrain;
       const shieldVal = asteroid_protection ?? asteroid;
       const slopeDeg = score.topography?.slope_deg;
-      const slopeText = slopeDeg != null ? ` · ${slopeDeg.toFixed(1)}°` : "";
+      const slopeText = slopeDeg != null ? ` · ${num(slopeDeg, 1)}°` : "";
       const easeText = easeVal != null ? ` · Ease ${Math.round(easeVal)}` : "";
       const shieldText = shieldVal != null ? ` · Shield ${Math.round(shieldVal)}` : "";
       // Written reason (not just title) so screen readers and touch devices can read it.
@@ -86,7 +86,7 @@ export class SiteList {
           <span class="dot" style="background:${color}"></span>
           <span class="name">
             ${escape(siteName(site))}
-            <small>${t(`category.${site.category}`)} · ${site.lat.toFixed(2)}°, ${site.lon.toFixed(2)}°${slopeText}</small>
+            <small>${t(`category.${site.category}`)} · ${num(site.lat, 2)}°, ${num(site.lon, 2)}°${slopeText}</small>
           </span>
           <span class="score">${Math.round(total)}</span>
           <span class="sub">${t("list.energyShort")} ${Math.round(energy)} · ${t("list.commShort")} ${Math.round(communication)}${easeText}${shieldText} ${status}</span>

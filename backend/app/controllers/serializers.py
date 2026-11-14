@@ -30,6 +30,7 @@ def topography_json(
     landing_ease_score: float | None = None,
     asteroid_protection_score: float | None = None,
     horizon_shield_profile_deg: tuple[float, ...] | list[float] | None = None,
+    relief_data: bool | None = None,
 ) -> dict:
     """Serializes TerrainMetrics and dual hazard metrics into the API topography payload.
 
@@ -53,6 +54,9 @@ def topography_json(
         "sky_view_factor": round(sky_view_factor if sky_view_factor is not None else terrain.sky_view_factor, 4),
         "source": terrain.source,
     }
+    if relief_data is not None:
+        # False: horizonte esférico (sin DEM alrededor); protección y blindaje no se pueden estimar.
+        payload["relief_data"] = relief_data
     if slope_ok is not None:
         payload["slope_ok"] = slope_ok
     if solid_angle_shielded_pct is not None:
@@ -126,9 +130,9 @@ def evaluation_json(result: SiteEvaluation, detailed: bool) -> dict:
             "energy": round(result.energy, 1),
             "communication": round(result.communication, 1),
             "landing_ease": round(result.landing_ease_score, 1),
-            "asteroid_protection": round(result.asteroid_protection_score, 1),
+            "asteroid_protection": _round(result.asteroid_protection_score, 1),
             "terrain": round(result.landing_ease_score, 1),
-            "asteroid": round(result.asteroid_protection_score, 1),
+            "asteroid": _round(result.asteroid_protection_score, 1),
             "total": round(result.total, 1),
         },
         "topography": topography_json(
@@ -138,7 +142,8 @@ def evaluation_json(result: SiteEvaluation, detailed: bool) -> dict:
             solid_angle_shielded_pct=result.solid_angle_shielded_pct,
             landing_ease_score=result.landing_ease_score,
             asteroid_protection_score=result.asteroid_protection_score,
-            horizon_shield_profile_deg=result.horizon_shield_profile_deg,
+            horizon_shield_profile_deg=result.horizon_shield_profile_deg or None,
+            relief_data=result.has_relief_data,
         ),
         "sun": body_json(result.sun, result.landing, detailed),
         "earth": body_json(result.earth, result.landing, detailed),

@@ -64,7 +64,7 @@ export class SiteCard {
       ${verdict}
       <div class="counters">${counters}</div>
       <p class="mini mono">
-        <span><b>${Math.round(total)}</b> ${escapeHtml(t("detail.total"))}</span>
+        <span class="${sky.viable ? "" : "ref"}" ${sky.viable ? "" : `title="${escapeHtml(t("detail.refNote"))}"`}><b>${Math.round(total)}</b> ${escapeHtml(t("detail.total"))}${sky.viable ? "" : ` · ${escapeHtml(t("card.reference"))}`}</span>
         <span><b>${Math.round(energy)}</b> ${escapeHtml(t("detail.energy"))}</span>
         <span><b>${Math.round(communication)}</b> ${escapeHtml(t("detail.communication"))}</span>
       </p>

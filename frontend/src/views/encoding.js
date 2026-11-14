@@ -6,6 +6,7 @@
 // Paleta Okabe-Ito (apta para daltonismo); el color nunca va solo: la lista
 // muestra siempre los valores numéricos (RNF-06).
 
+import { num } from "../format.js";
 import { t } from "../i18n.js";
 
 // Tres categorías en vez de un degradado: los tonos intermedios de un degradado
@@ -54,7 +55,7 @@ export function notViableReason(score) {
     reasons.push(t(score.earth.elevation_deg > 0 ? "reason.earthBlocked" : "reason.earthBelow"));
   }
   if (score.topography && score.topography.slope_ok === false) {
-    reasons.push(`Pendiente (${score.topography.slope_deg.toFixed(1)}°) supera el límite`);
+    reasons.push(t("reason.slopeOver", { slope: num(score.topography.slope_deg, 1) }));
   }
   return reasons.join(" · ");
 }

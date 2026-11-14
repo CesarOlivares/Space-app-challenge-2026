@@ -9,6 +9,8 @@
     <link rel="stylesheet" href="src/design-system.css" />
     <link rel="stylesheet" href="src/styles.css" />
     <link rel="stylesheet" href="src/minimal.css" />
+    <link rel="stylesheet" href="src/story.css" />
+    <link rel="stylesheet" href="src/learn.css" />
     <script type="importmap">
       {
         "imports": {
@@ -31,6 +33,7 @@
         <li><a href="#intro" data-nav="intro"><span class="nav-num">01</span><span data-i18n="nav.intro">Inicio</span></a></li>
         <li><a href="#explorar" data-nav="explorar"><span class="nav-num">02</span><span data-i18n="nav.explore">Explorar</span></a></li>
         <li><a href="#comparar" data-nav="comparar"><span class="nav-num">03</span><span data-i18n="nav.compare">Comparar</span></a></li>
+        <li><a href="#aprender" data-nav="aprender"><span class="nav-num">04</span><span data-i18n="nav.learn">Aprender</span></a></li>
       </ul>
       <div class="segmented" role="group" data-i18n-attr="aria-label: controls.langGroup">
         <button type="button" data-lang="es" aria-pressed="true" lang="es">ES</button>
@@ -48,7 +51,11 @@
         <p class="hero-coords" aria-hidden="true"><span data-i18n="hero.subsolar">Subsolar</span> <span id="hero-coords">—</span></p>
         <div class="hero-copy">
           <h1 id="hero-title" class="hero-title" tabindex="-1" data-i18n="hero.title">Bienvenido al Moonland Planificator</h1>
-          <a class="cta" href="#explorar" data-hero-start><span data-i18n="hero.start">Comenzar</span></a>
+          <p class="hero-purpose" data-i18n="hero.purpose"></p>
+          <div class="hero-actions">
+            <a class="cta" href="#explorar" data-hero-start><span data-i18n="hero.start">Comenzar</span></a>
+            <a class="hero-link" href="#aprender" data-i18n="hero.learn">Aprender cómo funciona</a>
+          </div>
         </div>
         <ul class="hero-facts">
           <li><span class="fact-label" data-i18n="hero.f1.label">Tiempo</span><span data-i18n="hero.f1.text"></span></li>
@@ -72,6 +79,14 @@
           <button type="button" class="step" data-shift-days="1" data-i18n-attr="aria-label: date.next; title: date.next">›</button>
           <p id="status" role="status">Conectando…</p>
         </div>
+
+        <!-- Cómo leer los puntos, siempre a la vista (el "?" abre el detalle). -->
+        <ul id="legend-mini" class="glass" data-i18n-attr="aria-label: legend.title">
+          <li data-i18n="legmini.size">Tamaño: puntaje</li>
+          <li data-i18n="legmini.glow">Brillo: energía</li>
+          <li><span class="swatch" style="--c: var(--comm-high)"></span><span class="swatch" style="--c: var(--comm-mid)"></span><span class="swatch" style="--c: var(--comm-low)"></span><span data-i18n="legmini.color">Color: comunicación</span></li>
+          <li><span class="swatch" style="--c: var(--off)"></span><span data-i18n="legmini.off">Gris: no viable</span></li>
+        </ul>
 
         <!-- Panel del engranaje: todo lo configurable. -->
         <aside id="drawer" class="drawer glass" hidden aria-labelledby="drawer-title">
@@ -127,28 +142,26 @@
                 </label>
                 <p class="caption" id="relief-note" hidden data-i18n="relief.missing"></p>
               </div>
-              <div class="buttons surface-toggle" role="group" aria-label="Capa del globo">
-                <button type="button" data-surface="lola" aria-pressed="false">Topografía LOLA</button>
-                <button type="button" data-surface="lroc" class="active" aria-pressed="true">Foto LROC</button>
+              <div class="buttons surface-toggle" role="group" data-i18n-attr="aria-label: surface.group">
+                <button type="button" data-surface="lola" aria-pressed="false" data-i18n="surface.lola">Topografía LOLA</button>
+                <button type="button" data-surface="lroc" class="active" aria-pressed="true" data-i18n="surface.lroc">Foto LROC</button>
               </div>
-              <div id="lola-colorbar" class="lola-colorbar" hidden aria-label="Escala de elevación LOLA">
+              <div id="lola-colorbar" class="lola-colorbar" hidden data-i18n-attr="aria-label: surface.scale">
                 <div class="lola-bar"></div>
                 <div class="lola-ticks"><span>−9 km</span><span>0 km</span><span>+10 km</span></div>
               </div>
-              <div id="moon-layer-bar" class="buttons layer-grid" role="group" aria-label="Surface &amp; Risk Layers">
-                <button type="button" data-layer="surface" class="active" aria-pressed="true">True Surface</button>
-                <button type="button" data-layer="risk-a" aria-pressed="false">Risk A: Landing Ease</button>
-                <button type="button" data-layer="risk-b" aria-pressed="false">Risk B: Asteroid Shield</button>
-                <button type="button" data-layer="safe-havens" aria-pressed="false">Safe Havens (A+B)</button>
+              <div id="moon-layer-bar" class="buttons layer-grid" role="group" data-i18n-attr="aria-label: layer.group">
+                <button type="button" data-layer="surface" class="active" aria-pressed="true" data-i18n="layer.surface">Superficie real</button>
+                <button type="button" data-layer="risk-a" aria-pressed="false" data-i18n="layer.a">Riesgo A</button>
+                <button type="button" data-layer="risk-b" aria-pressed="false" data-i18n="layer.b">Riesgo B</button>
+                <button type="button" data-layer="safe-havens" aria-pressed="false" data-i18n="layer.safe">Refugios seguros</button>
               </div>
-              <label class="demo-picker">Escenario demo
-                <select id="demo-scenario">
-                  <option value="">Seleccionar escenario…</option>
-                  <option value="artemis-south">Artemis III — Mons Mouton (Polo Sur)</option>
-                  <option value="im1-slope">CLPS IM-1 — Pendiente límite (11,2°)</option>
-                  <option value="apollo11-flat">Apollo 11 — Planicie segura (1,8°)</option>
-                </select>
-              </label>
+              <div class="layer-legend caption">
+                <p data-i18n="layers.note"></p>
+                <p><span class="swatch" style="--c:#10c891"></span><span class="swatch" style="--c:#f5a519"></span><span class="swatch" style="--c:#e12d37"></span> <span data-i18n="layers.a"></span></p>
+                <p><span class="swatch" style="--c:#0ea5e9"></span><span class="swatch" style="--c:#ea580c"></span> <span data-i18n="layers.b"></span></p>
+                <p><span class="swatch" style="--c:#2dd4bf"></span> <span data-i18n="layers.safe"></span></p>
+              </div>
             </section>
 
             <details class="custom tech-only">
@@ -158,22 +171,22 @@
                   <input name="weight" type="range" min="0" max="100" step="5" aria-describedby="weight-output" />
                 </label>
                 <output id="weight-output" class="caption"></output>
-                <label><span>Landing Ease weight (A)</span>
+                <label><span data-i18n="settings.terrainLabel">Peso de terreno (T)</span>
                   <input name="weight-terrain" type="range" min="0" max="200" step="10" aria-describedby="weight-terrain-output" />
                 </label>
                 <output id="weight-terrain-output" class="caption"></output>
-                <label><span>Asteroid Shield weight (B)</span>
+                <label><span data-i18n="settings.protectionLabel">Peso de protección (A)</span>
                   <input name="weight-protection" type="range" min="0" max="200" step="10" aria-describedby="weight-protection-output" />
                 </label>
                 <output id="weight-protection-output" class="caption"></output>
-                <label><span>Pendiente máxima segura (°)</span>
+                <label><span data-i18n="settings.maxSlope">Pendiente máxima segura (°)</span>
                   <input name="max-slope" type="range" min="3" max="25" step="0.5" aria-describedby="max-slope-output" />
                 </label>
                 <output id="max-slope-output" class="caption"></output>
-                <div class="slope-presets" role="group" aria-label="Perfiles de aterrizador">
-                  <button type="button" data-slope-preset="5">HLS tripulado (5°)</button>
-                  <button type="button" data-slope-preset="10">CLPS robótico (10°)</button>
-                  <button type="button" data-slope-preset="20">Rover exploración (20°)</button>
+                <div class="slope-presets" role="group" data-i18n-attr="aria-label: settings.profiles">
+                  <button type="button" data-slope-preset="5" data-i18n="settings.presetHls">HLS</button>
+                  <button type="button" data-slope-preset="10" data-i18n="settings.presetClps">CLPS</button>
+                  <button type="button" data-slope-preset="20" data-i18n="settings.presetRover">Rover</button>
                 </div>
                 <label><span data-i18n="settings.panels">Paneles solares</span>
                   <select name="panel">
@@ -216,13 +229,7 @@
               </form>
             </details>
 
-            <details class="custom learn simple-open">
-              <summary data-i18n="learn.title">¿Por qué es difícil elegir dónde aterrizar?</summary>
-              <p data-i18n="learn.p1"></p>
-              <p data-i18n="learn.p2"></p>
-              <p data-i18n="learn.p3"></p>
-              <p data-i18n="learn.p4"></p>
-            </details>
+            <a class="btn learn-link" href="#aprender" data-i18n="learn.more">Aprender más</a>
 
             <div class="buttons">
               <button type="button" id="copy-link" data-i18n="controls.copyLink">Copiar enlace</button>
@@ -246,6 +253,7 @@
 
         <!-- Abajo: ficha del sitio elegido y, con 2 o más elegidos, el botón para compararlos. -->
         <div class="hud-bottom">
+          <p id="selhint" class="glass" hidden></p>
           <article id="sitecard" class="glass" hidden aria-live="polite"></article>
           <div id="selbar" class="glass" hidden role="group" data-i18n-attr="aria-label: sel.group">
             <ul id="sel-chips" class="chips"></ul>
@@ -283,35 +291,24 @@
           <div id="stage-body" class="stage-body"></div>
         </div>
 
-        <div id="compare" class="overlay" hidden role="dialog" aria-modal="true" aria-labelledby="compare-title">
-          <div class="panel compare-panel">
-            <div class="detail-header">
-              <h2 id="compare-title" data-i18n="compare.title">Comparación de escenarios</h2>
-              <button type="button" class="compare-close" data-i18n-attr="aria-label: compare.close">✕</button>
-            </div>
-            <div class="compare-content"></div>
-          </div>
-        </div>
-
         <div id="tooltip" role="tooltip" hidden></div>
       </section>
 
-      <!-- 03 · Comparación por periodos. Provisoria: V6 agrega la matriz sitios × fechas. -->
+      <!-- 03 · Comparación: burbujas de indicadores y explicación del análisis (CompareStory.js). -->
       <section id="sec-comparar" class="page page--compare" hidden aria-labelledby="cmpsec-title">
-        <div class="page-inner">
-          <div class="section-head">
-            <span class="section-head__num">03</span>
-            <h1 class="section-head__title" id="cmpsec-title" tabindex="-1" data-i18n="cmpsec.title">Comparación por periodos</h1>
-            <span class="section-head__rule"></span>
-            <span class="icon" data-icon="astrolabe"></span>
-          </div>
-          <div class="hud-frame">
-            <p data-i18n="cmpsec.soon"></p>
-            <p><a class="btn" href="#explorar" data-i18n="cmpsec.go">Ir a explorar</a></p>
-          </div>
-        </div>
+        <h1 id="cmpsec-title" class="sr-only" tabindex="-1" data-i18n="cmpsec.title">Comparación</h1>
+        <div id="story-root"></div>
+      </section>
+      <!-- 04 · Aprender: educadores, estudiantes y curiosos (LearnView.js). -->
+      <section id="sec-aprender" class="page page--learn" hidden aria-labelledby="learn-title">
+        <div id="learn-root"></div>
       </section>
     </main>
+
+    <!-- Retícula de fijación: aparece mientras la cámara viaja hacia los sitios que se van a comparar. -->
+    <div id="zoom-reticle" aria-hidden="true"><span class="icon i-reticle"></span><p id="zoom-reticle-text"></p></div>
+    <!-- Avisos breves (p. ej. al superar el máximo de sitios elegidos). -->
+    <div id="toast" role="status" aria-live="polite" hidden></div>
 
     <script type="module" src="src/main.js"></script>
   </body>

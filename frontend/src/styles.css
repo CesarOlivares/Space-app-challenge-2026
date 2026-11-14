@@ -1464,3 +1464,8 @@ a.btn {
   color: #f8fafc;
   border-color: rgba(34, 211, 238, 0.65);
 }
+
+/* Puntaje referencial (sitio no viable) y métrica sin datos. */
+.mini .ref { opacity: 0.55; }
+.bar.nodata-bar b { font-weight: 400; color: var(--ink-muted); font-size: 0.75rem; }
+.bar.nodata-bar .track { background: repeating-linear-gradient(135deg, transparent 0 4px, rgba(255, 255, 255, 0.1) 4px 8px); }

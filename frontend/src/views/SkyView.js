@@ -4,6 +4,7 @@
 // para que en el polo sur, donde todo ocurre a pocos grados del horizonte,
 // las diferencias se vean.
 
+import { num } from "../format.js";
 import { t } from "../i18n.js";
 
 const SVG_NS = "http://www.w3.org/2000/svg";
@@ -56,7 +57,7 @@ export function renderSky(container, sky, timeline = null, { height = 150, compa
     viewBox: `0 0 ${WIDTH} ${height + 14}`,
     class: "sky",
     role: "img",
-    "aria-label": t("sky.aria", { sun: sky.sun.elevation_deg.toFixed(1), earth: sky.earth.elevation_deg.toFixed(1) }),
+    "aria-label": t("sky.aria", { sun: num(sky.sun.elevation_deg, 1), earth: num(sky.earth.elevation_deg, 1) }),
   });
   const clip = el("clipPath", { id });
   clip.append(el("rect", { x: 0, y: 0, width: WIDTH, height }));
@@ -120,7 +121,7 @@ export function renderSky(container, sky, timeline = null, { height = 150, compa
     const anchor = az > WIDTH - 50 ? "end" : "start";
     const dx = anchor === "end" ? -8 : 8;
     svg.append(el("text", { x: az + dx, y: cy - 6, class: "sky-label", "text-anchor": anchor, fill: color },
-      `${t(label)} ${below ? "↓ " : ""}${elev.toFixed(1)}°`));
+      `${t(label)} ${below ? "↓ " : ""}${num(elev, 1)}°`));
   }
 
   const cursor = el("g", { "clip-path": `url(#${id})` });

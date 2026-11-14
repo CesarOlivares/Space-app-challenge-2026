@@ -194,3 +194,23 @@ def test_gzip_compression(client):
     res = client.get("/api/scores/matrix", params={"start": DATE, "days": 30, "step_hours": 12}, headers={"Accept-Encoding": "gzip"})
     assert res.status_code == 200
     assert res.headers.get("Content-Encoding") == "gzip"
+
+
+def test_proteccion_sin_relieve_es_sin_datos_y_no_cero(client):
+    # Solo hay DEM alrededor de los sitios del polo sur: en el resto A es null, no 0.
+    scores = {s["site_id"]: s for s in client.get("/api/scores", params={"date": DATE}).json()["scores"]}
+    equatorial = scores["apollo-11"]
+    assert equatorial["scores"]["asteroid"] is None
+    assert equatorial["scores"]["asteroid_protection"] is None
+    assert equatorial["topography"]["relief_data"] is False
+    assert "solid_angle_shielded_pct" not in equatorial["topography"]
+    polar = scores["shackleton-ridge"]
+    assert polar["topography"]["relief_data"] is True
+    assert polar["scores"]["asteroid"] is not None
+
+
+def test_total_sin_relieve_se_renormaliza_sin_proteccion(client):
+    # Sin A, P = (0,5·E + 0,5·C + 1·T) / 2.
+    s = {x["site_id"]: x for x in client.get("/api/scores", params={"date": DATE}).json()["scores"]}["apollo-11"]["scores"]
+    expected = (0.5 * s["energy"] + 0.5 * s["communication"] + 1.0 * s["terrain"]) / 2.0
+    assert s["total"] == pytest.approx(expected, abs=0.1)

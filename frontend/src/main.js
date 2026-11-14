@@ -16,12 +16,13 @@ import {
   fetchTimeline,
   isoUtc,
 } from "./api.js";
-import { siteRef } from "./format.js";
+import { num, siteRef } from "./format.js";
 import { hydrateIcons } from "./icons.js";
 import { getLang, LANGUAGES, onLangChange, setLang, siteName, t } from "./i18n.js";
 import { createRouter } from "./router.js";
 import { readUrlState, writeUrlState } from "./urlState.js";
-import { CompareView } from "./views/CompareView.js";
+import { CompareStory } from "./views/CompareStory.js";
+import { LearnView } from "./views/LearnView.js";
 import { Controls } from "./views/Controls.js";
 import { CustomSiteForm } from "./views/CustomSiteForm.js";
 import { BEST_DATES_DAYS, BEST_DATES_STEP_HOURS, DetailPanel } from "./views/DetailPanel.js";
@@ -121,6 +122,17 @@ function syncUrl() {
   });
 }
 
+function slopeWord(deg) {
+  return t(deg <= 5 ? "tip.slopeFlat" : deg <= 10 ? "tip.slopeMod" : "tip.slopeSteep");
+}
+
+function placeTooltip(lines, x, y) {
+  tooltip.replaceChildren(...lines.map(([tag, text]) => Object.assign(document.createElement(tag), { textContent: text })));
+  tooltip.hidden = false;
+  tooltip.style.left = `${Math.min(x + 14, window.innerWidth - tooltip.offsetWidth - 8)}px`;
+  tooltip.style.top = `${y + 14}px`;
+}
+
 /**
  * Displays the hover tooltip for a lunar site marker or risk zone on the 3D Moon.
  * @param {string|null} id - Site identifier.
@@ -131,15 +143,11 @@ function syncUrl() {
 function showTooltip(id, x, y, zone = null) {
   if (!id && zone?.cell) {
     const { lat, lon, cell } = zone;
-    const slopeLabel = cell.slope_deg <= 5 ? "Flat" : cell.slope_deg <= 10 ? "Moderate" : "Steep";
-    tooltip.replaceChildren(...[
-      ["strong", `Lunar Zone (${lat.toFixed(1)}°, ${lon.toFixed(1)}°)`],
-      ["span", `A) Landing Ease: ${Math.round(cell.landing_ease)}/100 (Slope: ${cell.slope_deg.toFixed(1)}° — ${slopeLabel})`],
-      ["span", `B) Asteroid Shield: ${Math.round(cell.asteroid_protection)}/100`],
-    ].map(([tag, text]) => Object.assign(document.createElement(tag), { textContent: text })));
-    tooltip.hidden = false;
-    tooltip.style.left = `${Math.min(x + 14, window.innerWidth - tooltip.offsetWidth - 8)}px`;
-    tooltip.style.top = `${y + 14}px`;
+    placeTooltip([
+      ["strong", t("tip.zone", { lat: num(lat, 1), lon: num(lon, 1) })],
+      ["span", t("tip.terrain", { score: Math.round(cell.landing_ease), slope: num(cell.slope_deg, 1), label: slopeWord(cell.slope_deg) })],
+      ["span", t("tip.zoneProtection", { score: Math.round(cell.asteroid_protection) })],
+    ], x, y);
     return;
   }
 
@@ -153,26 +161,20 @@ function showTooltip(id, x, y, zone = null) {
   const topo = score.topography ?? {};
   const ease = score.scores?.landing_ease ?? topo.landing_ease_score ?? score.scores?.terrain;
   const shield = score.scores?.asteroid_protection ?? topo.asteroid_protection_score ?? score.scores?.asteroid;
-  const slopeDeg = topo.slope_deg;
-  const blockedPct = topo.solid_angle_shielded_pct;
-  const slopeClass = slopeDeg == null ? "" : slopeDeg <= 5 ? "Flat" : slopeDeg <= 10 ? "Moderate" : "Steep";
-  const verdict = score.viable ? "GO" : `NO-GO: ${notViableReason(score)}`;
+  const verdict = score.viable ? t("verdict.viable") : t("verdict.notViableBecause", { reason: notViableReason(score) });
 
   const lines = [
-    ["strong", `${siteName(site)} · ${verdict}`],
-    ["span", `P ${Math.round(total)} · E ${Math.round(energy)} · C ${Math.round(communication)}`],
+    ["strong", siteName(site)],
+    ["span", verdict],
+    ["span", `${t("tip.global")} ${Math.round(total)}${score.viable ? "" : ` (${t("card.reference")})`} · ${t("detail.energy")} ${Math.round(energy)} · ${t("detail.communication")} ${Math.round(communication)}`],
   ];
-  if (ease != null && slopeDeg != null) {
-    lines.push(["span", `A) Landing Ease: ${Math.round(ease)}/100 (Slope: ${slopeDeg.toFixed(1)}° — ${slopeClass})`]);
+  if (ease != null && topo.slope_deg != null) {
+    lines.push(["span", t("tip.terrain", { score: Math.round(ease), slope: num(topo.slope_deg, 1), label: slopeWord(topo.slope_deg) })]);
   }
-  if (shield != null) {
-    const occText = blockedPct != null ? ` (Mountain Occlusion: ${blockedPct.toFixed(1)}% sky blocked)` : "";
-    lines.push(["span", `B) Asteroid Shield: ${Math.round(shield)}/100${occText}`]);
-  }
-  tooltip.replaceChildren(...lines.map(([tag, text]) => Object.assign(document.createElement(tag), { textContent: text })));
-  tooltip.hidden = false;
-  tooltip.style.left = `${Math.min(x + 14, window.innerWidth - tooltip.offsetWidth - 8)}px`;
-  tooltip.style.top = `${y + 14}px`;
+  lines.push(["span", shield == null
+    ? t("tip.protectionNone")
+    : t("tip.protection", { score: Math.round(shield), pct: num(topo.solid_angle_shielded_pct ?? 0, 0) })]);
+  placeTooltip(lines, x, y);
 }
 
 // --- Vistas ---------------------------------------------------------------
@@ -209,20 +211,23 @@ const card = new SiteCard(document.getElementById("sitecard"), {
   onOpenView: (id) => openStageView(id),
 });
 
-const compareView = new CompareView(document.getElementById("compare"), {
-  onClose: () => compareView.close(),
-  onRemove: (index) => {
-    state.selected.splice(index, 1);
+const compareStory = new CompareStory(document.getElementById("story-root"), {
+  onBack: () => router.go("explorar"),
+  onGoExplore: () => router.go("explorar"),
+  // Comparación sugerida desde la sección 03 vacía: se elige y se calcula sin pasar por el globo.
+  onSuggest: (ids) => {
+    state.selected = ids.filter((id) => state.sites.has(id));
+    if (state.selected.length < 2) return;
     applySelection();
-    if (state.selected.length < 2) compareView.close();
-    else openCompare();
-  },
-  onOpenSite: (id) => {
-    compareView.close();
-    state.selected = [id];
-    applySelection({ fly: true });
+    loadCompare();
   },
 });
+const learnView = new LearnView(document.getElementById("learn-root"), {
+  onGoExplore: () => router.go("explorar"),
+  onExample: (example) => runExample(example),
+});
+let comparePromise = null;
+let comparing = false; // el zoom hacia los sitios está en curso
 
 new CustomSiteForm(document.getElementById("custom-site"), {
   onAdd: (lat, lon, name) => addCustomSite(lat, lon, name),
@@ -299,12 +304,17 @@ const router = createRouter({
   // Quien ya vio la portada abre directo en la vista general; "Inicio" (#intro) siempre la muestra.
   defaultSection: () => (stored.get("introSeen") ? "explorar" : "intro"),
   onChange: (section, previous) => {
-    globe.setActive(section !== "comparar" && !stage.isOpen);
+    globe.setActive((section === "intro" || section === "explorar") && !stage.isOpen);
     if (section === "intro") {
       globe.setFraming("hero", { animate: previous === "explorar" });
     } else if (section === "explorar" && !entering) {
-      globe.setFraming("overview", { animate: previous === "intro" });
+      globe.setFraming("overview", { animate: previous === "intro" || previous === "comparar" });
     }
+    if (section === "comparar" && !comparing && !compareStory.hasData) {
+      if (state.selected.length >= 2) loadCompare();
+      else if (state.sites.size) compareStory.showEmpty(); // en la carga inicial aún no se leyó la selección
+    }
+    if (section === "explorar" && state.selected.length >= 2) selbar.hidden = false;
     // Al entrar desde la portada se escribe el escenario; en la carga inicial lo hace start(), después de leer la URL.
     if (previous === "intro") syncUrl();
     if (section !== "explorar") {
@@ -405,7 +415,8 @@ onLangChange(() => {
   hero.render();
   list.refresh();
   renderSelection();
-  compareView.refresh();
+  compareStory.refresh();
+  learnView.render();
   if (state.selectedId) loadActive();
 });
 
@@ -424,6 +435,15 @@ for (const button of document.querySelectorAll("[data-lang]")) {
 
 // --- Selección: un sitio muestra su ficha; dos o más muestran el botón Comparar ---------
 
+let toastTimer = 0;
+function showToast(text) {
+  const toast = document.getElementById("toast");
+  toast.textContent = text;
+  toast.hidden = false;
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => { toast.hidden = true; }, 4000);
+}
+
 // Elegir o quitar un sitio (clic en un punto o en la lista).
 function toggleSelect(id) {
   const at = state.selected.indexOf(id);
@@ -432,7 +452,10 @@ function toggleSelect(id) {
     applySelection();
   } else {
     state.selected.push(id);
-    if (state.selected.length > MAX_SELECTED) state.selected.shift(); // el más antiguo sale
+    if (state.selected.length > MAX_SELECTED) {
+      const removed = state.sites.get(state.selected.shift()); // el más antiguo sale
+      showToast(t("sel.maxToast", { max: MAX_SELECTED, name: removed ? siteName(removed) : "" }));
+    }
     applySelection({ fly: true });
   }
 }
@@ -462,6 +485,10 @@ function applySelection({ fly = false } = {}) {
 // Barra de abajo: aparece con 2 o más sitios elegidos.
 function renderSelection() {
   const n = state.selected.length;
+  // Sin nada elegido se explica cómo comparar; con uno, la ficha ya trae su propia pista.
+  const hint = document.getElementById("selhint");
+  hint.textContent = t("sel.hint", { max: MAX_SELECTED });
+  hint.hidden = n !== 0;
   selbar.hidden = n < 2;
   document.body.classList.toggle("has-selbar", n >= 2);
   document.getElementById("sel-compare").textContent = t("sel.compare", { count: n });
@@ -483,6 +510,7 @@ function renderSelection() {
 }
 
 document.getElementById("sel-compare").addEventListener("click", () => openCompare());
+renderSelection();
 document.getElementById("sel-clear").addEventListener("click", () => {
   state.selected = [];
   applySelection();
@@ -575,29 +603,11 @@ for (const button of reliefButtons) {
   });
 }
 
-const demoSelect = document.getElementById("demo-scenario");
-if (demoSelect) {
-  demoSelect.addEventListener("change", async () => {
-    const val = demoSelect.value;
-    if (!val) return;
-    if (val === "artemis-south") {
-      await loadDate(new Date("2026-12-15T00:00:00Z"));
-      globe.focusSouthPole();
-      select("mons-mouton");
-    } else if (val === "im1-slope") {
-      await loadDate(new Date("2026-12-15T00:00:00Z"));
-      select("im-1");
-    } else if (val === "apollo11-flat") {
-      await loadDate(new Date("2026-12-15T00:00:00Z"));
-      select("apollo-11");
-    }
-  });
-}
 
 // --- Sitios personalizados ------------------------------------------------
 
 function defaultCustomName(site) {
-  return t("custom.defaultName", { lat: site.lat.toFixed(4), lon: site.lon.toFixed(4) });
+  return t("custom.defaultName", { lat: num(site.lat, 4), lon: num(site.lon, 4) });
 }
 
 async function addCustomSite(lat, lon, name, { selectIt = true } = {}) {
@@ -634,22 +644,73 @@ function siteForRef(ref) {
   return state.sites.get(id);
 }
 
+// Ejemplo guiado (sección Aprender): abre la herramienta ya configurada.
+async function runExample({ ids, date, pole = false, compare = false }) {
+  router.go("explorar");
+  const when = new Date(date);
+  controls.setDate(when);
+  await loadDate(when);
+  if (compare) {
+    state.selected = ids.filter((id) => state.sites.has(id));
+    applySelection();
+    await sleep(reducedMotion.matches ? 0 : 900); // deja que la cámara termine de alejarse
+    openCompare();
+    return;
+  }
+  state.selected = ids.filter((id) => state.sites.has(id)).slice(0, 1);
+  applySelection({ fly: true });
+  if (pole) globe.focusSouthPole();
+}
+
 // --- Comparación ------------------------------------------------------------
 
+// Pide la comparación de la selección actual y la dibuja en la sección 03.
+function loadCompare() {
+  const ids = [...state.selected];
+  compareStory.showLoading();
+  comparePromise = (async () => {
+    try {
+      const data = await fetchComparison(ids.map((id) => ({ ref: siteRef(id), date: state.date })), state.config);
+      data.results.forEach((r, i) => {
+        const site = state.sites.get(ids[i]);
+        if (site) r.site = { ...r.site, ...site };
+      });
+      // Si ninguno es viable ese día, se busca la próxima fecha viable de cada sitio.
+      if (!data.results.some((r) => r.viable)) {
+        await Promise.all(data.results.map(async (r, i) => {
+          try {
+            const found = await fetchBestDates(siteRef(ids[i]), state.date, state.config, {
+              days: BEST_DATES_DAYS, stepHours: BEST_DATES_STEP_HOURS,
+            });
+            r.nextViable = found.results.find((x) => x.viable) ?? null;
+          } catch {
+            r.nextViable = null;
+          }
+        }));
+      }
+      compareStory.render(data.results);
+    } catch (error) {
+      compareStory.showError(error.message);
+    }
+  })();
+  return comparePromise;
+}
+
+// "Comparar": la Luna se acerca a los sitios elegidos y, al llegar, se abre la comparación.
 async function openCompare() {
-  if (state.selected.length < 2) return;
-  compareView.open();
-  compareView.showMessage(t("compare.computing"));
+  if (state.selected.length < 2 || comparing) return;
+  comparing = true;
   try {
-    const ids = [...state.selected];
-    const data = await fetchComparison(ids.map((id) => ({ ref: siteRef(id), date: state.date })), state.config);
-    data.results.forEach((r, i) => {
-      const site = state.sites.get(ids[i]);
-      if (site) r.site = { ...r.site, ...site };
-    });
-    compareView.render(data.results);
-  } catch (error) {
-    compareView.showMessage(t("compare.error", { message: error.message }));
+    const loading = loadCompare();
+    selbar.hidden = true;
+    document.getElementById("zoom-reticle-text").textContent = t("sel.locking", { count: state.selected.length });
+    document.body.classList.add("compare-zoom");
+    await globe.flyToSites(state.selected, { durationMs: 1500 });
+    router.go("comparar");
+    await loading;
+  } finally {
+    document.body.classList.remove("compare-zoom");
+    comparing = false;
   }
 }
 
@@ -784,6 +845,11 @@ async function start() {
       .filter(Boolean)
       .slice(-MAX_SELECTED);
     if (state.selected.length) applySelection({ fly: state.selected.length === 1 && document.body.dataset.section === "explorar" });
+    // Enlace directo a la comparación: ya con la selección leída se calcula.
+    if (document.body.dataset.section === "comparar") {
+      if (state.selected.length >= 2) loadCompare();
+      else compareStory.showEmpty();
+    }
   } catch (error) {
     setStatus("status.offline", { message: error.message }, "error");
   }

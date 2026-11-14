@@ -1,7 +1,7 @@
 // Línea de tiempo de la ventana de misión: elevación del Sol y la Tierra,
 // franjas con las ventanas de luz y de contacto, y un cursor para recorrerla.
 
-import { formatUtc } from "../format.js";
+import { formatUtc, num } from "../format.js";
 import { t } from "../i18n.js";
 import { elevationRange } from "./SkyView.js";
 
@@ -115,7 +115,7 @@ export function renderTimeline(container, timeline, { onScrub = () => {} } = {})
     cursor.setAttribute("visibility", "visible");
     const day = Math.floor(hours[index] / 24);
     readout.textContent = t("timeline.readout", {
-      day, date: formatUtc(timeline.times[index]), sun: sun.toFixed(1), earth: earth.toFixed(1),
+      day, date: formatUtc(timeline.times[index]), sun: num(sun, 1), earth: num(earth, 1),
     });
     onScrub(index);
   };

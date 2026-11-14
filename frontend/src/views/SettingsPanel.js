@@ -4,6 +4,7 @@
  * mission window duration, horizon margins, and solar panel orientation.
  */
 
+import { num } from "../format.js";
 import { onLangChange, t } from "../i18n.js";
 
 /**
@@ -132,13 +133,13 @@ export class SettingsPanel {
     const e = Math.round(this.config.weightEnergy * 100);
     this.weightOutput.textContent = t("settings.weights", { energy: e, communication: 100 - e });
     if (this.terrainWeightOutput) {
-      this.terrainWeightOutput.textContent = `Landing Ease weight ${this.config.weightTerrain.toFixed(1)}×`;
+      this.terrainWeightOutput.textContent = t("settings.terrainWeight", { w: num(this.config.weightTerrain, 1) });
     }
     if (this.protectionWeightOutput) {
-      this.protectionWeightOutput.textContent = `Asteroid Shield weight ${this.config.weightProtection.toFixed(1)}×`;
+      this.protectionWeightOutput.textContent = t("settings.protectionWeight", { w: num(this.config.weightProtection, 1) });
     }
     if (this.maxSlopeOutput) {
-      this.maxSlopeOutput.textContent = `Límite de pendiente: ${this.config.maxSlopeDeg.toFixed(1)}°`;
+      this.maxSlopeOutput.textContent = t("settings.slopeLimit", { slope: num(this.config.maxSlopeDeg, 1) });
     }
     for (const button of this.presetButtons) {
       const active = Math.abs(Number(button.dataset.slopePreset) - this.config.maxSlopeDeg) < 0.01;

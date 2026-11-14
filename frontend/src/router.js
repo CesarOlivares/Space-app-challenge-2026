@@ -1,5 +1,5 @@
-// Navegación entre las tres partes de la página, por hash:
-//   #intro (01) · #explorar (02) · #comparar (03)
+// Navegación entre las cuatro partes de la página, por hash:
+//   #intro (01) · #explorar (02) · #comparar (03) · #aprender (04)
 //
 // Los enlaces son <a href="#…"> normales: funcionan con teclado, con el botón atrás/adelante
 // del navegador y se pueden compartir. Los ids de las secciones llevan el prefijo "sec-" para
@@ -7,7 +7,7 @@
 
 import { t } from "./i18n.js";
 
-export const SECTIONS = ["intro", "explorar", "comparar"];
+export const SECTIONS = ["intro", "explorar", "comparar", "aprender"];
 
 // Parámetros que describen un escenario. Un enlace con alguno abre directo en la vista general:
 // así siguen funcionando los enlaces del ciclo 1, que no traían hash.
