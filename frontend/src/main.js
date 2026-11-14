@@ -8,9 +8,11 @@ import {
   fetchBestDates,
   fetchComparison,
   fetchIllumination,
+  fetchRiskGrid,
   fetchScores,
   fetchSites,
   fetchSky,
+  fetchTerrainPatch,
   fetchTimeline,
   isoUtc,
 } from "./api.js";
@@ -48,9 +50,32 @@ const legendToggle = document.getElementById("legend-toggle");
 const selbar = document.getElementById("selbar");
 const explore = document.getElementById("sec-explorar");
 
+/**
+ * Global application state.
+ * @type {{
+ *   sites: Map<string, Object>,
+ *   scores: Map<string, Object>,
+ *   illumination: Object|null,
+ *   date: Date|null,
+ *   config: {
+ *     weightEnergy: number,
+ *     weightTerrain: number,
+ *     maxSlopeDeg: number,
+ *     windowDays: number,
+ *     sunMarginDeg: number,
+ *     earthMarginDeg: number,
+ *     panel: string
+ *   },
+ *   playing: boolean,
+ *   selectedId: string|null,
+ *   compare: Array<{ ref: string, date: Date, name: string }>,
+ *   request: number,
+ *   detailRequest: number
+ * }}
+ */
 const state = {
-  sites: new Map(), // catálogo + personalizados, por id
-  scores: new Map(), // por id, para la fecha actual
+  sites: new Map(), // catalog + custom sites, keyed by id
+  scores: new Map(), // keyed by id, for the active landing date
   illumination: null,
   date: null,
   config: { ...DEFAULT_CONFIG },
@@ -96,7 +121,28 @@ function syncUrl() {
   });
 }
 
-function showTooltip(id, x, y) {
+/**
+ * Displays the hover tooltip for a lunar site marker or risk zone on the 3D Moon.
+ * @param {string|null} id - Site identifier.
+ * @param {number} x - Pointer clientX in pixels.
+ * @param {number} y - Pointer clientY in pixels.
+ * @param {Object|null} [zone] - Optional risk-grid zone payload when hovering terrain.
+ */
+function showTooltip(id, x, y, zone = null) {
+  if (!id && zone?.cell) {
+    const { lat, lon, cell } = zone;
+    const slopeLabel = cell.slope_deg <= 5 ? "Flat" : cell.slope_deg <= 10 ? "Moderate" : "Steep";
+    tooltip.replaceChildren(...[
+      ["strong", `Lunar Zone (${lat.toFixed(1)}°, ${lon.toFixed(1)}°)`],
+      ["span", `A) Landing Ease: ${Math.round(cell.landing_ease)}/100 (Slope: ${cell.slope_deg.toFixed(1)}° — ${slopeLabel})`],
+      ["span", `B) Asteroid Shield: ${Math.round(cell.asteroid_protection)}/100`],
+    ].map(([tag, text]) => Object.assign(document.createElement(tag), { textContent: text })));
+    tooltip.hidden = false;
+    tooltip.style.left = `${Math.min(x + 14, window.innerWidth - tooltip.offsetWidth - 8)}px`;
+    tooltip.style.top = `${y + 14}px`;
+    return;
+  }
+
   const site = state.sites.get(id);
   const score = state.scores.get(id);
   if (!site || !score) {
@@ -104,15 +150,26 @@ function showTooltip(id, x, y) {
     return;
   }
   const { total, energy, communication } = score.scores;
-  const verdict = score.viable
-    ? t("verdict.viableTooltip")
-    : t("verdict.notViableBecause", { reason: notViableReason(score) });
-  tooltip.replaceChildren(...[
-    ["strong", siteName(site)],
-    ["span", t("tooltip.scores", { total: Math.round(total), energy: Math.round(energy), communication: Math.round(communication) })],
-    ["span", t("tooltip.bodies", { sun: score.sun.elevation_deg.toFixed(1), earth: score.earth.elevation_deg.toFixed(1) })],
-    ["em", verdict],
-  ].map(([tag, text]) => Object.assign(document.createElement(tag), { textContent: text })));
+  const topo = score.topography ?? {};
+  const ease = score.scores?.landing_ease ?? topo.landing_ease_score ?? score.scores?.terrain;
+  const shield = score.scores?.asteroid_protection ?? topo.asteroid_protection_score ?? score.scores?.asteroid;
+  const slopeDeg = topo.slope_deg;
+  const blockedPct = topo.solid_angle_shielded_pct;
+  const slopeClass = slopeDeg == null ? "" : slopeDeg <= 5 ? "Flat" : slopeDeg <= 10 ? "Moderate" : "Steep";
+  const verdict = score.viable ? "GO" : `NO-GO: ${notViableReason(score)}`;
+
+  const lines = [
+    ["strong", `${siteName(site)} · ${verdict}`],
+    ["span", `P ${Math.round(total)} · E ${Math.round(energy)} · C ${Math.round(communication)}`],
+  ];
+  if (ease != null && slopeDeg != null) {
+    lines.push(["span", `A) Landing Ease: ${Math.round(ease)}/100 (Slope: ${slopeDeg.toFixed(1)}° — ${slopeClass})`]);
+  }
+  if (shield != null) {
+    const occText = blockedPct != null ? ` (Mountain Occlusion: ${blockedPct.toFixed(1)}% sky blocked)` : "";
+    lines.push(["span", `B) Asteroid Shield: ${Math.round(shield)}/100${occText}`]);
+  }
+  tooltip.replaceChildren(...lines.map(([tag, text]) => Object.assign(document.createElement(tag), { textContent: text })));
   tooltip.hidden = false;
   tooltip.style.left = `${Math.min(x + 14, window.innerWidth - tooltip.offsetWidth - 8)}px`;
   tooltip.style.top = `${y + 14}px`;
@@ -121,7 +178,7 @@ function showTooltip(id, x, y) {
 // --- Vistas ---------------------------------------------------------------
 
 const globe = new GlobeView(document.getElementById("globe"), {
-  onHover: (id, x, y) => showTooltip(id, x, y),
+  onHover: (id, x, y, zone) => showTooltip(id, x, y, zone),
   // Sin los archivos de relieve (./run.sh data --no-hires) se avisa y se desactivan los controles.
   onReliefStatus: (status) => {
     for (const el of document.querySelectorAll("#relief-on, #relief-ex")) el.disabled = status !== "ready";
@@ -277,6 +334,34 @@ document.getElementById("drawer-close").addEventListener("click", () => {
   setDrawer(false);
   gear.focus();
 });
+
+// Moon Layer Switcher pill bar (Surface / Risk A / Risk B / Safe Havens)
+let riskGridLoadedForSlope = null;
+async function ensureRiskGrid() {
+  const slope = state.config.maxSlopeDeg ?? 15;
+  if (riskGridLoadedForSlope === slope) return;
+  try {
+    const grid = await fetchRiskGrid(slope);
+    riskGridLoadedForSlope = slope;
+    globe.setRiskGrid(grid);
+  } catch {
+    /* keep existing overlay if network fails */
+  }
+}
+
+const layerBar = document.getElementById("moon-layer-bar");
+if (layerBar) {
+  layerBar.addEventListener("click", async (e) => {
+    const btn = e.target.closest("button[data-layer]");
+    if (!btn) return;
+    const layer = btn.dataset.layer;
+    for (const b of layerBar.querySelectorAll("button[data-layer]")) {
+      b.setAttribute("aria-pressed", String(b === btn));
+    }
+    if (layer !== "surface") await ensureRiskGrid();
+    globe.setLayerMode(layer);
+  });
+}
 legendToggle.addEventListener("click", () => setLegend(legendCard.hidden));
 document.addEventListener("keydown", (event) => {
   if (event.key !== "Escape") return;
@@ -413,15 +498,16 @@ async function loadActive() {
   if (state.detailOpen) detail.showLoading(site);
   try {
     const ref = siteRef(id);
-    const [sky, timeline] = await Promise.all([
+    const [sky, timeline, patch] = await Promise.all([
       fetchSky(ref, state.date, state.config),
       fetchTimeline(ref, state.date, state.config),
+      fetchTerrainPatch(ref).catch(() => null),
     ]);
     if (request !== state.detailRequest) return;
     sky.site = { ...sky.site, ...site }; // conserva nombres y traducciones del lado del cliente
-    state.current = { id, sky, timeline };
+    state.current = { id, sky, timeline, patch };
     card.render(sky, { selectedCount: state.selected.length, views: exploreViewsFor(site) });
-    if (state.detailOpen) detail.render(sky, timeline);
+    if (state.detailOpen) detail.render(sky, timeline, { patch });
     if (stage.isOpen) stage.update(stageContext());
   } catch (error) {
     if (request !== state.detailRequest) return;
@@ -436,7 +522,7 @@ function openDetail() {
   document.body.classList.add("detail-open");
   const site = state.sites.get(state.selectedId);
   detail.showLoading(site);
-  if (state.current?.id === state.selectedId) detail.render(state.current.sky, state.current.timeline);
+  if (state.current?.id === state.selectedId) detail.render(state.current.sky, state.current.timeline, { patch: state.current.patch });
   else loadActive();
 }
 
@@ -457,6 +543,55 @@ async function findBestDates(id) {
   } catch (error) {
     if (state.selectedId === id) detail.showBestDatesError(error.message);
   }
+}
+
+// --- 3D Relief Exaggeration, LOLA Surface Layer & Demo Presets --------------
+
+const surfaceButtons = [...document.querySelectorAll("[data-surface]")];
+const lolaColorbar = document.getElementById("lola-colorbar");
+for (const button of surfaceButtons) {
+  button.addEventListener("click", () => {
+    const mode = button.dataset.surface;
+    globe.setSurfaceMode(mode);
+    if (lolaColorbar) lolaColorbar.hidden = mode !== "lola";
+    for (const b of surfaceButtons) {
+      const active = b === button;
+      b.classList.toggle("active", active);
+      b.setAttribute("aria-pressed", String(active));
+    }
+  });
+}
+
+const reliefButtons = [...document.querySelectorAll("[data-relief]")];
+for (const button of reliefButtons) {
+  button.addEventListener("click", () => {
+    const factor = Number(button.dataset.relief);
+    globe.setReliefExaggeration(factor);
+    for (const b of reliefButtons) {
+      const active = b === button;
+      b.classList.toggle("active", active);
+      b.setAttribute("aria-pressed", String(active));
+    }
+  });
+}
+
+const demoSelect = document.getElementById("demo-scenario");
+if (demoSelect) {
+  demoSelect.addEventListener("change", async () => {
+    const val = demoSelect.value;
+    if (!val) return;
+    if (val === "artemis-south") {
+      await loadDate(new Date("2026-12-15T00:00:00Z"));
+      globe.focusSouthPole();
+      select("mons-mouton");
+    } else if (val === "im1-slope") {
+      await loadDate(new Date("2026-12-15T00:00:00Z"));
+      select("im-1");
+    } else if (val === "apollo11-flat") {
+      await loadDate(new Date("2026-12-15T00:00:00Z"));
+      select("apollo-11");
+    }
+  });
 }
 
 // --- Sitios personalizados ------------------------------------------------

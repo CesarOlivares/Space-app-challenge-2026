@@ -56,6 +56,10 @@ export class SiteList {
     }
   }
 
+  /**
+   * Renders the sorted site ranking list with Energy (E), Communication (C),
+   * Terrain (T) badges, and local surface slope.
+   */
   #render() {
     const southOnly = this.filter.checked;
     const rows = this.scores
@@ -66,8 +70,14 @@ export class SiteList {
     this.list.innerHTML = rows.map((score) => {
       const site = this.sites.get(score.site_id);
       const { color } = encode(score);
-      const { total, energy, communication } = score.scores;
-      // El motivo va escrito, no solo en un title: así lo leen los lectores de pantalla y las pantallas táctiles.
+      const { total, energy, communication, landing_ease, asteroid_protection, terrain, asteroid } = score.scores;
+      const easeVal = landing_ease ?? terrain;
+      const shieldVal = asteroid_protection ?? asteroid;
+      const slopeDeg = score.topography?.slope_deg;
+      const slopeText = slopeDeg != null ? ` · ${slopeDeg.toFixed(1)}°` : "";
+      const easeText = easeVal != null ? ` · Ease ${Math.round(easeVal)}` : "";
+      const shieldText = shieldVal != null ? ` · Shield ${Math.round(shieldVal)}` : "";
+      // Written reason (not just title) so screen readers and touch devices can read it.
       const status = score.viable
         ? `<span class="status ok">${t("verdict.viable")}</span>`
         : `<span class="status bad">${t("verdict.notViable")}</span><span class="reason">${escape(notViableReason(score))}</span>`;
@@ -76,10 +86,10 @@ export class SiteList {
           <span class="dot" style="background:${color}"></span>
           <span class="name">
             ${escape(siteName(site))}
-            <small>${t(`category.${site.category}`)} · ${site.lat.toFixed(2)}°, ${site.lon.toFixed(2)}°</small>
+            <small>${t(`category.${site.category}`)} · ${site.lat.toFixed(2)}°, ${site.lon.toFixed(2)}°${slopeText}</small>
           </span>
           <span class="score">${Math.round(total)}</span>
-          <span class="sub">${t("list.energyShort")} ${Math.round(energy)} · ${t("list.commShort")} ${Math.round(communication)} ${status}</span>
+          <span class="sub">${t("list.energyShort")} ${Math.round(energy)} · ${t("list.commShort")} ${Math.round(communication)}${easeText}${shieldText} ${status}</span>
         </li>`;
     }).join("");
   }

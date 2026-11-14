@@ -10,7 +10,7 @@ import numpy as np
 from app.models.horizon import SphericalHorizon, TerrainHorizon, horizon_for
 from app.models.scoring import BodyMetrics, ScoringConfig, SiteEvaluation
 from app.models.site import Site
-from app.models.terrain import TerrainCutout
+from app.models.terrain import TerrainCutout, TerrainMetrics, evaluate_terrain
 from app.models.windows import Interval
 
 
@@ -22,9 +22,57 @@ def at_offset(start: datetime, hours: float | None) -> str | None:
     return None if hours is None else iso(start + timedelta(hours=hours))
 
 
+def topography_json(
+    terrain: TerrainMetrics,
+    slope_ok: bool | None = None,
+    sky_view_factor: float | None = None,
+    solid_angle_shielded_pct: float | None = None,
+    landing_ease_score: float | None = None,
+    asteroid_protection_score: float | None = None,
+    horizon_shield_profile_deg: tuple[float, ...] | list[float] | None = None,
+) -> dict:
+    """Serializes TerrainMetrics and dual hazard metrics into the API topography payload.
+
+    Args:
+        terrain: Evaluated terrain metrics for a site.
+        slope_ok: Optional lander slope safety boolean against max_slope_deg.
+        sky_view_factor: Optional hemispherical sky visibility factor in [0, 1].
+        solid_angle_shielded_pct: Optional percentage of upper hemisphere blocked by mountains.
+        landing_ease_score: Optional Evaluation A score in [0, 100].
+        asteroid_protection_score: Optional Evaluation B score in [0, 100].
+        horizon_shield_profile_deg: Optional 36-azimuth horizon elevation profile in degrees.
+
+    Returns:
+        Dictionary containing elevation, slope, roughness, aspect, SVF, shielding, and scores.
+    """
+    payload = {
+        "elevation_m": round(terrain.elevation_m, 1),
+        "slope_deg": round(terrain.slope_deg, 2),
+        "roughness_m": round(terrain.roughness_m, 2),
+        "aspect_deg": round(terrain.aspect_deg, 1),
+        "sky_view_factor": round(sky_view_factor if sky_view_factor is not None else terrain.sky_view_factor, 4),
+        "source": terrain.source,
+    }
+    if slope_ok is not None:
+        payload["slope_ok"] = slope_ok
+    if solid_angle_shielded_pct is not None:
+        payload["solid_angle_shielded_pct"] = round(solid_angle_shielded_pct, 2)
+    if landing_ease_score is not None:
+        payload["landing_ease_score"] = round(landing_ease_score, 1)
+    if asteroid_protection_score is not None:
+        payload["asteroid_protection_score"] = round(asteroid_protection_score, 1)
+    if horizon_shield_profile_deg is not None:
+        payload["horizon_shield_profile_deg"] = [round(float(v), 2) for v in horizon_shield_profile_deg]
+    return payload
+
+
 def site_json(site: Site) -> dict:
+    """Serializes a Site dataclass into a JSON-compatible dictionary with topography."""
     data = asdict(site)
+    data.pop("terrain", None)
     data["source"] = {"name": data.pop("source_name"), "url": data.pop("source_url")}
+    terrain = site.terrain or evaluate_terrain(site.lat, site.lon)
+    data["topography"] = topography_json(terrain)
     return data
 
 
@@ -69,6 +117,7 @@ def body_json(body: BodyMetrics, start: datetime, detailed: bool) -> dict:
 
 
 def evaluation_json(result: SiteEvaluation, detailed: bool) -> dict:
+    """Serializes a SiteEvaluation into the REST API response format."""
     data = {
         "site_id": result.site.id,
         "date": iso(result.landing),
@@ -76,8 +125,21 @@ def evaluation_json(result: SiteEvaluation, detailed: bool) -> dict:
         "scores": {
             "energy": round(result.energy, 1),
             "communication": round(result.communication, 1),
+            "landing_ease": round(result.landing_ease_score, 1),
+            "asteroid_protection": round(result.asteroid_protection_score, 1),
+            "terrain": round(result.landing_ease_score, 1),
+            "asteroid": round(result.asteroid_protection_score, 1),
             "total": round(result.total, 1),
         },
+        "topography": topography_json(
+            result.terrain,
+            slope_ok=result.slope_ok,
+            sky_view_factor=result.sky_view_factor,
+            solid_angle_shielded_pct=result.solid_angle_shielded_pct,
+            landing_ease_score=result.landing_ease_score,
+            asteroid_protection_score=result.asteroid_protection_score,
+            horizon_shield_profile_deg=result.horizon_shield_profile_deg,
+        ),
         "sun": body_json(result.sun, result.landing, detailed),
         "earth": body_json(result.earth, result.landing, detailed),
     }

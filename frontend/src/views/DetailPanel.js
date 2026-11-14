@@ -7,7 +7,9 @@
 import { escapeHtml, formatDegrees, formatDuration, formatUtc } from "../format.js";
 import { siteName, siteNotes, t } from "../i18n.js";
 import { notViableReason } from "./encoding.js";
+import { renderRadarChart } from "./RadarChartView.js";
 import { renderSky } from "./SkyView.js";
+import { renderTerrainPatch } from "./TerrainPatchView.js";
 import { renderTimeline } from "./TimelineView.js";
 
 export const BEST_DATES_DAYS = 30;
@@ -86,6 +88,15 @@ function scoreBar(labelKey, value, hintKey) {
     </div>`;
 }
 
+function scoreBarRaw(label, value, hint) {
+  return `
+    <div class="bar" title="${escapeHtml(hint)}">
+      <span>${escapeHtml(label)}</span>
+      <span class="track"><span style="width:${value}%"></span></span>
+      <b>${Math.round(value)}</b>
+    </div>`;
+}
+
 function windowsList(windows) {
   if (!windows.length) return `<li class="muted">${t("detail.noWindows")}</li>`;
   return windows.slice(0, 6).map((w) => {
@@ -125,18 +136,31 @@ export class DetailPanel {
     this.body.innerHTML = `<p class="error">${escapeHtml(t("detail.error", { message }))}</p>`;
   }
 
-  render(sky, timeline) {
+  render(sky, timeline, { patch = null } = {}) {
     const { site, config } = sky;
     const days = config.window_days;
+    const topo = sky.topography ?? {};
+    const slopeDeg = topo.slope_deg ?? 0;
+    const roughnessM = topo.roughness_m ?? 0;
+    const maxSlopeDeg = config.max_slope_deg ?? 15.0;
+    const slopeOk = topo.slope_ok !== false;
+    const slopeTone = !slopeOk || slopeDeg > 10 ? "bad" : slopeDeg > 5 ? "warn" : "ok";
+    const slopeLabel = !slopeOk
+      ? "Excede límite"
+      : slopeDeg <= 5 ? "Segura (≤ 5°)" : slopeDeg <= 10 ? "Moderada (5–10°)" : "Pronunciada (> 10°)";
+
     this.siteId = site.id;
     this.root.querySelector(".detail-title").textContent = siteName(site);
     this.body.removeAttribute("aria-busy");
 
     const meta = [site.mission, site.agency, site.year].filter(Boolean).join(" · ");
     const notes = siteNotes(site);
-    const verdict = sky.viable
-      ? `<p class="verdict ok">${escapeHtml(t("verdict.viableAt", { date: formatUtc(sky.date) }))}</p>`
-      : `<p class="verdict bad">${escapeHtml(t("verdict.notViableBecause", { reason: notViableReason(sky) }))}</p>`;
+    const goBanner = sky.viable
+      ? `<div class="readiness-banner go" role="status"><span class="badge">GO</span><span>${escapeHtml(t("verdict.viableAt", { date: formatUtc(sky.date) }))} · Pendiente ${slopeDeg.toFixed(1)}° ≤ ${maxSlopeDeg.toFixed(1)}°</span></div>`
+      : `<div class="readiness-banner nogo" role="alert"><span class="badge">NO-GO</span><span>${escapeHtml(t("verdict.notViableBecause", { reason: notViableReason(sky) }))}</span></div>`;
+    const slopeWarning = !sky.viable && !slopeOk
+      ? `<p class="slope-warning" role="alert">Advertencia de seguridad: la pendiente local (${slopeDeg.toFixed(1)}°) supera el límite del aterrizador (${maxSlopeDeg.toFixed(1)}°).</p>`
+      : "";
     const counters = ["sun", "earth"].map((body) => {
       const c = countdown(body, sky[body], days);
       return `<div class="counter ${c.tone}"><b>${escapeHtml(c.main)}</b><span>${escapeHtml(c.detail)}</span></div>`;
@@ -152,7 +176,8 @@ export class DetailPanel {
       <p class="muted">${escapeHtml(meta)}${meta ? "<br>" : ""}${site.lat.toFixed(4)}°, ${site.lon.toFixed(4)}°
         · ${escapeHtml(t(`precision.${site.precision}`))}</p>
       ${notes ? `<p class="note">${escapeHtml(notes)}</p>` : ""}
-      ${verdict}
+      ${goBanner}
+      ${slopeWarning}
       <div class="counters">${counters}</div>
 
       <section class="plain simple-only" aria-label="${t("detail.plainTitle")}">
@@ -167,9 +192,37 @@ export class DetailPanel {
       <div class="timeline-container"></div>
 
       <h3>${t("detail.score")}</h3>
+      <div class="radar-container"></div>
       ${scoreBar("detail.energy", sky.scores.energy, "detail.energyHint")}
       ${scoreBar("detail.communication", sky.scores.communication, "detail.communicationHint")}
+      ${scoreBarRaw("A) Landing Ease", sky.scores.landing_ease ?? sky.scores.terrain ?? 0, "Touchdown mechanical stability (Horn slope & roughness) + 18° EDL approach clearance")}
+      ${scoreBarRaw("B) Asteroid & Ejecta Shield", sky.scores.asteroid_protection ?? sky.scores.asteroid ?? 0, `Ballistic shielding from surrounding mountains (${(topo.solid_angle_shielded_pct ?? 0).toFixed(1)}% sky blocked, SVF ${(topo.sky_view_factor ?? 1).toFixed(3)})`)}
       ${scoreBar("detail.total", sky.scores.total, "detail.totalHint")}
+
+      <h3>Topografía local</h3>
+      <div class="topography-summary">
+        <div>
+          <span class="muted">Pendiente</span>
+          <b>${slopeDeg.toFixed(1)}° <span class="slope-badge ${slopeTone}">${escapeHtml(slopeLabel)}</span></b>
+          <small class="muted">${slopeDeg <= 5 ? "Terreno plano (Apto HLS, CLPS y Rover)" : slopeDeg <= 10 ? "Pendiente moderada (Apto CLPS y Rover)" : slopeDeg <= 20 ? "Pendiente pronunciada (Solo Rover)" : "Escarpado (Riesgo alto)"}</small>
+        </div>
+        <div>
+          <span class="muted">Elevación</span>
+          <b>${topo.elevation_m != null ? `${Math.round(topo.elevation_m)} m` : "—"}</b>
+          <small class="muted">Ref. 1737,4 km</small>
+        </div>
+        <div>
+          <span class="muted">Rugosidad RMS</span>
+          <b>${topo.roughness_m != null ? `${roughnessM.toFixed(2)} m` : "—"}</b>
+          <small class="muted">${roughnessM <= 0.8 ? "Riesgo bajo de rocas" : roughnessM <= 1.5 ? "Riesgo moderado de bloques" : "Terreno rugoso / eyecciones"}</small>
+        </div>
+      </div>
+
+      ${patch ? `
+      <h3>Zona de aterrizaje 3D (25×25)</h3>
+      <div class="terrain-patch-container"></div>
+      <p class="caption">Arrastra para rotar el relieve local (${patch.size}×${patch.size} celdas, ${patch.spacing_m} m/celda). Verde ≤ 5° · Ámbar 5–10° · Rojo &gt; 10°.</p>
+      ` : ""}
 
       <div class="tech-only">
         <h3>${t("detail.metrics", { days })}</h3>
@@ -204,6 +257,10 @@ export class DetailPanel {
     renderTimeline(this.body.querySelector(".timeline-container"), timeline, {
       onScrub: (index) => skyView.setCursor(index),
     });
+    renderRadarChart(this.body.querySelector(".radar-container"), [{ name: site.name, scores: sky.scores }]);
+    if (patch) {
+      renderTerrainPatch(this.body.querySelector(".terrain-patch-container"), patch, maxSlopeDeg);
+    }
   }
 
   showBestDatesLoading(count) {

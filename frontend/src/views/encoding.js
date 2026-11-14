@@ -25,7 +25,11 @@ export function communicationColor(communication) {
   return COMMUNICATION_LEVELS.find((level) => communication >= level.min).color;
 }
 
-// Devuelve cómo dibujar un sitio a partir de su entrada en /api/scores.
+/**
+ * Computes visual encoding (radius, glow intensity, and color) for a 3D globe marker.
+ * @param {Object} score - Site score payload from /api/scores or /api/sites/{id}/sky.
+ * @returns {{ radius: number, glow: number, color: string }}
+ */
 export function encode(score) {
   const { total, energy, communication } = score.scores;
   return {
@@ -35,14 +39,22 @@ export function encode(score) {
   };
 }
 
+/**
+ * Builds a human-readable explanation for why a site is not viable at landing.
+ * @param {Object} score - Site score payload including sun, earth, and topography.
+ * @returns {string}
+ */
 export function notViableReason(score) {
   const reasons = [];
-  // Sobre 0° pero no visible: lo tapa el relieve (o no alcanza el margen pedido).
+  // Above 0 deg but not visible: occluded by local terrain or below configured margin.
   if (!score.sun.visible) {
     reasons.push(t(score.sun.elevation_deg > 0 ? "reason.sunBlocked" : "reason.sunBelow"));
   }
   if (!score.earth.visible) {
     reasons.push(t(score.earth.elevation_deg > 0 ? "reason.earthBlocked" : "reason.earthBelow"));
+  }
+  if (score.topography && score.topography.slope_ok === false) {
+    reasons.push(`Pendiente (${score.topography.slope_deg.toFixed(1)}°) supera el límite`);
   }
   return reasons.join(" · ");
 }

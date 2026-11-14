@@ -84,3 +84,40 @@ run.sh             comando único para levantar o probar
 ```
 
 La arquitectura es MVC: el modelo y los controladores viven en `backend/`, la vista en `frontend/`.
+
+## Topography & Landing Safety (`T`)
+
+Lunar Site Explorer evaluates landing site safety alongside solar illumination (`E`) and Earth visibility (`C`).
+
+### Data Sources & Resolution Priority
+`evaluate_terrain(lat, lon, site_data)` in `backend/app/models/terrain.py` resolves surface `TerrainMetrics` (`elevation_m`, `slope_deg`, `roughness_m`, `source`) in three tiers:
+1. **Curated Catalog (`"catalog"`):** Uses LRO LOLA / Artemis reference values stored in `backend/data/sites.json` under each site's `"terrain"` object.
+2. **South Pole LOLA DEM (`"lola_dem"`):** When the polar DEM (`ldem_75s_120m.img`) is installed and covers `(lat, lon)`, samples a $3 \times 3$ pixel window (120 m/pixel), fits a local plane to compute $\text{slope\_deg} = \arctan(\sqrt{(\partial z/\partial x)^2 + (\partial z/\partial y)^2})$ and RMS residual `roughness_m`.
+3. **Fallback Estimator (`"fallback"`):** Uses a deterministic, smooth coordinate-based model (cached via `lru_cache(maxsize=1024)`) when the DEM is unavailable or coordinates are outside polar coverage.
+
+### Scoring Formula & Lander Viability
+`compute_terrain_score(terrain, max_slope_deg=15.0)` in `backend/app/models/scoring.py` computes `T` on a `0–100` scale:
+- **Slope sub-score (70%):** `100.0` for `slope_deg <= 2.0°`, `0.0` for `slope_deg >= max_slope_deg`, and linear interpolation between `2.0°` and `max_slope_deg`.
+- **Roughness sub-score (30%):** `max(0.0, 100.0 * (1.0 - roughness_m / 5.0))`.
+- **Safety cap:** If `slope_deg > max_slope_deg`, `T` is capped at `min(15.0, 0.3 * S_rough)`.
+
+The overall score combines all three criteria:
+$$P = \frac{w_E \cdot E + w_C \cdot C + w_T \cdot T}{w_E + w_C + w_T}$$
+
+Landing viability requires Sun visibility, Earth visibility, **and** `slope_deg <= max_slope_deg` (`slope_ok === true`).
+
+### Lander Slope Presets & API Parameters
+The settings panel provides quick-select presets for `max_slope_deg`:
+- **Crewed HLS:** `5°`
+- **CLPS Robotic Lander:** `10°`
+- **Exploration Rover:** `20°`
+
+REST endpoints (`GET /api/scores`, `GET /api/sites/{site_ref}/sky`, `POST /api/compare`) accept optional query parameters:
+- `weight_terrain` (float, default `1.0`, `>= 0.0`)
+- `max_slope_deg` (float, default `15.0`, `2.0 < max_slope_deg <= 45.0`)
+
+Responses include `"terrain"` inside `"scores"` and a `"topography"` object (`elevation_m`, `slope_deg`, `roughness_m`, `slope_ok`, `source`).
+
+## Team Integration & Long-Term Roadmap
+
+For subsystem integration contracts (Solar Autonomy `E`, Communication Stability `C`, Topography `T`, and Asteroid/Meteoroid Safety `A`), cross-module physics formulas, and our 4-phase 3D relief & Mission Control UX roadmap, see [docs/TEAM_INTEGRATION_AND_ROADMAP.md](docs/TEAM_INTEGRATION_AND_ROADMAP.md).

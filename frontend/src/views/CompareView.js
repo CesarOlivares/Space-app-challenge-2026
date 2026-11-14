@@ -4,14 +4,19 @@ import { escapeHtml, formatDegrees, formatDuration, formatUtc } from "../format.
 import { siteName, t } from "../i18n.js";
 import { countdown } from "./DetailPanel.js";
 import { notViableReason } from "./encoding.js";
+import { renderRadarChart } from "./RadarChartView.js";
 import { renderSky } from "./SkyView.js";
 
-// Filas comparables; `better` indica qué valor gana para resaltarlo.
+// Comparable rows; `better` indicates whether "max" or "min" wins for highlighting.
 const untilSet = (v) => (v === Infinity ? t("compare.noSet") : formatDuration(v));
 const ROWS = [
   { label: "compare.total", value: (r) => r.scores.total, show: (v) => Math.round(v), better: "max" },
   { label: "detail.energy", value: (r) => r.scores.energy, show: (v) => Math.round(v), better: "max" },
   { label: "detail.communication", value: (r) => r.scores.communication, show: (v) => Math.round(v), better: "max" },
+  { rawLabel: "Terreno (T)", value: (r) => r.scores.terrain ?? 0, show: (v) => Math.round(v), better: "max" },
+  { rawLabel: "Seguridad (A)", value: (r) => r.scores.asteroid ?? 0, show: (v) => Math.round(v), better: "max" },
+  { rawLabel: "Pendiente local (°)", value: (r) => r.topography?.slope_deg ?? 0, show: (v) => `${v.toFixed(1)}°`, better: "min" },
+  { rawLabel: "Elevación (m)", value: (r) => r.topography?.elevation_m ?? 0, show: (v) => `${Math.round(v)} m` },
   { label: "compare.sunElevation", value: (r) => r.sun.elevation_deg, show: (v) => formatDegrees(v) },
   { label: "compare.lightUntilSet", value: (r) => (r.sun.visible ? r.sun.hours_until_set ?? Infinity : 0),
     show: untilSet, better: "max" },
@@ -60,13 +65,17 @@ export class CompareView {
     this.content.innerHTML = `<p class="muted">${escapeHtml(text)}</p>`;
   }
 
+  /**
+   * Renders side-by-side comparison table including Terrain (T), slope, and elevation.
+   * @param {Array<Object>} results - Evaluation payloads from POST /api/compare.
+   */
   render(results) {
     this.results = results;
     const best = ROWS.map((row) => {
       if (!row.better) return null;
       const values = results.map(row.value);
-      const top = Math.max(...values);
-      // Sin ganador si todos empatan.
+      const top = row.better === "min" ? Math.min(...values) : Math.max(...values);
+      // No winner if all scenarios tie.
       return values.every((v) => v === top) ? null : top;
     });
 
@@ -81,7 +90,7 @@ export class CompareView {
 
     const body = ROWS.map((row, j) => `
       <tr>
-        <th scope="row">${t(row.label)}</th>
+        <th scope="row">${row.rawLabel ? escapeHtml(row.rawLabel) : t(row.label)}</th>
         ${results.map((r) => {
           const value = row.value(r);
           const win = best[j] !== null && value === best[j];
@@ -99,6 +108,7 @@ export class CompareView {
       </tr>`).join("");
 
     this.content.innerHTML = `
+      <div class="compare-radar"></div>
       <div class="compare-scroll">
         <table class="compare-table">
           <thead><tr><td></td>${header}</tr></thead>
@@ -107,6 +117,11 @@ export class CompareView {
       </div>
       <p class="caption">${t("compare.caption", { days: results[0].config.window_days })}</p>`;
 
+    renderRadarChart(
+      this.content.querySelector(".compare-radar"),
+      results.map((r) => ({ name: r.site.name, scores: r.scores })),
+      { size: 230 },
+    );
     results.forEach((r, i) => {
       renderSky(this.content.querySelector(`.sky-container[data-index="${i}"]`), r, null, { height: 80, compact: true });
     });
