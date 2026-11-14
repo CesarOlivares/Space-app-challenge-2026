@@ -957,9 +957,40 @@ select {
   margin-right: 4px;
 }
 
-.relief-toggle button.active {
+.relief-toggle button.active,
+.surface-toggle button.active {
   border-color: var(--accent, #56b4e9);
   background: rgba(86, 180, 233, 0.18);
+}
+
+.lola-colorbar {
+  margin: 4px 0 6px;
+}
+
+.lola-bar {
+  height: 7px;
+  border-radius: 999px;
+  background: linear-gradient(
+    to right,
+    #301278 0%,
+    #205cd6 18%,
+    #18b9d2 36%,
+    #40d26e 52%,
+    #ebdc38 68%,
+    #f07820 82%,
+    #d7261e 93%,
+    #faf5f0 100%
+  );
+  border: 1px solid rgba(255, 255, 255, 0.16);
+}
+
+.lola-ticks {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.68rem;
+  color: var(--muted);
+  margin-top: 2px;
+  font-variant-numeric: tabular-nums;
 }
 
 .demo-picker {

@@ -44,10 +44,18 @@
           <button type="button" data-view="near-side">Vista desde la Tierra</button>
           <button type="button" data-view="south-pole">Polo sur</button>
         </div>
+        <div class="buttons surface-toggle" role="group" aria-label="Capa del globo">
+          <button type="button" data-surface="lola" class="active" aria-pressed="true">Topografía LOLA</button>
+          <button type="button" data-surface="lroc" aria-pressed="false">Foto LROC</button>
+        </div>
+        <div id="lola-colorbar" class="lola-colorbar" aria-label="Escala de elevación LOLA">
+          <div class="lola-bar"></div>
+          <div class="lola-ticks"><span>−9 km</span><span>0 km</span><span>+10 km</span></div>
+        </div>
         <div class="buttons relief-toggle" role="group" aria-label="Exageración de relieve 3D">
           <span class="caption">Relieve 3D:</span>
-          <button type="button" data-relief="1" class="active" aria-pressed="true">1×</button>
-          <button type="button" data-relief="3" aria-pressed="false">3×</button>
+          <button type="button" data-relief="1" aria-pressed="false">1×</button>
+          <button type="button" data-relief="3" class="active" aria-pressed="true">3×</button>
           <button type="button" data-relief="5" aria-pressed="false">5×</button>
         </div>
         <label class="demo-picker">Escenario demo

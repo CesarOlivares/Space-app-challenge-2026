@@ -201,7 +201,22 @@ async function loadDetail() {
   }
 }
 
-// --- 3D Relief Exaggeration & Demo Presets ----------------------------------
+// --- 3D Relief Exaggeration, LOLA Surface Layer & Demo Presets --------------
+
+const surfaceButtons = [...document.querySelectorAll("[data-surface]")];
+const lolaColorbar = document.getElementById("lola-colorbar");
+for (const button of surfaceButtons) {
+  button.addEventListener("click", () => {
+    const mode = button.dataset.surface;
+    globe.setSurfaceMode(mode);
+    if (lolaColorbar) lolaColorbar.hidden = mode !== "lola";
+    for (const b of surfaceButtons) {
+      const active = b === button;
+      b.classList.toggle("active", active);
+      b.setAttribute("aria-pressed", String(active));
+    }
+  });
+}
 
 const reliefButtons = [...document.querySelectorAll("[data-relief]")];
 for (const button of reliefButtons) {

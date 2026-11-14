@@ -21,6 +21,64 @@ export function latLonToVector(lat, lon, radius = 1) {
   ).multiplyScalar(radius);
 }
 
+/**
+ * Maps a normalized elevation value [0, 1] to the classic NASA LOLA
+ * hypsometric rainbow palette (violet/blue basins -> cyan/green -> yellow/red/white highlands).
+ * @param {number} t - Normalized height in [0, 1].
+ * @returns {[number, number, number]} RGB triplet in [0, 255].
+ */
+function lolaColorRamp(t) {
+  const stops = [
+    [0.00, [48, 18, 120]],   // deep basin (-9 km): indigo/violet
+    [0.18, [32, 92, 214]],   // low mare: royal blue
+    [0.36, [24, 185, 210]],  // mid-low: cyan
+    [0.52, [64, 210, 110]],  // mean radius (0 km): green
+    [0.68, [235, 220, 56]],  // mid-high: yellow
+    [0.82, [240, 120, 32]],  // highlands: orange
+    [0.93, [215, 38, 30]],   // high rims: red
+    [1.00, [250, 245, 240]], // highest peaks (+10 km): white
+  ];
+  const x = Math.max(0, Math.min(1, t));
+  for (let i = 0; i < stops.length - 1; i++) {
+    const [t0, c0] = stops[i];
+    const [t1, c1] = stops[i + 1];
+    if (x <= t1) {
+      const f = (x - t0) / (t1 - t0);
+      return [
+        Math.round(c0[0] + (c1[0] - c0[0]) * f),
+        Math.round(c0[1] + (c1[1] - c0[1]) * f),
+        Math.round(c0[2] + (c1[2] - c0[2]) * f),
+      ];
+    }
+  }
+  return stops[stops.length - 1][1];
+}
+
+/**
+ * Generates a LOLA hypsometric color CanvasTexture from an elevation grayscale image.
+ * @param {HTMLImageElement} img - Loaded ldem_3_8bit.jpg elevation image.
+ * @returns {THREE.CanvasTexture}
+ */
+function buildLolaTexture(img) {
+  const canvas = document.createElement("canvas");
+  canvas.width = img.width;
+  canvas.height = img.height;
+  const ctx = canvas.getContext("2d");
+  ctx.drawImage(img, 0, 0);
+  const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+  const px = imgData.data;
+  for (let i = 0; i < px.length; i += 4) {
+    const [r, g, b] = lolaColorRamp(px[i] / 255);
+    px[i] = r;
+    px[i + 1] = g;
+    px[i + 2] = b;
+  }
+  ctx.putImageData(imgData, 0, 0);
+  const tex = new THREE.CanvasTexture(canvas);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  return tex;
+}
+
 function glowTexture() {
   const size = 64;
   const canvas = document.createElement("canvas");
@@ -80,25 +138,51 @@ export class GlobeView {
 
   #buildMoon() {
     const loader = new THREE.TextureLoader();
-    const color = loader.load(`${TEXTURES}/moon_color_4k.jpg`);
-    color.colorSpace = THREE.SRGBColorSpace;
-    color.anisotropy = this.renderer.capabilities.getMaxAnisotropy();
-    const relief = loader.load(`${TEXTURES}/ldem_3_8bit.jpg`);
+    this.lrocTexture = loader.load(`${TEXTURES}/moon_color_4k.jpg`);
+    this.lrocTexture.colorSpace = THREE.SRGBColorSpace;
+    this.lrocTexture.anisotropy = this.renderer.capabilities.getMaxAnisotropy();
+
+    this.surfaceMode = "lola";
+    this.reliefFactor = 3;
+
+    const relief = loader.load(`${TEXTURES}/ldem_3_8bit.jpg`, (tex) => {
+      this.lolaTexture = buildLolaTexture(tex.image);
+      this.lolaTexture.anisotropy = this.renderer.capabilities.getMaxAnisotropy();
+      if (this.surfaceMode === "lola" && this.moon) {
+        this.moon.material.map = this.lolaTexture;
+        this.moon.material.needsUpdate = true;
+      }
+    });
 
     this.moon = new THREE.Mesh(
       new THREE.SphereGeometry(1, 256, 128),
       new THREE.MeshStandardMaterial({
-        map: color,
+        map: this.lrocTexture,
         bumpMap: relief,
-        bumpScale: 2.5,
+        bumpScale: 3.5,
         displacementMap: relief,
-        displacementScale: 0.004,
-        displacementBias: -0.002,
-        roughness: 1,
-        metalness: 0,
+        displacementScale: 0.01 * this.reliefFactor,
+        displacementBias: -0.005 * this.reliefFactor,
+        roughness: 0.92,
+        metalness: 0.02,
       }),
     );
     this.scene.add(this.moon);
+  }
+
+  /**
+   * Switches the 3D lunar globe surface texture between NASA LOLA hypsometric
+   * elevation coloring ("lola") and LROC natural albedo ("lroc").
+   * @param {"lola"|"lroc"} mode - Surface visualization mode.
+   */
+  setSurfaceMode(mode) {
+    this.surfaceMode = mode;
+    if (!this.moon) return;
+    const targetMap = mode === "lola" && this.lolaTexture ? this.lolaTexture : this.lrocTexture;
+    if (targetMap) {
+      this.moon.material.map = targetMap;
+      this.moon.material.needsUpdate = true;
+    }
   }
 
   /**
@@ -106,10 +190,11 @@ export class GlobeView {
    * @param {number} factor - Exaggeration multiplier (1, 3, or 5).
    */
   setReliefExaggeration(factor) {
+    this.reliefFactor = factor;
     if (!this.moon) return;
     const mat = this.moon.material;
-    mat.displacementScale = 0.004 * factor;
-    mat.displacementBias = -0.002 * factor;
+    mat.displacementScale = 0.01 * factor;
+    mat.displacementBias = -0.005 * factor;
     mat.bumpScale = 2.5 * Math.sqrt(factor);
     mat.needsUpdate = true;
   }
