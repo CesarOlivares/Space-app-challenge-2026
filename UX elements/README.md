@@ -15,9 +15,11 @@ Elementos visuales para elevar el diseño del frontend: paleta, tipografía, íc
 
 Nombres de archivo en minúsculas, con guiones y sin espacios: `icono-sol.svg`, `mockup-detalle-v2.png`.
 
-## Kit actual
+## Kits visuales disponibles
 
-`iconos/` tiene los 23 SVG del kit del equipo (estilo HUD, monocromos con `currentColor`: toman el color del texto o de la variable que se les asigne). El uso asignado a cada uno está en el inventario de [docs/CICLO-2-VISUAL.md](../docs/CICLO-2-VISUAL.md).
+- `iconos/`: los 23 SVG del kit base inicial (estilo HUD / wireframe) más `hud-gear.svg`. El uso asignado a cada uno está en el inventario de [docs/CICLO-2-VISUAL.md](../docs/CICLO-2-VISUAL.md).
+- `elementos-2/`: 31 nuevos elementos SVG de apoyo (radares polares, telemetría, gráficos de datos spline, diales de carga, antenas de espacio profundo, constelaciones y vehículos espaciales), incluyendo la vista general `00_hoja_completa_imagenes2.svg`.
+- `elementos-3/`: 22 nuevos elementos SVG (mallas wireframe de terreno 3D, cuadrículas de perspectiva tipo túnel, diales circulares cuádruples, cajas cyberpunk biseladas, marcos de esquina y esferas moiré), incluyendo la vista general `00_hoja_completa_imagenes3.svg`.
 
 ## Lo que ya usa el frontend
 
