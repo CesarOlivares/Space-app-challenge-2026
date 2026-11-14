@@ -12,6 +12,7 @@ Cada documento separa lo que **está implementado** (con el archivo donde vive) 
 | [04 · Ventanas de visibilidad](04-ventanas.md) | Cruces del horizonte, ocaso, salida, horas visibles | `windows.py` |
 | [05 · Puntaje y viabilidad](05-puntaje.md) | Energía, comunicación, puntaje global, paneles, viabilidad | `scoring.py` |
 | [06 · Validación](06-validacion.md) | Cómo se comprobó cada parte y con qué error | `backend/tests/` |
+| [07 · Mapeo Solar y Viabilidad](07-mapa-solar-y-viabilidad.md) | Fenómeno polar vs ecuatorial, ray-casting 2.5D, hard vs soft constraints | `terrain.py`, `scores.py` |
 | [Referencias](referencias.md) | Fuentes de datos y bibliografía | — |
 
 ## Cómo trabajar en esta carpeta
