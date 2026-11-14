@@ -78,7 +78,18 @@ export class GlobeView {
 
     new ResizeObserver(() => this.#resize()).observe(canvas);
     this.#resize();
+    this.active = true;
+    canvas.dataset.active = "true";
     this.renderer.setAnimationLoop((time) => this.#frame(time));
+  }
+
+  // Pausa el dibujo cuando el globo no está a la vista (otras secciones): ahorra GPU y batería.
+  setActive(active) {
+    if (active === this.active) return;
+    this.active = active;
+    this.canvas.dataset.active = String(active);
+    this.renderer.setAnimationLoop(active ? (time) => this.#frame(time) : null);
+    if (active) this.refreshLayout();
   }
 
   #buildMoon() {

@@ -86,9 +86,18 @@ Igual que en el ciclo 1: cada fase en su rama, con verificación antes de cerrar
 
 | ✓ | ID | Tarea | Verificación |
 |---|---|---|---|
-| [ ] | V-06 | Tres secciones con navegación (`#intro`, `#explorar`, `#comparar`) y barra superior con 01 · 02 · 03 | Se navega con el mouse, el teclado y los botones atrás/adelante del navegador |
-| [ ] | V-07 | El enlace compartible abre directo en la sección y el escenario correctos | Un enlace del ciclo 1 sigue funcionando |
-| [ ] | V-08 | Diseño adaptado a teléfono en las tres secciones | Sin scroll horizontal a 375 px |
+| [x] | V-06 | Tres secciones con navegación (`#intro`, `#explorar`, `#comparar`) y barra superior con 01 · 02 · 03 | Se navega con el mouse, el teclado y los botones atrás/adelante del navegador |
+| [x] | V-07 | El enlace compartible abre directo en la sección y el escenario correctos | Un enlace del ciclo 1 sigue funcionando |
+| [x] | V-08 | Diseño adaptado a teléfono en las tres secciones | Sin scroll horizontal a 375 px |
+
+**Decisiones de V1:**
+- **Rutas por hash:** `#intro` (01), `#explorar` (02), `#comparar` (03). Son enlaces normales, así que sirven con el teclado, el botón atrás/adelante y para compartir.
+- **Enlaces del ciclo 1:** una dirección con parámetros de escenario pero sin hash (p. ej. `?date=…&site=im-2`) abre directo en la vista general. Una dirección sin nada abre la intro.
+- **La URL de la intro queda limpia** (`/#intro`); el escenario se escribe al entrar a la vista general.
+- **El globo se pausa** fuera de la vista general (ahorra GPU y batería) y la animación del tiempo se detiene al salir.
+- **Accesibilidad:** al navegar, el foco pasa al título de la sección y el título de la pestaña cambia.
+- **Idioma** (ES/EN) pasó a la barra, porque vale para las tres partes.
+- La intro y la comparación son **provisorias**: V2 y V6 las reemplazan. El código del router está en `frontend/src/router.js`.
 
 ### V2 — Intro · P1
 

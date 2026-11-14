@@ -11,7 +11,9 @@ import {
   isoUtc,
 } from "./api.js";
 import { formatUtc, siteRef } from "./format.js";
+import { hydrateIcons } from "./icons.js";
 import { getLang, LANGUAGES, onLangChange, setLang, siteName, t } from "./i18n.js";
+import { createRouter } from "./router.js";
 import { readUrlState, writeUrlState } from "./urlState.js";
 import { CompareView } from "./views/CompareView.js";
 import { Controls } from "./views/Controls.js";
@@ -21,6 +23,8 @@ import { GlobeView } from "./views/GlobeView.js";
 import { SettingsPanel, DEFAULT_CONFIG } from "./views/SettingsPanel.js";
 import { SiteList } from "./views/SiteList.js";
 import { notViableReason } from "./views/encoding.js";
+
+hydrateIcons();
 
 const MAX_COMPARE = 4;
 const WIDE = 760;
@@ -64,6 +68,8 @@ function setStatus(key, params = {}, kind = "") {
 }
 
 function syncUrl() {
+  // En la intro la dirección queda limpia (#intro); el escenario se escribe al entrar a la app.
+  if (document.body.dataset.section === "intro") return;
   writeUrlState({
     date: state.date,
     site: state.selectedId,
@@ -171,6 +177,20 @@ const settings = new SettingsPanel(document.getElementById("settings"), {
 
 new ResizeObserver(() => globe.refreshLayout()).observe(leftColumn);
 
+// Tres partes: intro, vista general y comparación. Fuera de la vista general se pausa el globo y
+// la animación del tiempo, y se oculta el tooltip.
+const router = createRouter({
+  onChange: (section, previous) => {
+    globe.setActive(section === "explorar");
+    // Al entrar desde la intro se escribe el escenario; en la carga inicial lo hace start(), después de leer la URL.
+    if (previous === "intro") syncUrl();
+    if (section !== "explorar") {
+      controls.stop();
+      tooltip.hidden = true;
+    }
+  },
+});
+
 function updateLegendDays() {
   const legend = document.getElementById("legend-glow");
   legend.dataset.i18nParams = JSON.stringify({ days: state.config.windowDays });
@@ -201,6 +221,7 @@ onLangChange(() => {
   for (const site of state.sites.values()) {
     if (site.category === "personalizado" && !site.userName) site.name = defaultCustomName(site);
   }
+  router.refreshTitle();
   setStatus(state.status.key, state.status.params, state.status.kind);
   updateLegendDays();
   list.refresh();

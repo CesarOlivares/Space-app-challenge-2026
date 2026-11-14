@@ -62,5 +62,6 @@ export function writeUrlState({ date, site, mode, lang, config, custom, compare 
     params.set("cmp", compare.map((c) => `${c.ref}@${isoUtc(c.date)}`).join("|"));
   }
   const query = params.toString().replace(/%2C/g, ",").replace(/%7C/g, "|").replace(/%40/g, "@").replace(/%3A/g, ":");
-  window.history.replaceState(null, "", query ? `?${query}` : window.location.pathname);
+  // Se conserva el hash: es la sección de la app (#intro, #explorar, #comparar).
+  window.history.replaceState(null, "", `${query ? `?${query}` : window.location.pathname}${window.location.hash}`);
 }

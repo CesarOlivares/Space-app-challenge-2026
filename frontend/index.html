@@ -17,18 +17,41 @@
       }
     </script>
   </head>
-  <body class="mode-simple">
+  <body class="mode-simple" data-section="intro">
+    <nav id="topnav" data-i18n-attr="aria-label: nav.aria">
+      <a class="brand" href="#intro" data-nav-brand>
+        <span class="icon" data-icon="globe"></span>
+        <span class="brand-name">Lunar Site Explorer</span>
+      </a>
+      <ul class="nav-links">
+        <li><a href="#intro" data-nav="intro"><span class="nav-num">01</span><span data-i18n="nav.intro">Inicio</span></a></li>
+        <li><a href="#explorar" data-nav="explorar"><span class="nav-num">02</span><span data-i18n="nav.explore">Explorar</span></a></li>
+        <li><a href="#comparar" data-nav="comparar"><span class="nav-num">03</span><span data-i18n="nav.compare">Comparar</span></a></li>
+      </ul>
+      <div class="segmented" role="group" data-i18n-attr="aria-label: controls.langGroup">
+        <button type="button" data-lang="es" aria-pressed="true" lang="es">ES</button>
+        <button type="button" data-lang="en" aria-pressed="false" lang="en">EN</button>
+      </div>
+    </nav>
+
+    <main>
+      <!-- 01 · Intro. Provisoria: V2 la reemplaza por el gancho, los datos ancla y la transición. -->
+      <section id="sec-intro" class="page page--intro" hidden aria-labelledby="intro-title">
+        <div class="intro-inner">
+          <p class="eyebrow"><span class="icon" data-icon="brackets"></span> <span data-i18n="intro.eyebrow">NASA Space Apps Challenge 2026</span></p>
+          <h1 id="intro-title" class="display intro-title" tabindex="-1">Lunar Site Explorer</h1>
+          <p class="intro-lead" data-i18n="intro.lead"></p>
+          <a class="btn btn--primary" href="#explorar"><span data-i18n="intro.start">Iniciar</span> <span class="icon" data-icon="chevrons"></span></a>
+        </div>
+      </section>
+
+      <!-- 02 · Vista general: el globo, la lista y el detalle. -->
+      <section id="sec-explorar" class="page page--explore" hidden aria-labelledby="explore-title">
+    <h1 id="explore-title" class="sr-only" tabindex="-1" data-i18n="explore.h1">Vista general</h1>
     <canvas id="globe" data-i18n-attr="aria-label: app.globe"></canvas>
 
     <div id="left">
       <header id="controls" class="panel">
-        <div class="title-row">
-          <h1>Lunar Site Explorer</h1>
-          <div class="segmented" role="group" data-i18n-attr="aria-label: controls.langGroup">
-            <button type="button" data-lang="es" aria-pressed="true" lang="es">ES</button>
-            <button type="button" data-lang="en" aria-pressed="false" lang="en">EN</button>
-          </div>
-        </div>
         <div class="segmented wide" role="group" data-i18n-attr="aria-label: controls.modeGroup">
           <button type="button" data-mode="simple" aria-pressed="true" data-i18n="controls.simple">Simple</button>
           <button type="button" data-mode="tecnico" aria-pressed="false" data-i18n="controls.technical">Técnico</button>
@@ -177,6 +200,24 @@
     </div>
 
     <div id="tooltip" role="tooltip" hidden></div>
+      </section>
+
+      <!-- 03 · Comparación por periodos. Provisoria: V6 agrega la matriz sitios × fechas. -->
+      <section id="sec-comparar" class="page page--compare" hidden aria-labelledby="cmpsec-title">
+        <div class="page-inner">
+          <div class="section-head">
+            <span class="section-head__num">03</span>
+            <h1 class="section-head__title" id="cmpsec-title" tabindex="-1" data-i18n="cmpsec.title">Comparación por periodos</h1>
+            <span class="section-head__rule"></span>
+            <span class="icon" data-icon="astrolabe"></span>
+          </div>
+          <div class="hud-frame">
+            <p data-i18n="cmpsec.soon"></p>
+            <p><a class="btn" href="#explorar" data-i18n="cmpsec.go">Ir a explorar</a></p>
+          </div>
+        </div>
+      </section>
+    </main>
 
     <script type="module" src="src/main.js"></script>
   </body>
