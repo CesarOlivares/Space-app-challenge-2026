@@ -1,0 +1,167 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Sistema visual — Lunar Site Explorer</title>
+    <meta name="robots" content="noindex" />
+    <link rel="preload" href="fonts/archivo-var.woff2" as="font" type="font/woff2" crossorigin />
+    <link rel="stylesheet" href="src/design-system.css" />
+    <style>
+      html { background: var(--bg); color: var(--ink); font: 400 var(--fs-body) / 1.5 var(--font-text); }
+      body { margin: 0; }
+      main { max-width: 1120px; margin: 0 auto; padding: var(--space-6) var(--space-5) 96px; display: grid; gap: 72px; }
+      h1, h2, h3, p { margin: 0; }
+      a { color: var(--accent); }
+      :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+      .hero { display: grid; gap: var(--space-4); padding-top: var(--space-5); }
+      .hero h1 { font-size: var(--fs-hero); }
+      .hero p { max-width: 62ch; color: var(--ink-muted); font-size: 1.05rem; }
+      .hero .eyebrow { display: flex; align-items: center; gap: var(--space-2); }
+
+      section { display: grid; gap: var(--space-5); }
+      .note { max-width: 70ch; color: var(--ink-muted); }
+      .note b { color: var(--ink); font-weight: 600; }
+
+      /* Paleta */
+      .swatches { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: var(--space-3); }
+      .group-title { margin-bottom: var(--space-3); }
+      .swatch { display: grid; grid-template-columns: 56px 1fr; gap: var(--space-3); align-items: center; padding: var(--space-3); border: 1px solid var(--line); }
+      .swatch i { width: 56px; height: 56px; border: 1px solid var(--line-strong); }
+      .swatch b { display: block; font-family: var(--font-mono); font-size: var(--fs-small); font-weight: 600; }
+      .swatch span { display: block; color: var(--ink-muted); font-size: var(--fs-small); }
+      .swatch .ratio { font-family: var(--font-mono); }
+      .swatch .ratio.pass { color: var(--state-ok); }
+      .swatch .ratio.fail { color: var(--state-bad); }
+
+      /* Tipografía */
+      .type-row { display: grid; grid-template-columns: 160px 1fr; gap: var(--space-4); align-items: baseline; padding: var(--space-3) 0; border-top: 1px solid var(--line); }
+      .type-row .eyebrow { align-self: start; padding-top: 6px; }
+      .t-hero { font-size: var(--fs-hero); }
+      .t-title { font-family: var(--font-display); font-size: var(--fs-title); font-weight: 800; font-stretch: 125%; }
+      .t-body { max-width: 62ch; }
+      .t-small { font-size: var(--fs-small); color: var(--ink-muted); }
+
+      /* Íconos */
+      .icons { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: var(--space-3); }
+      .tile { display: grid; justify-items: center; gap: var(--space-2); padding: var(--space-4) var(--space-3); border: 1px solid var(--line); text-align: center; }
+      .tile .icon { color: var(--ink); }
+      .tile b { font-family: var(--font-mono); font-size: var(--fs-small); }
+      .tile span { color: var(--ink-muted); font-size: 0.72rem; word-break: break-all; }
+      .tile.unused { opacity: 0.5; }
+      .tile .tint { display: flex; gap: var(--space-2); }
+      .tint .icon { width: 1em; height: 1em; }
+
+      /* Componentes */
+      .demo { display: grid; gap: var(--space-4); }
+      .row { display: flex; flex-wrap: wrap; gap: var(--space-3); align-items: center; }
+      .frame-demo { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: var(--space-5); }
+    </style>
+  </head>
+  <body>
+    <main>
+      <header class="hero">
+        <p class="eyebrow"><span class="icon i-brackets" data-icon="brackets"></span> Lunar Site Explorer · Ciclo 2 · V0</p>
+        <h1 class="display">Sistema visual</h1>
+        <p>Paleta, tipografía, íconos y componentes que usarán las tres partes de la app. Esta página es el piloto de V0: se revisa con el equipo antes de aplicarlo al resto.</p>
+      </header>
+
+      <section aria-labelledby="s1">
+        <div class="section-head">
+          <span class="section-head__num">01</span>
+          <h2 class="section-head__title" id="s1">Paleta</h2>
+          <span class="section-head__rule"></span>
+          <span class="icon" data-icon="sun"></span>
+        </div>
+        <p class="note"><b>Un único acento.</b> El violeta es solo interfaz: foco, botón principal y marcos. <b>Los colores de datos van aparte</b> (paleta Okabe-Ito, apta para daltonismo) y nunca se usan de adorno, para que un color en pantalla siempre signifique algo. Cada muestra calcula su contraste sobre el fondo; el texto necesita 4,5:1 (WCAG AA).</p>
+        <div id="palette" class="demo"></div>
+      </section>
+
+      <section aria-labelledby="s2">
+        <div class="section-head">
+          <span class="section-head__num">02</span>
+          <h2 class="section-head__title" id="s2">Tipografía</h2>
+          <span class="section-head__rule"></span>
+          <span class="icon" data-icon="compass"></span>
+        </div>
+        <p class="note"><b>Archivo</b> variable (ancho y peso) para títulos y texto; <b>JetBrains Mono</b> para cifras y rótulos estilo HUD. Ambas con licencia OFL, incluidas en el repositorio: la app no depende de internet.</p>
+        <div>
+          <div class="type-row"><span class="eyebrow">Hero · 900 · ancho 125</span><p class="display t-hero">¿Dónde aterrizar?</p></div>
+          <div class="type-row"><span class="eyebrow">Título · 800 · ancho 125</span><p class="t-title">IM-2 Athena — Mons Mouton</p></div>
+          <div class="type-row"><span class="eyebrow">Cuerpo · 400</span><p class="t-body">En el polo sur el Sol nunca sube más de unos pocos grados: la luz llega rasante, así que una montaña a decenas de kilómetros puede dejar un sitio a oscuras.</p></div>
+          <div class="type-row"><span class="eyebrow">Apoyo · 400 · 12,5 px</span><p class="t-small">Fuente: LROC, NASA/GSFC/Arizona State University.</p></div>
+          <div class="type-row"><span class="eyebrow">Datos · mono 700</span><p class="mono" style="font-size: var(--fs-data); font-weight: 700">+2,07° · 332 h 52 min</p></div>
+          <div class="type-row"><span class="eyebrow">Rótulo · mono</span><p class="eyebrow">Ocaso solar en 13 d 20 h</p></div>
+        </div>
+      </section>
+
+      <section aria-labelledby="s3">
+        <div class="section-head">
+          <span class="section-head__num">03</span>
+          <h2 class="section-head__title" id="s3">Íconos</h2>
+          <span class="section-head__rule"></span>
+          <span class="icon" data-icon="astrolabe"></span>
+        </div>
+        <p class="note">Los <b>23 SVG del kit</b> usan <code>currentColor</code>: toman el color del texto o del acento. Un ícono por lugar: cada uno tiene un uso asignado y no se repite. Los atenuados no tienen uso todavía.</p>
+        <div id="icons" class="icons"></div>
+      </section>
+
+      <section aria-labelledby="s4">
+        <div class="section-head">
+          <span class="section-head__num">04</span>
+          <h2 class="section-head__title" id="s4">Componentes</h2>
+          <span class="section-head__rule"></span>
+          <span class="icon" data-icon="globe"></span>
+        </div>
+        <p class="note">Contorno fino con el color del panel por dentro, sin bloques rellenos. El único relleno de acento de una pantalla es el botón principal. <b>Las cifras de las muestras son de ejemplo</b>: las reales llevan su fuente verificada (tarea V-10).</p>
+
+        <div class="demo">
+          <h3 class="eyebrow">Marco HUD y dato ancla</h3>
+          <div class="frame-demo">
+            <div class="hud-frame">
+              <div class="anchor">
+                <span class="eyebrow">Día lunar</span>
+                <span class="anchor__value">29,5<span class="anchor__unit">días</span></span>
+                <span class="anchor__label">Dos semanas de luz y dos de noche a más de 100 °C bajo cero.</span>
+                <span class="anchor__source">Fuente: por verificar (tarea V-10)</span>
+              </div>
+            </div>
+            <div class="hud-frame">
+              <div class="anchor">
+                <span class="eyebrow">Sol en el polo sur</span>
+                <span class="anchor__value">&lt; 3<span class="anchor__unit">°</span></span>
+                <span class="anchor__label">Elevación del Sol sobre el horizonte en IM-2, el 15 de diciembre de 2026.</span>
+                <span class="anchor__source">Fuente: JPL Horizons, validado en este proyecto</span>
+              </div>
+            </div>
+            <div class="hud-frame hud-frame--quiet">
+              <div class="anchor">
+                <span class="eyebrow">Marco discreto</span>
+                <span class="anchor__value">22<span class="anchor__unit">sitios</span></span>
+                <span class="anchor__label">Sin trazos de acento en las esquinas, para paneles secundarios.</span>
+              </div>
+            </div>
+          </div>
+
+          <h3 class="eyebrow">Botones</h3>
+          <div class="row">
+            <button class="btn btn--primary" type="button">Iniciar <span class="icon i-chevrons" data-icon="chevrons"></span></button>
+            <button class="btn" type="button">Vista desde la Tierra</button>
+            <button class="btn" type="button" aria-pressed="true">Técnico</button>
+            <button class="btn" type="button"><span class="icon" data-icon="time"></span> Animar</button>
+            <button class="btn" type="button" disabled>Deshabilitado</button>
+          </div>
+
+          <h3 class="eyebrow">Filetes</h3>
+          <hr class="rule" />
+          <hr class="rule rule--accent" />
+
+          <h3 class="eyebrow">Encabezado de sección con la pieza del kit</h3>
+          <div class="row" style="color: var(--ink-muted)"><span class="icon icon--xl" data-icon="header" style="width: 12em; height: 2em; color: var(--accent)"></span></div>
+        </div>
+      </section>
+    </main>
+    <script type="module" src="src/design-system.js"></script>
+  </body>
+</html>

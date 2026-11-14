@@ -69,11 +69,18 @@ Igual que en el ciclo 1: cada fase en su rama, con verificación antes de cerrar
 
 | ✓ | ID | Tarea | Verificación |
 |---|---|---|---|
-| [ ] | V-01 | Definir la paleta: fondo, tinta, acento único, neutro; separar los colores de datos | Variables en `styles.css`; contraste AA verificado |
-| [ ] | V-02 | Empaquetar tipografías con licencia abierta (títulos anchos, texto, monoespaciada) | Se cargan sin internet; licencias anotadas en `UX elements/tipografia/` |
-| [ ] | V-03 | Cargar el kit como íconos teñibles (`currentColor`) desde un único módulo | Un ícono cambia de color con la variable de acento |
-| [ ] | V-04 | Componentes base: encabezado de sección numerado, marco HUD, botón principal, filete | Página de muestra con todos los componentes |
+| [x] | V-01 | Definir la paleta: fondo, tinta, acento único, neutro; separar los colores de datos | Variables en `styles.css`; contraste AA verificado |
+| [x] | V-02 | Empaquetar tipografías con licencia abierta (títulos anchos, texto, monoespaciada) | Se cargan sin internet; licencias anotadas en `UX elements/tipografia/` |
+| [x] | V-03 | Cargar el kit como íconos teñibles (`currentColor`) desde un único módulo | Un ícono cambia de color con la variable de acento |
+| [x] | V-04 | Componentes base: encabezado de sección numerado, marco HUD, botón principal, filete | Página de muestra con todos los componentes |
 | [ ] | V-05 | Revisión del sistema con el equipo (piloto) | Aprobado o con cambios anotados |
+
+**Decisiones de V0** (para revisar en V-05):
+- **Acento único:** violeta `#a78bfa`. No coincide con ningún color de datos y tiene 6,9:1 sobre los paneles.
+- **Tipografías:** Archivo variable (títulos anchos y texto) y JetBrains Mono (cifras), ambas OFL y locales, 130 KB en total.
+- **Íconos:** módulo único `frontend/src/icons.js` con nombres semánticos; los SVG se pintan como máscara con `currentColor`.
+- **Componentes:** encabezado numerado, marco HUD con esquinas de acento, botones, filete y dato ancla. Se ven en `/design-system.html`.
+- La app actual ya usa los tokens (acento, fuentes); el rediseño de sus pantallas es V5.
 
 ### V1 — Estructura en tres partes · P1
 

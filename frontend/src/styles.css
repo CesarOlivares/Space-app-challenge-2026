@@ -1,19 +1,17 @@
+/* Alias de los nombres anteriores hacia los tokens del sistema visual (design-system.css). */
 :root {
-  --bg: #05070d;
-  --panel: rgba(14, 18, 28, 0.88);
-  --border: rgba(255, 255, 255, 0.1);
-  --text: #e8ecf4;
-  --muted: #9aa3b2;
-  --accent: #56b4e9;
-  --ok: #7ee0a1;
-  --warn: #f0c45a;
-  --bad: #ff9a8a;
-  --comm-low: #d55e00;
-  --comm-mid: #e69f00;
-  --comm-high: #56b4e9;
-  --off: #8a9099;
-  --sun: #ffd25a;
-  color-scheme: dark;
+  --panel: var(--surface);
+  --border: var(--line);
+  --text: var(--ink);
+  --muted: var(--ink-muted);
+  --ok: var(--state-ok);
+  --warn: var(--state-warn);
+  --bad: var(--state-bad);
+  --comm-high: var(--data-earth-high);
+  --comm-mid: var(--data-earth-mid);
+  --comm-low: var(--data-earth-low);
+  --off: var(--data-off);
+  --sun: var(--data-sun);
 }
 
 * {
@@ -27,7 +25,7 @@ body {
   overflow: hidden;
   background: var(--bg);
   color: var(--text);
-  font: 14px/1.4 system-ui, sans-serif;
+  font: 14px/1.4 var(--font-text);
 }
 
 #globe {
@@ -48,7 +46,11 @@ body {
 
 h1 {
   margin: 0 0 10px;
-  font-size: 1.15rem;
+  font-family: var(--font-display);
+  font-size: 1.1rem;
+  font-weight: 800;
+  font-stretch: 118%;
+  letter-spacing: 0.01em;
 }
 
 h2 {
@@ -110,12 +112,12 @@ button:disabled {
 }
 
 button.primary {
-  background: #1d4f73;
-  border-color: #2b6a96;
+  background: color-mix(in srgb, var(--accent) 30%, var(--surface-solid));
+  border-color: var(--accent);
 }
 
 button.primary:hover:not(:disabled) {
-  background: #256390;
+  background: color-mix(in srgb, var(--accent) 42%, var(--surface-solid));
 }
 
 button.link {
@@ -260,8 +262,8 @@ input {
 
 .note {
   padding: 6px 8px;
-  border-left: 3px solid var(--comm-mid);
-  background: rgba(230, 159, 0, 0.08);
+  border-left: 3px solid var(--accent);
+  background: color-mix(in srgb, var(--accent) 8%, transparent);
   font-size: 0.85rem;
 }
 
@@ -485,8 +487,8 @@ input {
 }
 
 .play #play[aria-pressed="true"] {
-  background: #1d4f73;
-  border-color: #2b6a96;
+  background: color-mix(in srgb, var(--accent) 30%, var(--surface-solid));
+  border-color: var(--accent);
 }
 
 label.inline {
@@ -673,7 +675,7 @@ select {
 }
 
 #site-list li[aria-selected="true"] {
-  background: rgba(86, 180, 233, 0.16);
+  background: color-mix(in srgb, var(--accent) 16%, transparent);
 }
 
 .dot {
@@ -910,7 +912,7 @@ body:not(.mode-simple) .simple-only {
 }
 
 .segmented button[aria-pressed="true"] {
-  background: #1d4f73;
+  background: color-mix(in srgb, var(--accent) 30%, var(--surface-solid));
   font-weight: 600;
 }
 
@@ -924,8 +926,8 @@ button.small {
   margin-top: 10px;
   padding: 10px 12px;
   border-radius: 8px;
-  background: rgba(86, 180, 233, 0.08);
-  border: 1px solid rgba(86, 180, 233, 0.25);
+  background: color-mix(in srgb, var(--accent) 8%, transparent);
+  border: 1px solid color-mix(in srgb, var(--accent) 28%, transparent);
 }
 
 .plain ul {
