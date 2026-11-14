@@ -20,8 +20,8 @@ import { onLangChange, t } from "../i18n.js";
  */
 export const DEFAULT_CONFIG = {
   weightEnergy: 0.5,
-  weightTerrain: 1.0,
-  weightProtection: 0.5,
+  weightTerrain: 0.0,
+  weightProtection: 0.0,
   maxSlopeDeg: 15.0,
   windowDays: 14,
   sunMarginDeg: 0,
@@ -91,8 +91,8 @@ export class SettingsPanel {
     };
     this.config = {
       weightEnergy: number("weight", 50, 0, 100) / 100,
-      weightTerrain: number("weight-terrain", 100, 0, 200) / 100,
-      weightProtection: number("weight-protection", 50, 0, 200) / 100,
+      weightTerrain: number("weight-terrain", 0, 0, 200) / 100,
+      weightProtection: number("weight-protection", 0, 0, 200) / 100,
       maxSlopeDeg: number("max-slope", 15.0, 3.0, 25.0),
       windowDays: number("window", 14, 1, 30),
       sunMarginDeg: number("sun-margin", 0, 0, 20),
@@ -161,8 +161,8 @@ export function configParams(config) {
     earth_margin_deg: config.earthMarginDeg ?? 0,
     weight_energy: weightEnergy,
     weight_communication: Math.round((1 - weightEnergy) * 100) / 100,
-    weight_terrain: config.weightTerrain ?? 1.0,
-    weight_protection: config.weightProtection ?? 0.5,
+    weight_terrain: config.weightTerrain ?? 0.0,
+    weight_protection: config.weightProtection ?? 0.0,
     max_slope_deg: config.maxSlopeDeg ?? 15.0,
     panel: config.panel ?? "tiempo",
   };

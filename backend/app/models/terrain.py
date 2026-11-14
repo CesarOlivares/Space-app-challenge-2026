@@ -247,21 +247,29 @@ _DEM_DIR = Path(__file__).resolve().parents[2] / "data" / "dem"
 class TerrainMetrics:
     """Immutable topographical safety and elevation metrics for a lunar surface site.
 
+    Slope and roughness come only from the polar LOLA DEM (3x3 window of 120 m
+    pixels, ~360 m baseline). Outside its coverage they are None: no measured
+    data exists in the app for them.
+
     Attributes:
-        elevation_m: Altitude in meters relative to the 1,737.4 km mean lunar sphere.
-        slope_deg: Local surface slope in degrees (>= 0.0).
-        roughness_m: Local RMS surface roughness in meters (>= 0.0).
-        source: Data origin identifier ("catalog", "lola_dem", or "fallback").
-        aspect_deg: Steepest-descent slope azimuth in degrees [0.0, 360.0) clockwise from North.
+        elevation_m: Altitude in meters relative to the 1,737.4 km mean lunar sphere, or None.
+        slope_deg: Slope of the plane fitted to the 3x3 DEM window in degrees, or None.
+        roughness_m: RMS residual of that plane in meters (not boulder roughness), or None.
+        source: "lola_dem" or "unavailable".
+        aspect_deg: Steepest-descent slope azimuth in degrees [0.0, 360.0) clockwise from North, or None.
         sky_view_factor: Hemispherical sky visibility factor in [0.0, 1.0].
     """
 
-    elevation_m: float
-    slope_deg: float
-    roughness_m: float
+    elevation_m: float | None
+    slope_deg: float | None
+    roughness_m: float | None
     source: str
-    aspect_deg: float = 0.0
+    aspect_deg: float | None = None
     sky_view_factor: float = 1.0
+
+    @property
+    def available(self) -> bool:
+        return self.slope_deg is not None
 
 
 @lru_cache(maxsize=1)
@@ -319,61 +327,20 @@ def _evaluate_lola_dem(dem: PolarDEM, lat: float, lon: float) -> TerrainMetrics 
     )
 
 
-def _evaluate_fallback(lat: float, lon: float) -> TerrainMetrics:
-    """Provides a deterministic, smooth coordinate-based terrain estimate.
-
-    Used when coordinates lie outside polar DEM coverage or when the DEM file
-    is not installed locally.
-
-    Args:
-        lat: Planetocentric latitude in degrees.
-        lon: East longitude in degrees.
-
-    Returns:
-        TerrainMetrics with source="fallback".
-    """
-    lat_rad = math.radians(lat)
-    lon_rad = math.radians(lon)
-    polar_factor = abs(math.sin(lat_rad)) ** 2
-    elevation_m = -1800.0 + 3400.0 * polar_factor + 700.0 * math.cos(2.0 * lon_rad) * math.cos(lat_rad)
-    slope_deg = 2.0 + 5.5 * polar_factor + 2.5 * abs(math.sin(3.0 * lat_rad + lon_rad))
-    roughness_m = 0.5 + 0.9 * polar_factor + 0.4 * abs(math.cos(2.0 * lat_rad - lon_rad))
-    aspect_deg = math.degrees(math.atan2(math.sin(lon_rad), math.cos(lat_rad))) % 360.0
-    return TerrainMetrics(
-        elevation_m=round(elevation_m, 1),
-        slope_deg=round(max(0.0, slope_deg), 2),
-        roughness_m=round(max(0.0, roughness_m), 2),
-        source="fallback",
-        aspect_deg=round(aspect_deg, 1),
-    )
-
-
 @lru_cache(maxsize=1024)
-def _evaluate_from_coordinates(lat_deg: float, lon_deg: float) -> TerrainMetrics:
-    """Cached topographical lookup for coordinates without catalog metadata.
-
-    Args:
-        lat_deg: Rounded planetocentric latitude in degrees.
-        lon_deg: Rounded east longitude in degrees.
-
-    Returns:
-        TerrainMetrics from the LOLA DEM when covered, otherwise fallback.
-    """
+def _evaluate_from_coordinates(lat_deg: float, lon_deg: float) -> TerrainMetrics | None:
     dem = _get_polar_dem()
-    if dem is not None:
-        lola_metrics = _evaluate_lola_dem(dem, lat_deg, lon_deg)
-        if lola_metrics is not None:
-            return lola_metrics
-    return _evaluate_fallback(lat_deg, lon_deg)
+    if dem is None:
+        return None
+    return _evaluate_lola_dem(dem, lat_deg, lon_deg)
 
 
 def evaluate_terrain(lat: float, lon: float, site_data: dict | None = None) -> TerrainMetrics:
     """Evaluates lunar surface elevation, slope, and roughness for a site.
 
-    Resolution priority:
-        1. Curated catalog metadata ("catalog") when `site_data["terrain"]` exists.
-        2. South Pole LOLA DEM ("lola_dem") 3x3 plane fit when available and covered.
-        3. Deterministic smooth coordinate estimator ("fallback").
+    The polar LOLA DEM is the only source of slope and roughness. Without DEM
+    coverage the result has source="unavailable" and None slope and roughness;
+    the elevation then comes from the catalog's top-level `elevation_m`, if any.
 
     Args:
         lat: Planetocentric latitude in degrees [-90, 90].
@@ -383,40 +350,36 @@ def evaluate_terrain(lat: float, lon: float, site_data: dict | None = None) -> T
     Returns:
         Immutable TerrainMetrics instance with elevation, slope, roughness, and source.
     """
-    if site_data and isinstance(site_data.get("terrain"), dict):
-        terrain = site_data["terrain"]
-        return TerrainMetrics(
-            elevation_m=float(terrain["elevation_m"]),
-            slope_deg=max(0.0, float(terrain["slope_deg"])),
-            roughness_m=max(0.0, float(terrain["roughness_m"])),
-            source="catalog",
-            aspect_deg=float(terrain.get("aspect_deg", 0.0)) % 360.0,
-            sky_view_factor=float(terrain.get("sky_view_factor", 1.0)),
-        )
-    return _evaluate_from_coordinates(round(float(lat), 6), round(float(lon), 6))
+    metrics = _evaluate_from_coordinates(round(float(lat), 6), round(float(lon), 6))
+    if metrics is not None:
+        return metrics
+    elevation = (site_data or {}).get("elevation_m")
+    return TerrainMetrics(
+        elevation_m=float(elevation) if elevation is not None else None,
+        slope_deg=None,
+        roughness_m=None,
+        source="unavailable",
+    )
 
 
 def evaluate_terrain_patch(
     lat: float,
     lon: float,
     size: int = 25,
-    site_data: dict | None = None,
 ) -> dict:
     """Generates a local `size x size` elevation and slope grid around `(lat, lon)`.
 
-    Uses the South Pole LOLA DEM when available and covered; otherwise synthesizes
-    a deterministic local relief grid matching the site's evaluated elevation, slope,
-    and roughness so the 2.5D/3D local landing zone inspector always works.
+    Uses the South Pole LOLA DEM when available and covered; otherwise returns
+    empty grids with source "unavailable".
 
     Args:
         lat: Planetocentric latitude in degrees [-90, 90].
         lon: East longitude in degrees [-180, 180].
         size: Odd grid dimension (default 25 -> 25x25 cells at 120 m spacing).
-        site_data: Optional raw catalog dictionary for the site.
 
     Returns:
         Dictionary with `size`, `spacing_m`, `elevation_m` (2D list), `slope_deg` (2D list),
-        and `source` ("lola_dem" or "synthetic").
+        and `source` ("lola_dem" or "unavailable").
     """
     if size < 5 or size % 2 == 0:
         raise ValueError("patch size must be an odd integer >= 5")
@@ -445,26 +408,10 @@ def evaluate_terrain_patch(
                 "source": "lola_dem",
             }
 
-    metrics = evaluate_terrain(lat, lon, site_data=site_data)
-    coords = (np.arange(size, dtype=float) - half) * DEM_SCALE_M
-    gx, gy = np.meshgrid(coords, coords)
-    slope_rad = math.radians(metrics.slope_deg)
-    aspect_rad = math.radians(metrics.aspect_deg)
-    grad = math.tan(slope_rad)
-    # Tilted base plane + deterministic craterlet/undulation scaled by roughness_m.
-    base_plane = metrics.elevation_m + grad * (gx * math.sin(aspect_rad) + gy * math.cos(aspect_rad))
-    phase = math.radians(lat * 7.0 + lon * 13.0)
-    undulation = metrics.roughness_m * (
-        1.2 * np.sin(gx / 280.0 + phase) * np.cos(gy / 280.0 - phase)
-        + 0.6 * np.cos((gx + gy) / 190.0 + phase)
-    )
-    elev = base_plane + undulation
-    dz_dy_g, dz_dx_g = np.gradient(elev, DEM_SCALE_M)
-    slopes = np.degrees(np.arctan(np.hypot(dz_dx_g, dz_dy_g)))
     return {
         "size": size,
         "spacing_m": DEM_SCALE_M,
-        "elevation_m": np.round(elev, 1).tolist(),
-        "slope_deg": np.round(slopes, 2).tolist(),
-        "source": "synthetic",
+        "elevation_m": [],
+        "slope_deg": [],
+        "source": "unavailable",
     }

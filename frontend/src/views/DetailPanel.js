@@ -140,14 +140,20 @@ export class DetailPanel {
     const { site, config } = sky;
     const days = config.window_days;
     const topo = sky.topography ?? {};
-    const slopeDeg = topo.slope_deg ?? 0;
-    const roughnessM = topo.roughness_m ?? 0;
+    const slopeDeg = topo.slope_deg;
+    const roughnessM = topo.roughness_m;
+    const hasSlope = slopeDeg != null;
     const maxSlopeDeg = config.max_slope_deg ?? 15.0;
     const slopeOk = topo.slope_ok !== false;
-    const slopeTone = !slopeOk || slopeDeg > 10 ? "bad" : slopeDeg > 5 ? "warn" : "ok";
-    const slopeLabel = !slopeOk
-      ? "Excede límite"
-      : slopeDeg <= 5 ? "Segura (≤ 5°)" : slopeDeg <= 10 ? "Moderada (5–10°)" : "Pronunciada (> 10°)";
+    const slopeTone = !hasSlope ? "" : !slopeOk || slopeDeg > 10 ? "bad" : slopeDeg > 5 ? "warn" : "ok";
+    const slopeLabel = !hasSlope
+      ? "Sin dato"
+      : !slopeOk
+        ? "Excede límite"
+        : slopeDeg <= 5 ? "Segura (≤ 5°)" : slopeDeg <= 10 ? "Moderada (5–10°)" : "Pronunciada (> 10°)";
+    const ease = sky.scores.landing_ease ?? sky.scores.terrain;
+    const shield = sky.scores.asteroid_protection ?? sky.scores.asteroid;
+    const informative = "Informativo: no entra al puntaje global por defecto";
 
     this.siteId = site.id;
     this.root.querySelector(".detail-title").textContent = siteName(site);
@@ -156,7 +162,7 @@ export class DetailPanel {
     const meta = [site.mission, site.agency, site.year].filter(Boolean).join(" · ");
     const notes = siteNotes(site);
     const goBanner = sky.viable
-      ? `<div class="readiness-banner go" role="status"><span class="badge">GO</span><span>${escapeHtml(t("verdict.viableAt", { date: formatUtc(sky.date) }))} · Pendiente ${slopeDeg.toFixed(1)}° ≤ ${maxSlopeDeg.toFixed(1)}°</span></div>`
+      ? `<div class="readiness-banner go" role="status"><span class="badge">GO</span><span>${escapeHtml(t("verdict.viableAt", { date: formatUtc(sky.date) }))}${hasSlope ? ` · Pendiente ${slopeDeg.toFixed(1)}° ≤ ${maxSlopeDeg.toFixed(1)}°` : ""}</span></div>`
       : `<div class="readiness-banner nogo" role="alert"><span class="badge">NO-GO</span><span>${escapeHtml(t("verdict.notViableBecause", { reason: notViableReason(sky) }))}</span></div>`;
     const slopeWarning = !sky.viable && !slopeOk
       ? `<p class="slope-warning" role="alert">Advertencia de seguridad: la pendiente local (${slopeDeg.toFixed(1)}°) supera el límite del aterrizador (${maxSlopeDeg.toFixed(1)}°).</p>`
@@ -195,16 +201,16 @@ export class DetailPanel {
       <div class="radar-container"></div>
       ${scoreBar("detail.energy", sky.scores.energy, "detail.energyHint")}
       ${scoreBar("detail.communication", sky.scores.communication, "detail.communicationHint")}
-      ${scoreBarRaw("A) Landing Ease", sky.scores.landing_ease ?? sky.scores.terrain ?? 0, "Touchdown mechanical stability (Horn slope & roughness) + 18° EDL approach clearance")}
-      ${scoreBarRaw("B) Asteroid & Ejecta Shield", sky.scores.asteroid_protection ?? sky.scores.asteroid ?? 0, `Ballistic shielding from surrounding mountains (${(topo.solid_angle_shielded_pct ?? 0).toFixed(1)}% sky blocked, SVF ${(topo.sky_view_factor ?? 1).toFixed(3)})`)}
+      ${ease != null ? scoreBarRaw("A) Landing Ease", ease, `${informative}. Pendiente y rugosidad del DEM LOLA de 120 m + 18° de aproximación`) : ""}
+      ${shield != null ? scoreBarRaw("B) Asteroid & Ejecta Shield", shield, `${informative}. Experimental, sin fuente publicada (${(topo.solid_angle_shielded_pct ?? 0).toFixed(1)}% del cielo tapado, SVF ${(topo.sky_view_factor ?? 1).toFixed(3)})`) : ""}
       ${scoreBar("detail.total", sky.scores.total, "detail.totalHint")}
 
       <h3>Topografía local</h3>
       <div class="topography-summary">
         <div>
           <span class="muted">Pendiente</span>
-          <b>${slopeDeg.toFixed(1)}° <span class="slope-badge ${slopeTone}">${escapeHtml(slopeLabel)}</span></b>
-          <small class="muted">${slopeDeg <= 5 ? "Terreno plano (Apto HLS, CLPS y Rover)" : slopeDeg <= 10 ? "Pendiente moderada (Apto CLPS y Rover)" : slopeDeg <= 20 ? "Pendiente pronunciada (Solo Rover)" : "Escarpado (Riesgo alto)"}</small>
+          <b>${hasSlope ? `${slopeDeg.toFixed(1)}° ` : "— "}<span class="slope-badge ${slopeTone}">${escapeHtml(slopeLabel)}</span></b>
+          <small class="muted">${hasSlope ? "Plano ajustado sobre ~360 m (DEM LOLA de 120 m)" : "Solo hay datos de relieve al sur de 75° S"}</small>
         </div>
         <div>
           <span class="muted">Elevación</span>
@@ -213,12 +219,12 @@ export class DetailPanel {
         </div>
         <div>
           <span class="muted">Rugosidad RMS</span>
-          <b>${topo.roughness_m != null ? `${roughnessM.toFixed(2)} m` : "—"}</b>
-          <small class="muted">${roughnessM <= 0.8 ? "Riesgo bajo de rocas" : roughnessM <= 1.5 ? "Riesgo moderado de bloques" : "Terreno rugoso / eyecciones"}</small>
+          <b>${roughnessM != null ? `${roughnessM.toFixed(2)} m` : "—"}</b>
+          <small class="muted">${roughnessM != null ? "Desviación del plano a 120 m; no mide rocas" : "Sin dato"}</small>
         </div>
       </div>
 
-      ${patch ? `
+      ${patch?.elevation_m?.length ? `
       <h3>Zona de aterrizaje 3D (25×25)</h3>
       <div class="terrain-patch-container"></div>
       <p class="caption">Arrastra para rotar el relieve local (${patch.size}×${patch.size} celdas, ${patch.spacing_m} m/celda). Verde ≤ 5° · Ámbar 5–10° · Rojo &gt; 10°.</p>
@@ -258,7 +264,7 @@ export class DetailPanel {
       onScrub: (index) => skyView.setCursor(index),
     });
     renderRadarChart(this.body.querySelector(".radar-container"), [{ name: site.name, scores: sky.scores }]);
-    if (patch) {
+    if (patch?.elevation_m?.length) {
       renderTerrainPatch(this.body.querySelector(".terrain-patch-container"), patch, maxSlopeDeg);
     }
   }

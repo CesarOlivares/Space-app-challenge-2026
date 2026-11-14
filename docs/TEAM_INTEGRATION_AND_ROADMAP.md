@@ -50,7 +50,7 @@ All subsystems share the same lunar reference frame (**Mean Earth / Polar Axis**
 
 `compute_terrain_score(terrain, max_slope_deg=15.0)` in `backend/app/models/scoring.py` evaluates mechanical touchdown safety against lander tip-over limits (`slope_deg <= max_slope_deg`) using three spacecraft presets exposed in `frontend/src/views/SettingsPanel.js`:
 
-* **Crewed HLS (`5.0°`):** NASA HLS-RQMT-001 stability envelope.
+* **Crewed HLS (`5.0°`):** team assumption. The HLS 8°/5° values (HLS-R-0071) are vehicle tilt from vertical, not terrain slope; Wueller et al. (2026) use terrain slope ≤ 8° over 100 m.
 * **CLPS Robotic Lander (`10.0°`):** Commercial lunar lander envelope.
 * **Exploration Rover (`20.0°`):** NASA VIPER trafficability limit.
 
@@ -79,7 +79,7 @@ Current `TerrainMetrics` fields (`@dataclass(frozen=True)`):
 * `elevation_m: float` — Altitude in meters relative to the $1737.4\text{ km}$ mean lunar sphere.
 * `slope_deg: float` — Local surface slope in degrees ($\ge 0.0^\circ$).
 * `roughness_m: float` — Local RMS surface roughness in meters ($\ge 0.0\text{ m}$).
-* `source: str` — Resolution tier (`"catalog"`, `"lola_dem"`, or `"fallback"`).
+* `source: str` — `"lola_dem"` (polar DEM, south of 75° S) or `"unavailable"` (slope and roughness are `None`).
 * *(Planned Phase 1 additions)*: `aspect_deg: float` (slope azimuth direction $[0^\circ, 360^\circ)$) and `sky_view_factor: float` ($[0.0, 1.0]$).
 
 ### 3.2 Unified Scoring & Viability (`scoring.py`)
@@ -97,7 +97,7 @@ Current `SiteEvaluation` fields returned by `evaluate()`:
 
 ### 3.3 REST API JSON Contracts (`scores.py`, `sites.py`, `serializers.py`)
 
-Endpoints `GET /api/scores`, `GET /api/sites/{site_ref}/sky`, and `POST /api/compare` accept `weight_terrain` (default `1.0`) and `max_slope_deg` (default `15.0`) and return:
+Endpoints `GET /api/scores`, `GET /api/sites/{site_ref}/sky`, and `POST /api/compare` accept `weight_terrain` and `weight_protection` (default `0.0`: informative only) and `max_slope_deg` (default `15.0`) and return:
 
 ```json
 {

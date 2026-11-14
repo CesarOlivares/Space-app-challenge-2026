@@ -65,8 +65,8 @@ def _config_dependency(default_step_hours: float):
         earth_margin_deg: float = Query(0.0, ge=-5, le=30, description="Minimum Earth elevation margin in degrees"),
         weight_energy: float = Query(0.5, ge=0, le=1, description="Weight for energy score"),
         weight_communication: float = Query(0.5, ge=0, le=1, description="Weight for communication score"),
-        weight_terrain: float = Query(1.0, ge=0.0, description="Weight for landing ease score"),
-        weight_protection: float = Query(0.5, ge=0.0, description="Weight for asteroid & ejecta protection score"),
+        weight_terrain: float = Query(0.0, ge=0.0, description="Weight for landing ease score"),
+        weight_protection: float = Query(0.0, ge=0.0, description="Weight for asteroid & ejecta protection score"),
         max_slope_deg: float = Query(15.0, gt=2.0, le=45.0, description="Maximum allowable landing slope in degrees"),
         panel: Literal["tiempo", "horizontal", "vertical"] = Query(
             "tiempo", description="Solar panel orientation for energy scoring"

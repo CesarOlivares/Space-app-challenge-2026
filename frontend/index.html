@@ -135,7 +135,8 @@
                 <div class="lola-bar"></div>
                 <div class="lola-ticks"><span>−9 km</span><span>0 km</span><span>+10 km</span></div>
               </div>
-              <div id="moon-layer-bar" class="buttons layer-grid" role="group" aria-label="Surface &amp; Risk Layers">
+              <!-- Capas de riesgo ocultas: la grilla de 5° no tiene datos medidos fuera del DEM polar -->
+              <div id="moon-layer-bar" class="buttons layer-grid" role="group" aria-label="Surface &amp; Risk Layers" hidden>
                 <button type="button" data-layer="surface" class="active" aria-pressed="true">True Surface</button>
                 <button type="button" data-layer="risk-a" aria-pressed="false">Risk A: Landing Ease</button>
                 <button type="button" data-layer="risk-b" aria-pressed="false">Risk B: Asteroid Shield</button>

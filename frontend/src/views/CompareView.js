@@ -9,14 +9,15 @@ import { renderSky } from "./SkyView.js";
 
 // Comparable rows; `better` indicates whether "max" or "min" wins for highlighting.
 const untilSet = (v) => (v === Infinity ? t("compare.noSet") : formatDuration(v));
+const orDash = (show) => (v) => (v == null ? "—" : show(v));
 const ROWS = [
   { label: "compare.total", value: (r) => r.scores.total, show: (v) => Math.round(v), better: "max" },
   { label: "detail.energy", value: (r) => r.scores.energy, show: (v) => Math.round(v), better: "max" },
   { label: "detail.communication", value: (r) => r.scores.communication, show: (v) => Math.round(v), better: "max" },
-  { rawLabel: "Terreno (T)", value: (r) => r.scores.terrain ?? 0, show: (v) => Math.round(v), better: "max" },
-  { rawLabel: "Seguridad (A)", value: (r) => r.scores.asteroid ?? 0, show: (v) => Math.round(v), better: "max" },
-  { rawLabel: "Pendiente local (°)", value: (r) => r.topography?.slope_deg ?? 0, show: (v) => `${v.toFixed(1)}°`, better: "min" },
-  { rawLabel: "Elevación (m)", value: (r) => r.topography?.elevation_m ?? 0, show: (v) => `${Math.round(v)} m` },
+  { rawLabel: "Terreno (T)", value: (r) => r.scores.terrain ?? null, show: orDash((v) => Math.round(v)), better: "max" },
+  { rawLabel: "Seguridad (A)", value: (r) => r.scores.asteroid ?? null, show: orDash((v) => Math.round(v)), better: "max" },
+  { rawLabel: "Pendiente local (°)", value: (r) => r.topography?.slope_deg ?? null, show: orDash((v) => `${v.toFixed(1)}°`), better: "min" },
+  { rawLabel: "Elevación (m)", value: (r) => r.topography?.elevation_m ?? null, show: orDash((v) => `${Math.round(v)} m`) },
   { label: "compare.sunElevation", value: (r) => r.sun.elevation_deg, show: (v) => formatDegrees(v) },
   { label: "compare.lightUntilSet", value: (r) => (r.sun.visible ? r.sun.hours_until_set ?? Infinity : 0),
     show: untilSet, better: "max" },
@@ -73,7 +74,8 @@ export class CompareView {
     this.results = results;
     const best = ROWS.map((row) => {
       if (!row.better) return null;
-      const values = results.map(row.value);
+      const values = results.map(row.value).filter((v) => v != null);
+      if (values.length < 2) return null;
       const top = row.better === "min" ? Math.min(...values) : Math.max(...values);
       // No winner if all scenarios tie.
       return values.every((v) => v === top) ? null : top;
