@@ -201,11 +201,11 @@ Las tareas se hacen en orden: cada una parte de lo que dejó la anterior. Una ta
 
 | ✓ | ID | Tarea | Verificación | RF |
 |---|---|---|---|---|
-| [ ] | T-10 | `site.py`: entidad Sitio, carga del catálogo y validación de coordenadas | Pruebas de carga y de rangos inválidos pasan | RF-03, RF-04 |
-| [ ] | T-11 | `ephemeris.py`: azimut y elevación del Sol y la Tierra para un sitio y un instante | Diferencia menor a 0,5° en todos los casos de T-09 | RF-06 |
-| [ ] | T-12 | `horizon.py`: horizonte esférico con margen de elevación configurable | Pruebas de visible/no visible pasan | RF-07 |
-| [ ] | T-13 | `windows.py`: intervalos de visibilidad, horas de luz y tiempo hasta el ocaso | Los ocasos coinciden con Horizons dentro de la tolerancia del muestreo | RF-08, RF-09 |
-| [ ] | T-14 | `scoring.py`: puntajes de energía, comunicación y global, y viabilidad | Pruebas con casos extremos (siempre visible, nunca visible) pasan | RF-10 |
+| [x] | T-10 | `site.py`: entidad Sitio, carga del catálogo y validación de coordenadas | Pruebas de carga y de rangos inválidos pasan | RF-03, RF-04 |
+| [x] | T-11 | `ephemeris.py`: azimut y elevación del Sol y la Tierra para un sitio y un instante | Diferencia menor a 0,5° en todos los casos de T-09 | RF-06 |
+| [x] | T-12 | `horizon.py`: horizonte esférico con margen de elevación configurable | Pruebas de visible/no visible pasan | RF-07 |
+| [x] | T-13 | `windows.py`: intervalos de visibilidad, horas de luz y tiempo hasta el ocaso | Los ocasos coinciden con Horizons dentro de la tolerancia del muestreo | RF-08, RF-09 |
+| [x] | T-14 | `scoring.py`: puntajes de energía, comunicación y global, y viabilidad | Pruebas con casos extremos (siempre visible, nunca visible) pasan | RF-10 |
 
 ### Fase 3 — API
 
