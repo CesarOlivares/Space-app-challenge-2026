@@ -142,6 +142,11 @@ export class GlobeView {
     }
   }
 
+  /**
+   * Updates 3D surface marker radius, glow intensity, and viability color
+   * from the latest site evaluation scores.
+   * @param {Array<Object>} scores - Site score payloads from /api/scores or /api/sites/{id}/sky.
+   */
   setScores(scores) {
     for (const score of scores) {
       const marker = this.markers.get(score.site_id);

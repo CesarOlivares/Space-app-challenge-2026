@@ -96,9 +96,24 @@ export class DetailPanel {
     this.body.innerHTML = `<p class="error">${escapeHtml(message)}</p>`;
   }
 
+  /**
+   * Renders the full site detail view including viability verdict, sky panorama,
+   * timeline, Energy/Communication/Terrain score bars, and local topography summary.
+   * @param {Object} sky - Detailed evaluation payload from /api/sites/{id}/sky.
+   * @param {Object} timeline - Time-series payload from /api/sites/{id}/timeline.
+   * @param {{ inCompare: boolean, compareFull: boolean }} options
+   */
   render(sky, timeline, { inCompare, compareFull }) {
     const { site, config } = sky;
     const days = config.window_days;
+    const topo = sky.topography ?? {};
+    const slopeDeg = topo.slope_deg ?? 0;
+    const slopeOk = topo.slope_ok !== false;
+    const slopeTone = !slopeOk || slopeDeg > 10 ? "bad" : slopeDeg > 5 ? "warn" : "ok";
+    const slopeLabel = !slopeOk
+      ? "Excede límite"
+      : slopeDeg <= 5 ? "Segura (≤ 5°)" : slopeDeg <= 10 ? "Moderada (5–10°)" : "Pronunciada (> 10°)";
+
     this.siteId = site.id;
     this.root.querySelector(".detail-title").textContent = site.name;
     this.body.removeAttribute("aria-busy");
@@ -107,6 +122,9 @@ export class DetailPanel {
     const verdict = sky.viable
       ? `<p class="verdict ok">Viable al aterrizar el ${escapeHtml(formatUtc(sky.date))}</p>`
       : `<p class="verdict bad">No viable al aterrizar: ${escapeHtml(notViableReason(sky))}</p>`;
+    const slopeWarning = !sky.viable && !slopeOk
+      ? `<p class="slope-warning" role="alert">Advertencia de seguridad: la pendiente local (${slopeDeg.toFixed(1)}°) supera el límite del aterrizador (${(config.max_slope_deg ?? 15).toFixed(1)}°).</p>`
+      : "";
     const counters = ["sun", "earth"].map((body) => {
       const c = countdown(body, sky[body], days);
       return `<div class="counter ${c.tone}"><b>${escapeHtml(c.main)}</b><span>${escapeHtml(c.detail)}</span></div>`;
@@ -125,6 +143,7 @@ export class DetailPanel {
         · ${escapeHtml(PRECISION_NOTES[site.precision] ?? "")}</p>
       ${site.notes ? `<p class="note">${escapeHtml(site.notes)}</p>` : ""}
       ${verdict}
+      ${slopeWarning}
       <div class="counters">${counters}</div>
 
       <h3>Cielo desde el sitio</h3>
@@ -138,7 +157,24 @@ export class DetailPanel {
       <h3>Puntaje</h3>
       ${scoreBar("Energía", sky.scores.energy, "Luz solar durante la ventana y continuidad desde el aterrizaje")}
       ${scoreBar("Comunicación", sky.scores.communication, "Fracción de la ventana con la Tierra visible")}
-      ${scoreBar("Global", sky.scores.total, "Promedio ponderado de energía y comunicación")}
+      ${scoreBar("Terreno (T)", sky.scores.terrain ?? 0, "Seguridad topográfica según pendiente local y rugosidad")}
+      ${scoreBar("Global", sky.scores.total, "Promedio ponderado de energía, comunicación y terreno")}
+
+      <h3>Topografía local</h3>
+      <div class="topography-summary">
+        <div>
+          <span class="muted">Pendiente</span>
+          <b>${slopeDeg.toFixed(1)}° <span class="slope-badge ${slopeTone}">${escapeHtml(slopeLabel)}</span></b>
+        </div>
+        <div>
+          <span class="muted">Elevación</span>
+          <b>${topo.elevation_m != null ? `${Math.round(topo.elevation_m)} m` : "—"}</b>
+        </div>
+        <div>
+          <span class="muted">Rugosidad RMS</span>
+          <b>${topo.roughness_m != null ? `${topo.roughness_m.toFixed(2)} m` : "—"}</b>
+        </div>
+      </div>
 
       <h3>Métricas en ${days} días</h3>
       <table class="metrics">

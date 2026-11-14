@@ -68,6 +68,12 @@ function setStatus(text, kind = "") {
   statusEl.dataset.kind = kind;
 }
 
+/**
+ * Displays the hover tooltip for a lunar site marker.
+ * @param {string|null} id - Site identifier.
+ * @param {number} x - Pointer clientX in pixels.
+ * @param {number} y - Pointer clientY in pixels.
+ */
 function showTooltip(id, x, y) {
   const site = state.sites.get(id);
   const score = state.scores.get(id);
@@ -75,12 +81,15 @@ function showTooltip(id, x, y) {
     tooltip.hidden = true;
     return;
   }
-  const { total, energy, communication } = score.scores;
+  const { total, energy, communication, terrain } = score.scores;
+  const slopeDeg = score.topography?.slope_deg;
+  const terrainText = terrain != null ? ` · Terreno ${Math.round(terrain)}` : "";
+  const slopeText = slopeDeg != null ? ` · Pendiente ${slopeDeg.toFixed(1)}°` : "";
   const verdict = score.viable ? "Viable al aterrizar" : `No viable: ${notViableReason(score)}`;
   tooltip.replaceChildren(...[
     ["strong", site.name],
-    ["span", `Puntaje ${Math.round(total)} · Energía ${Math.round(energy)} · Comunicación ${Math.round(communication)}`],
-    ["span", `Sol ${score.sun.elevation_deg.toFixed(1)}° · Tierra ${score.earth.elevation_deg.toFixed(1)}°`],
+    ["span", `Puntaje ${Math.round(total)} · Energía ${Math.round(energy)} · Comunicación ${Math.round(communication)}${terrainText}`],
+    ["span", `Sol ${score.sun.elevation_deg.toFixed(1)}° · Tierra ${score.earth.elevation_deg.toFixed(1)}°${slopeText}`],
     ["em", verdict],
   ].map(([tag, text]) => Object.assign(document.createElement(tag), { textContent: text })));
   tooltip.hidden = false;

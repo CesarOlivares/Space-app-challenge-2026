@@ -5,11 +5,14 @@ import { countdown } from "./DetailPanel.js";
 import { notViableReason } from "./encoding.js";
 import { renderSky } from "./SkyView.js";
 
-// Filas comparables; `better` indica qué valor gana para resaltarlo.
+// Comparable rows; `better` indicates whether "max" or "min" wins for highlighting.
 const ROWS = [
   { label: "Puntaje global", value: (r) => r.scores.total, show: (v) => Math.round(v), better: "max" },
   { label: "Energía", value: (r) => r.scores.energy, show: (v) => Math.round(v), better: "max" },
   { label: "Comunicación", value: (r) => r.scores.communication, show: (v) => Math.round(v), better: "max" },
+  { label: "Terreno (T)", value: (r) => r.scores.terrain ?? 0, show: (v) => Math.round(v), better: "max" },
+  { label: "Pendiente local (°)", value: (r) => r.topography?.slope_deg ?? 0, show: (v) => `${v.toFixed(1)}°`, better: "min" },
+  { label: "Elevación (m)", value: (r) => r.topography?.elevation_m ?? 0, show: (v) => `${Math.round(v)} m` },
   { label: "Elevación del Sol", value: (r) => r.sun.elevation_deg, show: (v) => formatDegrees(v) },
   { label: "Horas de luz hasta el ocaso", value: (r) => (r.sun.visible ? r.sun.hours_until_set ?? Infinity : 0),
     show: (v) => (v === Infinity ? "No se pone" : formatDuration(v)), better: "max" },
@@ -50,12 +53,16 @@ export class CompareView {
     this.content.innerHTML = `<p class="muted">${escapeHtml(text)}</p>`;
   }
 
+  /**
+   * Renders side-by-side comparison table including Terrain (T), slope, and elevation.
+   * @param {Array<Object>} results - Evaluation payloads from POST /api/compare.
+   */
   render(results) {
     const best = ROWS.map((row) => {
       if (!row.better) return null;
       const values = results.map(row.value);
-      const top = Math.max(...values);
-      // Sin ganador si todos empatan.
+      const top = row.better === "min" ? Math.min(...values) : Math.max(...values);
+      // No winner if all scenarios tie.
       return values.every((v) => v === top) ? null : top;
     });
 

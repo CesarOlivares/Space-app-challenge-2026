@@ -875,3 +875,74 @@ select {
   stroke-dasharray: 2 2;
   opacity: 0.8;
 }
+
+/* Topography & Landing Safety */
+
+.slope-presets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-bottom: 8px;
+}
+
+.slope-presets button {
+  flex: 1 1 auto;
+  font-size: 0.72rem;
+  padding: 4px 6px;
+}
+
+.slope-presets button.active {
+  border-color: var(--accent, #56b4e9);
+  background: rgba(86, 180, 233, 0.16);
+}
+
+.topography-summary {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  padding: 8px 10px;
+  margin-bottom: 12px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.topography-summary > div {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 0.82rem;
+}
+
+.slope-badge {
+  display: inline-block;
+  padding: 1px 6px;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 600;
+}
+
+.slope-badge.ok {
+  background: rgba(70, 200, 120, 0.18);
+  color: #7ee2a8;
+}
+
+.slope-badge.warn {
+  background: rgba(230, 159, 0, 0.2);
+  color: #f6c25b;
+}
+
+.slope-badge.bad {
+  background: rgba(213, 94, 0, 0.22);
+  color: #ff8e72;
+}
+
+.slope-warning {
+  padding: 8px 10px;
+  margin: 8px 0;
+  border-left: 3px solid #d55e00;
+  border-radius: 4px;
+  background: rgba(213, 94, 0, 0.14);
+  color: #ffb49a;
+  font-size: 0.82rem;
+}

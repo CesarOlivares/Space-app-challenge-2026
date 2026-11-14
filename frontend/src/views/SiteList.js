@@ -58,6 +58,10 @@ export class SiteList {
     }
   }
 
+  /**
+   * Renders the sorted site ranking list with Energy (E), Communication (C),
+   * Terrain (T) badges, and local surface slope.
+   */
   #render() {
     const southOnly = this.filter.checked;
     const rows = this.scores
@@ -68,7 +72,10 @@ export class SiteList {
     this.list.innerHTML = rows.map((score) => {
       const site = this.sites.get(score.site_id);
       const { color } = encode(score);
-      const { total, energy, communication } = score.scores;
+      const { total, energy, communication, terrain } = score.scores;
+      const slopeDeg = score.topography?.slope_deg;
+      const slopeText = slopeDeg != null ? ` · ${slopeDeg.toFixed(1)}°` : "";
+      const terrainText = terrain != null ? ` · T ${Math.round(terrain)}` : "";
       const status = score.viable
         ? `<span class="status ok">Viable</span>`
         : `<span class="status bad" title="${escape(notViableReason(score))}">No viable</span>`;
@@ -77,10 +84,10 @@ export class SiteList {
           <span class="dot" style="background:${color}"></span>
           <span class="name">
             ${escape(site.name)}
-            <small>${CATEGORY_LABELS[site.category] ?? ""} · ${site.lat.toFixed(2)}°, ${site.lon.toFixed(2)}°</small>
+            <small>${CATEGORY_LABELS[site.category] ?? ""} · ${site.lat.toFixed(2)}°, ${site.lon.toFixed(2)}°${slopeText}</small>
           </span>
           <span class="score">${Math.round(total)}</span>
-          <span class="sub">E ${Math.round(energy)} · C ${Math.round(communication)} ${status}</span>
+          <span class="sub">E ${Math.round(energy)} · C ${Math.round(communication)}${terrainText} ${status}</span>
         </li>`;
     }).join("");
   }
