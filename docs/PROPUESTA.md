@@ -283,3 +283,20 @@ Las tareas se hacen en orden: cada una parte de lo que dejó la anterior. Una ta
 2. Duración por defecto de la ventana de misión (propuesta: 14 días).
 3. Codificación visual exacta de los puntos (propuesta en la sección 1).
 4. Cuántos sitios polares tendrán terreno real en la primera versión.
+
+## 10. Equipo y frentes de trabajo
+
+El equipo creció a 5 personas. Prioridades acordadas, con dónde vive cada frente en el repositorio:
+
+| Frente | Qué cubre | Dónde | Responsable |
+|---|---|---|---|
+| Backend | Modelo en Python (efemérides, horizonte, ventanas, puntaje) y API | `backend/` | Por definir |
+| Frontend | Globo 3D, paneles, cielo, línea de tiempo, comparación | `frontend/` | Por definir |
+| Modelo matemático y fuentes | Fórmulas, supuestos y fuentes que respaldan cada criterio del puntaje | `docs/modelo/` | Un integrante dedicado |
+| Diseño visual (UX) | Paleta, tipografía, íconos, ilustraciones y mockups para elevar el frontend | `UX elements/` | Por definir |
+
+Reglas de coordinación:
+
+- Si el frente de modelo cambia una fórmula o un criterio, el cambio se hace a la vez en `docs/modelo/` y en `backend/app/models/`, con sus pruebas.
+- Los elementos visuales se proponen en `UX elements/` y el frontend los adopta respetando sus restricciones (daltonismo, contraste, sin CDN).
+- Cada frente trabaja en su propia rama y fusiona a `main` cuando sus pruebas pasan.
