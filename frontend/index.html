@@ -127,6 +127,28 @@
                 </label>
                 <p class="caption" id="relief-note" hidden data-i18n="relief.missing"></p>
               </div>
+              <div class="buttons surface-toggle" role="group" aria-label="Capa del globo">
+                <button type="button" data-surface="lola" aria-pressed="false">Topografía LOLA</button>
+                <button type="button" data-surface="lroc" class="active" aria-pressed="true">Foto LROC</button>
+              </div>
+              <div id="lola-colorbar" class="lola-colorbar" hidden aria-label="Escala de elevación LOLA">
+                <div class="lola-bar"></div>
+                <div class="lola-ticks"><span>−9 km</span><span>0 km</span><span>+10 km</span></div>
+              </div>
+              <div id="moon-layer-bar" class="buttons layer-grid" role="group" aria-label="Surface &amp; Risk Layers">
+                <button type="button" data-layer="surface" class="active" aria-pressed="true">True Surface</button>
+                <button type="button" data-layer="risk-a" aria-pressed="false">Risk A: Landing Ease</button>
+                <button type="button" data-layer="risk-b" aria-pressed="false">Risk B: Asteroid Shield</button>
+                <button type="button" data-layer="safe-havens" aria-pressed="false">Safe Havens (A+B)</button>
+              </div>
+              <label class="demo-picker">Escenario demo
+                <select id="demo-scenario">
+                  <option value="">Seleccionar escenario…</option>
+                  <option value="artemis-south">Artemis III — Mons Mouton (Polo Sur)</option>
+                  <option value="im1-slope">CLPS IM-1 — Pendiente límite (11,2°)</option>
+                  <option value="apollo11-flat">Apollo 11 — Planicie segura (1,8°)</option>
+                </select>
+              </label>
             </section>
 
             <details class="custom tech-only">
@@ -136,6 +158,23 @@
                   <input name="weight" type="range" min="0" max="100" step="5" aria-describedby="weight-output" />
                 </label>
                 <output id="weight-output" class="caption"></output>
+                <label><span>Landing Ease weight (A)</span>
+                  <input name="weight-terrain" type="range" min="0" max="200" step="10" aria-describedby="weight-terrain-output" />
+                </label>
+                <output id="weight-terrain-output" class="caption"></output>
+                <label><span>Asteroid Shield weight (B)</span>
+                  <input name="weight-protection" type="range" min="0" max="200" step="10" aria-describedby="weight-protection-output" />
+                </label>
+                <output id="weight-protection-output" class="caption"></output>
+                <label><span>Pendiente máxima segura (°)</span>
+                  <input name="max-slope" type="range" min="3" max="25" step="0.5" aria-describedby="max-slope-output" />
+                </label>
+                <output id="max-slope-output" class="caption"></output>
+                <div class="slope-presets" role="group" aria-label="Perfiles de aterrizador">
+                  <button type="button" data-slope-preset="5">HLS tripulado (5°)</button>
+                  <button type="button" data-slope-preset="10">CLPS robótico (10°)</button>
+                  <button type="button" data-slope-preset="20">Rover exploración (20°)</button>
+                </div>
                 <label><span data-i18n="settings.panels">Paneles solares</span>
                   <select name="panel">
                     <option value="tiempo" data-i18n="settings.panelTime"></option>

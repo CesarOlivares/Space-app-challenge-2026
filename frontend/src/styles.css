@@ -883,6 +883,241 @@ select {
   opacity: 0.8;
 }
 
+/* Topography & Landing Safety */
+
+.slope-presets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-bottom: 8px;
+}
+
+.slope-presets button {
+  flex: 1 1 auto;
+  font-size: 0.72rem;
+  padding: 4px 6px;
+}
+
+.slope-presets button.active {
+  border-color: var(--accent, #56b4e9);
+  background: rgba(86, 180, 233, 0.16);
+}
+
+.topography-summary {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  padding: 8px 10px;
+  margin-bottom: 12px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.topography-summary > div {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 0.82rem;
+}
+
+.slope-badge {
+  display: inline-block;
+  padding: 1px 6px;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 600;
+}
+
+.slope-badge.ok {
+  background: rgba(70, 200, 120, 0.18);
+  color: #7ee2a8;
+}
+
+.slope-badge.warn {
+  background: rgba(230, 159, 0, 0.2);
+  color: #f6c25b;
+}
+
+.slope-badge.bad {
+  background: rgba(213, 94, 0, 0.22);
+  color: #ff8e72;
+}
+
+.slope-warning {
+  padding: 8px 10px;
+  margin: 8px 0;
+  border-left: 3px solid #d55e00;
+  border-radius: 4px;
+  background: rgba(213, 94, 0, 0.14);
+  color: #ffb49a;
+  font-size: 0.82rem;
+}
+
+/* Phase 2 & 3: 3D Relief, Mission Control Readiness, Radar & Patch */
+
+.relief-toggle {
+  align-items: center;
+}
+
+.relief-toggle .caption {
+  margin-right: 4px;
+}
+
+.relief-toggle button.active,
+.surface-toggle button.active {
+  border-color: var(--accent, #56b4e9);
+  background: rgba(86, 180, 233, 0.18);
+}
+
+.lola-colorbar {
+  margin: 4px 0 6px;
+}
+
+.lola-bar {
+  height: 7px;
+  border-radius: 999px;
+  background: linear-gradient(
+    to right,
+    #301278 0%,
+    #205cd6 18%,
+    #18b9d2 36%,
+    #40d26e 52%,
+    #ebdc38 68%,
+    #f07820 82%,
+    #d7261e 93%,
+    #faf5f0 100%
+  );
+  border: 1px solid rgba(255, 255, 255, 0.16);
+}
+
+.lola-ticks {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.68rem;
+  color: var(--muted);
+  margin-top: 2px;
+  font-variant-numeric: tabular-nums;
+}
+
+.demo-picker {
+  display: block;
+  margin-top: 6px;
+  font-size: 0.78rem;
+  color: var(--muted);
+}
+
+.demo-picker select {
+  width: 100%;
+  margin-top: 2px;
+}
+
+.readiness-banner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  margin: 8px 0;
+  border-radius: 6px;
+  font-size: 0.84rem;
+  font-weight: 500;
+}
+
+.readiness-banner .badge {
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 0.74rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+.readiness-banner.go {
+  background: rgba(70, 200, 120, 0.14);
+  border: 1px solid rgba(70, 200, 120, 0.38);
+  color: #9ff0bf;
+}
+
+.readiness-banner.go .badge {
+  background: #2f9e5b;
+  color: #05160c;
+}
+
+.readiness-banner.nogo {
+  background: rgba(213, 94, 0, 0.16);
+  border: 1px solid rgba(213, 94, 0, 0.45);
+  color: #ffb49a;
+}
+
+.readiness-banner.nogo .badge {
+  background: #d55e00;
+  color: #fff;
+}
+
+.radar-container,
+.compare-radar {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin: 8px 0 12px;
+}
+
+.radar-svg {
+  width: 210px;
+  height: auto;
+  overflow: visible;
+}
+
+.radar-ring {
+  fill: none;
+  stroke: rgba(255, 255, 255, 0.12);
+  stroke-width: 0.8;
+}
+
+.radar-axis {
+  stroke: rgba(255, 255, 255, 0.16);
+  stroke-width: 0.8;
+}
+
+.radar-label {
+  fill: var(--muted);
+  font-size: 8.5px;
+  font-weight: 600;
+}
+
+.radar-legend {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px;
+  margin-top: 4px;
+  font-size: 0.76rem;
+  color: var(--muted);
+}
+
+.radar-legend i {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+  background: var(--c);
+  margin-right: 4px;
+}
+
+.terrain-patch-canvas {
+  display: block;
+  width: 100%;
+  max-width: 320px;
+  height: auto;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: #060912;
+  cursor: grab;
+}
+
+.terrain-patch-canvas:active {
+  cursor: grabbing;
+}
+
 /* Modo simple y modo técnico */
 
 body.mode-simple .tech-only,
@@ -1214,4 +1449,18 @@ a.btn {
   font-family: var(--font-mono);
   font-size: var(--fs-small);
   text-align: right;
+}
+
+/* Surface & Risk Layer grid inside the config drawer */
+.layer-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.layer-grid button[aria-pressed="true"] {
+  background: rgba(34, 211, 238, 0.18);
+  color: #f8fafc;
+  border-color: rgba(34, 211, 238, 0.65);
 }

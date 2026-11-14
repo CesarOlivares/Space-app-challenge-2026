@@ -11,6 +11,7 @@ from app.models.ephemeris import BODIES, Ephemeris
 from app.models.horizon import get_dem, horizon_for
 from app.models.scoring import ScoringConfig, best_dates, evaluate
 from app.models.site import Site
+from app.models.terrain import evaluate_terrain_patch
 from app.models.windows import visibility_intervals
 
 router = APIRouter(prefix="/api/sites", tags=["sitios"])
@@ -20,7 +21,7 @@ MAX_TIMELINE_POINTS = 5000
 
 @router.get("")
 def list_sites(catalog: dict[str, Site] = Depends(get_catalog)) -> dict:
-    """Catálogo de sitios curados."""
+    """Returns the curated catalog of lunar landing sites with topography metadata."""
     return {"sites": [site_json(site) for site in catalog.values()]}
 
 
@@ -32,9 +33,23 @@ def sky(
     ephemeris: Ephemeris = Depends(get_ephemeris),
     catalog: dict[str, Site] = Depends(get_catalog),
 ) -> dict:
-    """Sol y Tierra sobre el horizonte del sitio, tiempos hasta el ocaso y métricas de la ventana."""
+    """Returns Sun/Earth visibility, horizon profile, terrain safety score, and topography metrics for a site."""
     site = resolve_site(site_ref, catalog)
     return evaluation_json(evaluate(ephemeris, site, date, config), detailed=True)
+
+
+@router.get("/{site_ref}/patch")
+def terrain_patch(
+    site_ref: str,
+    size: int = Query(25, ge=5, le=51, description="Odd grid dimension (e.g. 25 for 25x25 cells)"),
+    catalog: dict[str, Site] = Depends(get_catalog),
+) -> dict:
+    """Returns a local NxN elevation and slope grid around the landing site for 3D relief inspection."""
+    if size % 2 == 0:
+        raise ValueError("size must be an odd integer")
+    site = resolve_site(site_ref, catalog)
+    patch = evaluate_terrain_patch(site.lat, site.lon, size=size)
+    return {"site_id": site.id, **patch}
 
 
 @router.get("/{site_ref}/timeline")
