@@ -21,6 +21,7 @@ import { onLangChange, t } from "../i18n.js";
 export const DEFAULT_CONFIG = {
   weightEnergy: 0.5,
   weightTerrain: 1.0,
+  weightProtection: 0.5,
   maxSlopeDeg: 15.0,
   windowDays: 14,
   sunMarginDeg: 0,
@@ -40,6 +41,7 @@ export class SettingsPanel {
     this.form = form;
     this.weightOutput = form.querySelector("#weight-output");
     this.terrainWeightOutput = form.querySelector("#weight-terrain-output");
+    this.protectionWeightOutput = form.querySelector("#weight-protection-output");
     this.maxSlopeOutput = form.querySelector("#max-slope-output");
     this.presetButtons = [...form.querySelectorAll("[data-slope-preset]")];
     this.config = { ...DEFAULT_CONFIG };
@@ -90,6 +92,7 @@ export class SettingsPanel {
     this.config = {
       weightEnergy: number("weight", 50, 0, 100) / 100,
       weightTerrain: number("weight-terrain", 100, 0, 200) / 100,
+      weightProtection: number("weight-protection", 50, 0, 200) / 100,
       maxSlopeDeg: number("max-slope", 15.0, 3.0, 25.0),
       windowDays: number("window", 14, 1, 30),
       sunMarginDeg: number("sun-margin", 0, 0, 20),
@@ -109,6 +112,9 @@ export class SettingsPanel {
     if (this.form.elements["weight-terrain"]) {
       this.form.elements["weight-terrain"].value = Math.round(this.config.weightTerrain * 100);
     }
+    if (this.form.elements["weight-protection"]) {
+      this.form.elements["weight-protection"].value = Math.round(this.config.weightProtection * 100);
+    }
     if (this.form.elements["max-slope"]) {
       this.form.elements["max-slope"].value = this.config.maxSlopeDeg;
     }
@@ -126,7 +132,10 @@ export class SettingsPanel {
     const e = Math.round(this.config.weightEnergy * 100);
     this.weightOutput.textContent = t("settings.weights", { energy: e, communication: 100 - e });
     if (this.terrainWeightOutput) {
-      this.terrainWeightOutput.textContent = `Peso terreno ${this.config.weightTerrain.toFixed(1)}×`;
+      this.terrainWeightOutput.textContent = `Landing Ease weight ${this.config.weightTerrain.toFixed(1)}×`;
+    }
+    if (this.protectionWeightOutput) {
+      this.protectionWeightOutput.textContent = `Asteroid Shield weight ${this.config.weightProtection.toFixed(1)}×`;
     }
     if (this.maxSlopeOutput) {
       this.maxSlopeOutput.textContent = `Límite de pendiente: ${this.config.maxSlopeDeg.toFixed(1)}°`;
@@ -153,6 +162,7 @@ export function configParams(config) {
     weight_energy: weightEnergy,
     weight_communication: Math.round((1 - weightEnergy) * 100) / 100,
     weight_terrain: config.weightTerrain ?? 1.0,
+    weight_protection: config.weightProtection ?? 0.5,
     max_slope_deg: config.maxSlopeDeg ?? 15.0,
     panel: config.panel ?? "tiempo",
   };

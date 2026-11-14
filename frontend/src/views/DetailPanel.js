@@ -195,8 +195,8 @@ export class DetailPanel {
       <div class="radar-container"></div>
       ${scoreBar("detail.energy", sky.scores.energy, "detail.energyHint")}
       ${scoreBar("detail.communication", sky.scores.communication, "detail.communicationHint")}
-      ${scoreBarRaw("Terreno (T)", sky.scores.terrain ?? 0, "Seguridad topográfica según pendiente local y rugosidad")}
-      ${scoreBarRaw("Seguridad (A)", sky.scores.asteroid ?? 0, "Blindaje balístico del horizonte (SVF) y baja rugosidad de rocas")}
+      ${scoreBarRaw("A) Landing Ease", sky.scores.landing_ease ?? sky.scores.terrain ?? 0, "Touchdown mechanical stability (Horn slope & roughness) + 18° EDL approach clearance")}
+      ${scoreBarRaw("B) Asteroid & Ejecta Shield", sky.scores.asteroid_protection ?? sky.scores.asteroid ?? 0, `Ballistic shielding from surrounding mountains (${(topo.solid_angle_shielded_pct ?? 0).toFixed(1)}% sky blocked, SVF ${(topo.sky_view_factor ?? 1).toFixed(3)})`)}
       ${scoreBar("detail.total", sky.scores.total, "detail.totalHint")}
 
       <h3>Topografía local</h3>
