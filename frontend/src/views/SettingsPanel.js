@@ -25,7 +25,7 @@ export const DEFAULT_CONFIG = {
   maxSlopeDeg: 15.0,
   windowDays: 14,
   sunMarginDeg: 0,
-  earthMarginDeg: 0,
+  earthMarginDeg: 2,
   panel: "tiempo",
 };
 
@@ -96,7 +96,7 @@ export class SettingsPanel {
       maxSlopeDeg: number("max-slope", 15.0, 3.0, 25.0),
       windowDays: number("window", 14, 1, 30),
       sunMarginDeg: number("sun-margin", 0, 0, 20),
-      earthMarginDeg: number("earth-margin", 0, 0, 20),
+      earthMarginDeg: number("earth-margin", 2, 0, 20),
       panel: data.get("panel") ?? "tiempo",
     };
     this.#showOutputs();
@@ -158,7 +158,7 @@ export function configParams(config) {
   return {
     window_days: config.windowDays ?? 14,
     sun_margin_deg: config.sunMarginDeg ?? 0,
-    earth_margin_deg: config.earthMarginDeg ?? 0,
+    earth_margin_deg: config.earthMarginDeg ?? 2,
     weight_energy: weightEnergy,
     weight_communication: Math.round((1 - weightEnergy) * 100) / 100,
     weight_terrain: config.weightTerrain ?? 1.0,

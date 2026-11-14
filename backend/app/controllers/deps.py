@@ -8,7 +8,7 @@ from typing import Literal
 from fastapi import HTTPException, Query, Request
 
 from app.models.ephemeris import Ephemeris, as_utc
-from app.models.scoring import ScoringConfig
+from app.models.scoring import EARTH_MARGIN_DEG, ScoringConfig
 from app.models.site import Site, custom_site
 from app.models.terrain import evaluate_terrain
 
@@ -62,7 +62,7 @@ def _config_dependency(default_step_hours: float):
         window_days: float = Query(14.0, gt=0, le=60, description="Mission window duration in days"),
         step_hours: float = Query(default_step_hours, ge=0.25, le=24, description="Sampling step in hours"),
         sun_margin_deg: float = Query(0.0, ge=-5, le=30, description="Minimum solar elevation margin in degrees"),
-        earth_margin_deg: float = Query(0.0, ge=-5, le=30, description="Minimum Earth elevation margin in degrees"),
+        earth_margin_deg: float = Query(EARTH_MARGIN_DEG, ge=-5, le=30, description="Minimum Earth elevation margin in degrees"),
         weight_energy: float = Query(0.5, ge=0, le=1, description="Weight for energy score"),
         weight_communication: float = Query(0.5, ge=0, le=1, description="Weight for communication score"),
         weight_terrain: float = Query(1.0, ge=0.0, description="Weight for landing ease score"),
