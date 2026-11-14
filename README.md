@@ -10,6 +10,7 @@ Lunar Site Explorer: un globo lunar 3D para comparar sitios y fechas de aterriza
 - [Rediseño minimalista: portada, vista general mínima y comparación por selección](docs/REDISENO-MINIMALISTA.md)
 - [Cómo integrar la topografía](docs/INTEGRAR-TOPOGRAFIA.md)
 - [UX elements: elementos visuales para el frontend](UX%20elements/README.md)
+- [Guía de despliegue en producción](docs/DESPLIEGUE.md)
 
 ## Requisitos
 
