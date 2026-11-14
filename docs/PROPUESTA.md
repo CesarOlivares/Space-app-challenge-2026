@@ -115,6 +115,7 @@ Python porque las bibliotecas de efemérides precisas (Skyfield, SPICE) están a
 | `GET /api/sites/{id}/sky?date=…` | Posición actual del Sol y la Tierra, tiempos hasta el ocaso |
 | `GET /api/sites/{id}/timeline?date=…&days=…` | Serie temporal de elevaciones y ventanas |
 | `POST /api/compare` | Métricas de varios pares sitio-fecha |
+| `GET /api/illumination?date=…` | Puntos subsolar y subterrestre: luz y vista del globo |
 
 Los sitios personalizados se envían como `lat,lon` en lugar de `id`. Formato completo de las respuestas en [API.md](API.md).
 
@@ -221,11 +222,11 @@ Las tareas se hacen en orden: cada una parte de lo que dejó la anterior. Una ta
 
 | ✓ | ID | Tarea | Verificación | RF |
 |---|---|---|---|---|
-| [ ] | T-20 | `GlobeView`: esfera con textura, rotación, zoom y atajo al polo sur | El globo se mueve fluido (RNF-02) | RF-01 |
-| [ ] | T-21 | Dibujar un punto por sitio en su latitud y longitud | Los sitios Apolo caen donde corresponde sobre la textura | RF-02 |
-| [ ] | T-22 | Aplicar tamaño, brillo y color según los puntajes; gris si no es viable | Dos sitios con puntajes distintos se distinguen a simple vista | RF-02 |
-| [ ] | T-23 | `Controls`: selector de fecha y hora que recarga los puntajes | Cambiar la fecha cambia los puntos | RF-05 |
-| [ ] | T-24 | Orientar la luz del globo según la posición real del Sol | El terminador coincide con QuickMap para la misma fecha | RF-13 |
+| [x] | T-20 | `GlobeView`: esfera con textura, rotación, zoom y atajo al polo sur | El globo se mueve fluido (RNF-02) | RF-01 |
+| [x] | T-21 | Dibujar un punto por sitio en su latitud y longitud | Los sitios Apolo caen donde corresponde sobre la textura | RF-02 |
+| [x] | T-22 | Aplicar tamaño, brillo y color según los puntajes; gris si no es viable | Dos sitios con puntajes distintos se distinguen a simple vista | RF-02 |
+| [x] | T-23 | `Controls`: selector de fecha y hora que recarga los puntajes | Cambiar la fecha cambia los puntos | RF-05 |
+| [x] | T-24 | Orientar la luz del globo según la posición real del Sol | El terminador coincide con QuickMap para la misma fecha | RF-13 |
 
 ### Fase 5 — Detalle y comparación
 

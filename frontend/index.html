@@ -15,11 +15,54 @@
     </script>
   </head>
   <body>
-    <canvas id="globe"></canvas>
-    <header>
+    <canvas id="globe" aria-label="Globo lunar con los sitios de aterrizaje"></canvas>
+
+    <header id="controls" class="panel">
       <h1>Lunar Site Explorer</h1>
-      <p id="backend-status">Backend: consultando…</p>
+      <label for="date-input">Fecha de aterrizaje (UTC)</label>
+      <input id="date-input" type="datetime-local" step="3600" />
+      <div class="buttons" role="group" aria-label="Mover la fecha">
+        <button type="button" data-shift-days="-7">−7 d</button>
+        <button type="button" data-shift-days="-1">−1 d</button>
+        <button type="button" id="date-now">Ahora</button>
+        <button type="button" data-shift-days="1">+1 d</button>
+        <button type="button" data-shift-days="7">+7 d</button>
+      </div>
+      <div class="buttons" role="group" aria-label="Vista">
+        <button type="button" data-view="near-side">Vista desde la Tierra</button>
+        <button type="button" data-view="south-pole">Polo sur</button>
+      </div>
+      <p id="status" role="status">Conectando…</p>
     </header>
+
+    <aside id="sidebar" class="panel">
+      <section class="legend" aria-label="Cómo leer los puntos">
+        <h2>Cómo leer los puntos</h2>
+        <dl>
+          <dt><span class="legend-size"><i></i><i></i><i></i></span></dt>
+          <dd><b>Tamaño</b>: puntaje global</dd>
+          <dt><span class="legend-glow"></span></dt>
+          <dd><b>Brillo</b>: energía (luz solar en 14 días)</dd>
+          <dt><span class="swatch" style="--c: var(--comm-high)"></span></dt>
+          <dd><b>Celeste</b>: Tierra visible casi siempre (≥ 95 %)</dd>
+          <dt><span class="swatch" style="--c: var(--comm-mid)"></span></dt>
+          <dd><b>Naranja</b>: Tierra visible parte del tiempo</dd>
+          <dt><span class="swatch" style="--c: var(--comm-low)"></span></dt>
+          <dd><b>Bermellón</b>: Tierra visible menos de la mitad</dd>
+          <dt><span class="swatch" style="--c: var(--off)"></span></dt>
+          <dd><b>Gris</b>: no viable, Sol o Tierra bajo el horizonte al aterrizar</dd>
+        </dl>
+      </section>
+      <div class="list-header">
+        <h2>Sitios</h2>
+        <label><input type="checkbox" id="filter-south-pole" /> Solo polo sur</label>
+      </div>
+      <p class="list-hint">Puntaje global · E energía · C comunicación (0–100)</p>
+      <ol id="site-list"></ol>
+    </aside>
+
+    <div id="tooltip" role="tooltip" hidden></div>
+
     <script type="module" src="src/main.js"></script>
   </body>
 </html>

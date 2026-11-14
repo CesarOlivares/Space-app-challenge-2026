@@ -49,6 +49,35 @@ def test_fecha_sin_zona_horaria_es_utc(ephemeris, catalog):
     assert naive == aware
 
 
+@pytest.mark.parametrize("body", ["sun", "earth"])
+def test_subpunto_tiene_al_cuerpo_en_el_cenit(ephemeris, body):
+    when = datetime.fromisoformat("2026-12-15T00:00:00+00:00")
+    lat, lon = ephemeris.subpoint(body, when)
+    _, elevation = ephemeris.position(Site(id="sub", name="sub", lat=lat, lon=lon), body, when)
+    assert elevation > 89.9
+
+
+def test_subpunto_terrestre_cerca_del_centro_de_la_cara_visible(ephemeris):
+    # La libración mueve el punto subterrestre a lo sumo ~8° del origen.
+    lat, lon = ephemeris.subpoint("earth", datetime(2026, 12, 15))
+    assert abs(lat) < 8 and abs(lon) < 9
+
+
+@pytest.mark.parametrize("utc, separation", [
+    ("2026-11-09T07:03:00+00:00", 180),  # luna nueva
+    ("2026-11-17T11:48:00+00:00", 90),   # cuarto creciente
+    ("2026-11-24T14:53:00+00:00", 0),    # luna llena
+    ("2026-12-01T06:08:00+00:00", 90),   # cuarto menguante
+])
+def test_terminador_coincide_con_las_fases_lunares(ephemeris, utc, separation):
+    """Diferencia de longitud entre el punto subsolar y el subterrestre en fechas de fases publicadas."""
+    when = datetime.fromisoformat(utc)
+    _, sun_lon = ephemeris.subpoint("sun", when)
+    _, earth_lon = ephemeris.subpoint("earth", when)
+    difference = abs((sun_lon - earth_lon + 180) % 360 - 180)
+    assert difference == pytest.approx(separation, abs=1)
+
+
 def test_cuerpo_desconocido(ephemeris, catalog):
     with pytest.raises(ValueError):
         ephemeris.position(catalog["apollo-11"], "mars", datetime(2026, 12, 1))

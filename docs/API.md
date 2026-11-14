@@ -92,6 +92,20 @@ Puntajes de todo el catálogo para una fecha; alimenta el globo. Versión compac
 }
 ```
 
+### `GET /api/illumination?date=…`
+
+Puntos subsolar y subterrestre: el punto de la Luna que tiene al Sol en el cenit, que ubica el terminador, y el que tiene a la Tierra en el cenit, que refleja la libración. El globo los usa para orientar la luz y la vista desde la Tierra.
+
+`GET /api/illumination?date=2026-11-24T14:53:00Z` (luna llena: ambos puntos tienen la misma longitud)
+
+```json
+{
+  "date": "2026-11-24T14:53:00Z",
+  "subsolar": {"lat": -1.5208, "lon": -2.4756},
+  "subearth": {"lat": -6.467, "lon": -2.4706}
+}
+```
+
 ### `GET /api/sites/{sitio}/sky?date=…`
 
 Detalle de un sitio: posición del Sol y la Tierra al aterrizar, tiempos hasta el ocaso y la salida, ventanas y métricas de toda la ventana de misión.

@@ -5,7 +5,7 @@ from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 
-from app.controllers import health, scores, sites
+from app.controllers import health, illumination, scores, sites
 from app.models.ephemeris import Ephemeris
 from app.models.site import load_catalog
 
@@ -34,6 +34,7 @@ async def invalid_input(request: Request, error: ValueError) -> JSONResponse:
 app.include_router(health.router)
 app.include_router(sites.router)
 app.include_router(scores.router)
+app.include_router(illumination.router)
 
 # Se monta al final para que las rutas de la API tengan prioridad.
 app.mount("/", StaticFiles(directory=FRONTEND_DIR, html=True), name="frontend")

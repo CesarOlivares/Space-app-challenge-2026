@@ -70,6 +70,13 @@ def test_timeline(client):
     assert data["times"][0] == DATE
 
 
+def test_illumination(client):
+    data = client.get("/api/illumination", params={"date": DATE}).json()
+    assert data["date"] == DATE
+    assert -2 < data["subsolar"]["lat"] < 2  # el eje lunar está inclinado solo 1,5° respecto de la eclíptica
+    assert {"lat", "lon"} == data["subearth"].keys()
+
+
 def test_compare(client):
     body = {"scenarios": [{"site": "im-2", "date": DATE},
                           {"site": "-89.5,120", "date": "2027-01-10T00:00:00Z"}]}

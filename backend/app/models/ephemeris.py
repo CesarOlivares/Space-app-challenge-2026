@@ -117,6 +117,18 @@ class Ephemeris:
         track = self.track(site, body, when, 0.0, 1.0)
         return float(track.azimuth[0]), float(track.elevation[0])
 
+    def subpoint(self, body: str, when: datetime) -> tuple[float, float]:
+        """(lat, lon) del punto de la Luna que tiene a `body` en el cenit.
+
+        El punto subsolar ubica el terminador; el punto subterrestre muestra la libración.
+        """
+        if body not in BODIES:
+            raise ValueError(f"cuerpo desconocido: {body}; opciones: {', '.join(BODIES)}")
+        moon, bodies, rotation = self._geometry(as_utc(when), 1, 1.0)
+        direction = rotation[:, :, 0] @ (bodies[body][:, 0] - moon[:, 0])
+        x, y, z = direction / np.linalg.norm(direction)
+        return float(np.degrees(np.arcsin(z))), float(np.degrees(np.arctan2(y, x)))
+
     @lru_cache(maxsize=64)
     def _geometry(self, start: datetime, count: int, step_h: float):
         """Parte independiente del sitio; se reutiliza para todos los sitios de una fecha."""
