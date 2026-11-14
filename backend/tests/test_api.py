@@ -30,7 +30,7 @@ def test_scores_de_todo_el_catalogo(client):
     assert len(data["scores"]) == 22
     first = data["scores"][0]
     assert set(first) == {"site_id", "date", "viable", "scores", "topography", "sun", "earth"}
-    assert {"energy", "communication", "terrain", "asteroid", "total"} == set(first["scores"])
+    assert {"energy", "communication", "terrain", "asteroid", "total", "landing_ease", "asteroid_protection"} == set(first["scores"])
     assert set(first["sun"]) == {"azimuth_deg", "elevation_deg", "visible"}
 
 
@@ -120,7 +120,7 @@ def test_compare(client):
     ("get", "/api/sites/95,0/sky", {}, 422),
     ("get", "/api/sites/0,abc/sky", {}, 404),
     ("get", "/api/scores", {"params": {"date": "ayer"}}, 422),
-    ("get", "/api/scores", {"params": {"weight_energy": 0, "weight_communication": 0, "weight_terrain": 0}}, 422),
+    ("get", "/api/scores", {"params": {"weight_energy": 0, "weight_communication": 0, "weight_terrain": 0, "weight_protection": 0}}, 422),
     ("get", "/api/scores", {"params": {"window_days": 100}}, 422),
     ("get", "/api/sites/im-2/timeline", {"params": {"days": 60, "step_hours": 0.25}}, 422),
     ("post", "/api/compare", {"json": {"scenarios": [{"site": "im-2", "date": DATE}]}}, 422),
