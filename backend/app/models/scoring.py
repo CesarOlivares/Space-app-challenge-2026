@@ -10,7 +10,11 @@ Se muestrea la posición del Sol y la Tierra durante la ventana de misión
     "horizontal"  promedio de sen(elevación): paneles planos; premia el Sol alto
     "vertical"    promedio de cos(elevación): paneles verticales que giran hacia
                   el Sol, como en los módulos polares; premia el Sol bajo
-- Comunicación C = fracción de la ventana con la Tierra visible
+- Comunicación C = 50 % fracción de la ventana con la Tierra visible
+                  + 50 % horas continuas de contacto desde el aterrizaje / horas de la ventana
+  La Tierra cuenta como visible con su centro a `earth_margin_deg` sobre el
+  horizonte (2° por defecto: margen de antena de NASA/TM-20220013310 §5.8.3,
+  que además cubre el disco completo, de ~0,95° de radio).
 - Global P = (wE·E + wC·C) / (wE + wC)
 
 Todos los puntajes van de 0 a 100. El sitio es viable solo si al aterrizar
@@ -39,6 +43,7 @@ from app.models.windows import (
 
 
 PANELS = ("tiempo", "horizontal", "vertical")
+EARTH_MARGIN_DEG = 2.0
 
 
 @dataclass(frozen=True)
@@ -60,7 +65,7 @@ class ScoringConfig:
     window_days: float = 14.0
     step_hours: float = 2.0
     sun_margin_deg: float = 0.0
-    earth_margin_deg: float = 0.0
+    earth_margin_deg: float = EARTH_MARGIN_DEG
     weight_energy: float = 0.5
     weight_communication: float = 0.5
     weight_terrain: float = 1.0
@@ -154,8 +159,18 @@ def solar_use(track: Track, clearance: np.ndarray, panel: str) -> float:
     return float(np.mean(np.where(visible, factor, 0.0)))
 
 
-def communication_score(earth_fraction: float) -> float:
-    return 100.0 * earth_fraction
+def communication_score(earth_fraction: float, continuous_hours: float, window_hours: float) -> float:
+    continuity = min(1.0, continuous_hours / window_hours)
+    return 100.0 * (0.5 * earth_fraction + 0.5 * continuity)
+
+
+def continuous_hours(body: BodyMetrics, window_hours: float) -> float:
+    """Horas seguidas con el cuerpo visible desde el aterrizaje; la ventana entera si no se pone."""
+    if not body.visible:
+        return 0.0
+    if body.hours_until_set is None:
+        return window_hours
+    return body.hours_until_set
 
 
 def compute_landing_ease_score(
@@ -377,21 +392,13 @@ def evaluate(
     sun = body_metrics(sun_track, config.sun_margin_deg, site, window_h)
     earth = body_metrics(earth_track, config.earth_margin_deg, site, window_h)
 
-    # Continuous sunlight hours from landing; full window if the Sun never sets.
-    if not sun.visible:
-        continuous = 0.0
-    elif sun.hours_until_set is None:
-        continuous = window_h
-    else:
-        continuous = sun.hours_until_set
-
     if config.panel == "tiempo":
         use = sun.visible_fraction  # exact, with interpolated crossings
     else:
         horizon = horizon_for(site, config.sun_margin_deg)
         use = solar_use(sun_track, horizon.clearance(sun_track.azimuth, sun_track.elevation), config.panel)
-    energy = energy_score(use, continuous, window_h)
-    communication = communication_score(earth.visible_fraction)
+    energy = energy_score(use, continuous_hours(sun, window_h), window_h)
+    communication = communication_score(earth.visible_fraction, continuous_hours(earth, window_h), window_h)
 
     resolved_terrain = terrain or getattr(site, "terrain", None) or evaluate_terrain(site.lat, site.lon)
     base_horizon = horizon_for(site, 0.0)

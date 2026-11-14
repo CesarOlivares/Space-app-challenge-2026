@@ -14,9 +14,12 @@ Todas las comprobaciones están automatizadas en `backend/tests/` y corren con `
 | Visibilidad media de la Tierra (18,6 años) | Capa `AVGVISIB_EARTH` del producto 69 de PGDA (NASA Goddard), 340 puntos al sur de 80° S | Correlación 0,991, error medio 1,0 punto porcentual (observador a 0 m) | [validacion-motor.md](investigacion/validacion-motor.md) |
 | Visibilidad media del Sol (18,6 años) | Capa `AVGVISIB` del producto 69 de PGDA, mismos 340 puntos | Correlación 0,993, error medio 1,2 puntos | [validacion-motor.md](investigacion/validacion-motor.md) |
 | Luz y sombra día a día en 2027 | Simulaciones NASA SVS 5027 y 4930 (relieve LOLA), 140 y 41 sitios | Coincidencia 89 % y 84 %; 93 % y 91 % con el Sol a más de 1° del horizonte | [validacion-motor.md](investigacion/validacion-motor.md) |
+| Visibilidad de la Tierra con relieve, promedio de 18,6 años (2009–2027) | Mapa oficial NASA PGDA `AVGVISIB_75S_120M_201608_EARTH` (Mazarico et al. 2011), misma grilla que nuestro DEM, criterio «asoma cualquier parte del disco» | 6 sitios polares, diferencia máxima 0,022 (tolerancia 0,03): im-2 0,933 vs 0,931; mons-mouton 0,622 vs 0,621; shackleton-ridge 0,520 vs 0,519; change-7 0,608 vs 0,586; im-1 y mons-malapert 1 vs 1 | `test_pgda_earth.py` |
 | Catálogo | Coordenadas dibujadas sobre la textura LROC: cada sitio cae en su accidente geográfico | Revisión visual (fase 1) | — |
 
-Los casos de Horizons se regeneran con `backend/scripts/fetch_horizons_cases.py`.
+Los casos de Horizons se regeneran con `backend/scripts/fetch_horizons_cases.py` y los de PGDA con `backend/scripts/fetch_pgda_earth_visibility.py` (lee solo los píxeles de cada sitio, sin bajar el mapa de 116 MB).
+
+El mapa de PGDA también muestra la sensibilidad al lugar exacto: en los 3×3 píxeles (360 m) alrededor de shackleton-ridge la visibilidad va de 0 a 0,54, y en mons-malapert de 0,60 a 1.
 
 ## Pendiente
 

@@ -9,7 +9,7 @@ from app.controllers.deps import coarse_config, fine_config, get_catalog, get_ep
 from app.controllers.serializers import at_offset, cutout_json, evaluation_json, interval_json, iso, site_json
 from app.models.ephemeris import BODIES, Ephemeris
 from app.models.horizon import get_dem, horizon_for
-from app.models.scoring import ScoringConfig, best_dates, evaluate
+from app.models.scoring import EARTH_MARGIN_DEG, ScoringConfig, best_dates, evaluate
 from app.models.site import Site
 from app.models.terrain import evaluate_terrain_patch
 from app.models.windows import visibility_intervals
@@ -59,7 +59,7 @@ def timeline(
     days: float = Query(14.0, gt=0, le=60, description="Duración de la serie"),
     step_hours: float = Query(1.0, ge=0.25, le=24, description="Paso entre muestras"),
     sun_margin_deg: float = Query(0.0, ge=-5, le=30),
-    earth_margin_deg: float = Query(0.0, ge=-5, le=30),
+    earth_margin_deg: float = Query(EARTH_MARGIN_DEG, ge=-5, le=30),
     ephemeris: Ephemeris = Depends(get_ephemeris),
     catalog: dict[str, Site] = Depends(get_catalog),
 ) -> dict:

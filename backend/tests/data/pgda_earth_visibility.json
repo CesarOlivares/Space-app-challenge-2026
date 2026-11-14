@@ -1,0 +1,79 @@
+{
+  "source": "NASA PGDA AVGVISIB_75S_120M_201608_EARTH (Mazarico et al. 2011), https://imbrium.mit.edu/EXTRAS/ILLUMINATION/IMG/AVGVISIB_75S_120M_201608_EARTH.IMG",
+  "definition": "Fracción del tiempo con alguna parte del disco terrestre visible",
+  "neighborhood_px": 3,
+  "cases": [
+    {
+      "site_id": "im-1",
+      "lat": -80.13,
+      "lon": 1.44,
+      "pixel": [
+        1312,
+        3874
+      ],
+      "visibility": 1.0,
+      "neighborhood_min": 1.0,
+      "neighborhood_max": 1.0
+    },
+    {
+      "site_id": "im-2",
+      "lat": -84.7906,
+      "lon": 29.1957,
+      "pixel": [
+        2662,
+        4454
+      ],
+      "visibility": 0.9307,
+      "neighborhood_min": 0.794,
+      "neighborhood_max": 0.9336
+    },
+    {
+      "site_id": "mons-mouton",
+      "lat": -84.6,
+      "lon": 31.0,
+      "pixel": [
+        2641,
+        4515
+      ],
+      "visibility": 0.6209,
+      "neighborhood_min": 0.5931,
+      "neighborhood_max": 0.638
+    },
+    {
+      "site_id": "mons-malapert",
+      "lat": -85.98,
+      "lon": -1.67,
+      "pixel": [
+        2796,
+        3782
+      ],
+      "visibility": 1.0,
+      "neighborhood_min": 0.5965,
+      "neighborhood_max": 1.0
+    },
+    {
+      "site_id": "shackleton-ridge",
+      "lat": -89.684,
+      "lon": -163.261,
+      "pixel": [
+        3888,
+        3789
+      ],
+      "visibility": 0.5192,
+      "neighborhood_min": 0.0,
+      "neighborhood_max": 0.5384
+    },
+    {
+      "site_id": "change-7",
+      "lat": -88.8,
+      "lon": 123.4,
+      "pixel": [
+        3978,
+        4065
+      ],
+      "visibility": 0.5858,
+      "neighborhood_min": 0.518,
+      "neighborhood_max": 0.6062
+    }
+  ]
+}

@@ -20,8 +20,14 @@ def test_extremos_de_energia():
 
 
 def test_extremos_de_comunicacion():
-    assert communication_score(1.0) == 100
-    assert communication_score(0.0) == 0
+    assert communication_score(1.0, 336, 336) == 100
+    assert communication_score(0.0, 0, 336) == 0
+    # Tierra visible la mitad de la ventana, pero se pone justo al aterrizar.
+    assert communication_score(0.5, 0, 336) == 25
+
+
+def test_margen_de_la_tierra_por_defecto_es_de_antena():
+    assert ScoringConfig().earth_margin_deg == 2.0
 
 
 def test_pesos_del_puntaje_global():
