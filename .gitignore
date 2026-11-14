@@ -5,5 +5,9 @@ __pycache__/
 node_modules/
 .claude/
 
-# Datos descargados por script (fase 1)
+# Datos descargados con ./run.sh data
 backend/data/kernels/
+frontend/public/textures/*
+!frontend/public/textures/.gitkeep
+frontend/vendor/
+*.part

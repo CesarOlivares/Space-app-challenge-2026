@@ -1,0 +1,386 @@
+{
+  "version": 1,
+  "coordinate_system": "Mean Earth/Polar Axis (ME), latitud planetocéntrica en grados, longitud este positiva en el rango [-180, 180]",
+  "sites": [
+    {
+      "id": "apollo-11",
+      "name": "Apollo 11 — Mar de la Tranquilidad",
+      "mission": "Apollo 11",
+      "agency": "NASA",
+      "country": "Estados Unidos",
+      "year": 1969,
+      "category": "historico",
+      "lat": 0.67416,
+      "lon": 23.47314,
+      "elevation_m": -1926,
+      "precision": "lander",
+      "source": {
+        "name": "LROC Coordinates of Lunar Anthropogenic Features (2016), Apollo 11 LM",
+        "url": "https://www.lroc.asu.edu/data/support/downloads/2016_LROC_Coordinates_of_Human_Features.pdf"
+      }
+    },
+    {
+      "id": "apollo-12",
+      "name": "Apollo 12 — Océano de las Tormentas",
+      "mission": "Apollo 12",
+      "agency": "NASA",
+      "country": "Estados Unidos",
+      "year": 1969,
+      "category": "historico",
+      "lat": -3.0128,
+      "lon": -23.4219,
+      "elevation_m": -1422,
+      "precision": "lander",
+      "source": {
+        "name": "LROC Coordinates of Lunar Anthropogenic Features (2016), Apollo 12 LM",
+        "url": "https://www.lroc.asu.edu/data/support/downloads/2016_LROC_Coordinates_of_Human_Features.pdf"
+      }
+    },
+    {
+      "id": "apollo-14",
+      "name": "Apollo 14 — Fra Mauro",
+      "mission": "Apollo 14",
+      "agency": "NASA",
+      "country": "Estados Unidos",
+      "year": 1971,
+      "category": "historico",
+      "lat": -3.64589,
+      "lon": -17.47194,
+      "elevation_m": -1062,
+      "precision": "lander",
+      "source": {
+        "name": "LROC Coordinates of Lunar Anthropogenic Features (2016), Apollo 14 LM",
+        "url": "https://www.lroc.asu.edu/data/support/downloads/2016_LROC_Coordinates_of_Human_Features.pdf"
+      }
+    },
+    {
+      "id": "apollo-15",
+      "name": "Apollo 15 — Hadley-Apeninos",
+      "mission": "Apollo 15",
+      "agency": "NASA",
+      "country": "Estados Unidos",
+      "year": 1971,
+      "category": "historico",
+      "lat": 26.13239,
+      "lon": 3.6333,
+      "elevation_m": -1931,
+      "precision": "lander",
+      "source": {
+        "name": "LROC Coordinates of Lunar Anthropogenic Features (2016), Apollo 15 LM",
+        "url": "https://www.lroc.asu.edu/data/support/downloads/2016_LROC_Coordinates_of_Human_Features.pdf"
+      }
+    },
+    {
+      "id": "apollo-16",
+      "name": "Apollo 16 — Descartes",
+      "mission": "Apollo 16",
+      "agency": "NASA",
+      "country": "Estados Unidos",
+      "year": 1972,
+      "category": "historico",
+      "lat": -8.9734,
+      "lon": 15.5011,
+      "elevation_m": 8,
+      "precision": "lander",
+      "source": {
+        "name": "LROC Coordinates of Lunar Anthropogenic Features (2016), Apollo 16 LM",
+        "url": "https://www.lroc.asu.edu/data/support/downloads/2016_LROC_Coordinates_of_Human_Features.pdf"
+      }
+    },
+    {
+      "id": "apollo-17",
+      "name": "Apollo 17 — Taurus-Littrow",
+      "mission": "Apollo 17",
+      "agency": "NASA",
+      "country": "Estados Unidos",
+      "year": 1972,
+      "category": "historico",
+      "lat": 20.1911,
+      "lon": 30.7723,
+      "elevation_m": -2626,
+      "precision": "lander",
+      "source": {
+        "name": "LROC Coordinates of Lunar Anthropogenic Features (2016), Apollo 17 LM",
+        "url": "https://www.lroc.asu.edu/data/support/downloads/2016_LROC_Coordinates_of_Human_Features.pdf"
+      }
+    },
+    {
+      "id": "surveyor-7",
+      "name": "Surveyor 7 — Tycho",
+      "mission": "Surveyor 7",
+      "agency": "NASA",
+      "country": "Estados Unidos",
+      "year": 1968,
+      "category": "historico",
+      "lat": -40.9812,
+      "lon": -11.5127,
+      "elevation_m": 81,
+      "precision": "lander",
+      "source": {
+        "name": "LROC Coordinates of Lunar Anthropogenic Features (2016), Surveyor 7",
+        "url": "https://www.lroc.asu.edu/data/support/downloads/2016_LROC_Coordinates_of_Human_Features.pdf"
+      }
+    },
+    {
+      "id": "luna-17",
+      "name": "Luna 17 (Lunojod 1) — Mar de las Lluvias",
+      "mission": "Luna 17",
+      "agency": "Programa Luna",
+      "country": "Unión Soviética",
+      "year": 1970,
+      "category": "historico",
+      "lat": 38.23764,
+      "lon": -35.00163,
+      "elevation_m": -2471,
+      "precision": "lander",
+      "source": {
+        "name": "LROC Coordinates of Lunar Anthropogenic Features (2016), Luna 17",
+        "url": "https://www.lroc.asu.edu/data/support/downloads/2016_LROC_Coordinates_of_Human_Features.pdf"
+      }
+    },
+    {
+      "id": "luna-24",
+      "name": "Luna 24 — Mar de las Crisis",
+      "mission": "Luna 24",
+      "agency": "Programa Luna",
+      "country": "Unión Soviética",
+      "year": 1976,
+      "category": "historico",
+      "lat": 12.7142,
+      "lon": 62.2129,
+      "elevation_m": -3670,
+      "precision": "lander",
+      "source": {
+        "name": "LROC Coordinates of Lunar Anthropogenic Features (2016), Luna 24",
+        "url": "https://www.lroc.asu.edu/data/support/downloads/2016_LROC_Coordinates_of_Human_Features.pdf"
+      }
+    },
+    {
+      "id": "change-3",
+      "name": "Chang'e 3 — Mar de las Lluvias",
+      "mission": "Chang'e 3",
+      "agency": "CNSA",
+      "country": "China",
+      "year": 2013,
+      "category": "historico",
+      "lat": 44.1214,
+      "lon": -19.5117,
+      "elevation_m": -2630,
+      "precision": "lander",
+      "source": {
+        "name": "LROC Coordinates of Lunar Anthropogenic Features (2016), Chang'e 3",
+        "url": "https://www.lroc.asu.edu/data/support/downloads/2016_LROC_Coordinates_of_Human_Features.pdf"
+      }
+    },
+    {
+      "id": "change-4",
+      "name": "Chang'e 4 — Cráter Von Kármán (cara oculta)",
+      "mission": "Chang'e 4",
+      "agency": "CNSA",
+      "country": "China",
+      "year": 2019,
+      "category": "reciente",
+      "lat": -45.4561,
+      "lon": 177.5885,
+      "elevation_m": -5927,
+      "precision": "lander",
+      "notes": "Cara oculta: la Tierra nunca es visible; la comunicación requiere satélite de relevo.",
+      "source": {
+        "name": "LROC — Topographic Map of the Chang'e 4 Site",
+        "url": "https://www.lroc.asu.edu/images/1100"
+      }
+    },
+    {
+      "id": "change-5",
+      "name": "Chang'e 5 — Mons Rümker",
+      "mission": "Chang'e 5",
+      "agency": "CNSA",
+      "country": "China",
+      "year": 2020,
+      "category": "reciente",
+      "lat": 43.0576,
+      "lon": -51.9161,
+      "elevation_m": -2570,
+      "precision": "lander",
+      "source": {
+        "name": "LROC — First Look: Chang'e 5",
+        "url": "https://www.lroc.asu.edu/posts/1172"
+      }
+    },
+    {
+      "id": "change-6",
+      "name": "Chang'e 6 — Cuenca Polo Sur-Aitken (cara oculta)",
+      "mission": "Chang'e 6",
+      "agency": "CNSA",
+      "country": "China",
+      "year": 2024,
+      "category": "reciente",
+      "lat": -41.6385,
+      "lon": -153.9852,
+      "elevation_m": -5256,
+      "precision": "lander",
+      "notes": "Cara oculta: la Tierra nunca es visible; la comunicación requiere satélite de relevo.",
+      "source": {
+        "name": "LROC — First Look: Chang'e 6",
+        "url": "https://lroc.im-ldi.com/images/1374"
+      }
+    },
+    {
+      "id": "chandrayaan-3",
+      "name": "Chandrayaan-3 — Statio Shiv Shakti",
+      "mission": "Chandrayaan-3",
+      "agency": "ISRO",
+      "country": "India",
+      "year": 2023,
+      "category": "reciente",
+      "lat": -69.3741,
+      "lon": 32.32,
+      "elevation_m": 532,
+      "precision": "lander",
+      "source": {
+        "name": "LROC — Chandrayaan-3 Landing Site",
+        "url": "https://www.lroc.asu.edu/images/1314"
+      }
+    },
+    {
+      "id": "slim",
+      "name": "SLIM — Cráter Shioli",
+      "mission": "SLIM",
+      "agency": "JAXA",
+      "country": "Japón",
+      "year": 2024,
+      "category": "reciente",
+      "lat": -13.316,
+      "lon": 25.251,
+      "elevation_m": -912,
+      "precision": "lander",
+      "source": {
+        "name": "NASA — NASA's LRO Spots Japan's Moon Lander",
+        "url": "https://www.nasa.gov/missions/lro/nasas-lro-spots-japans-moon-lander/"
+      }
+    },
+    {
+      "id": "im-1",
+      "name": "IM-1 Odysseus — Malapert A",
+      "mission": "IM-1 (CLPS)",
+      "agency": "Intuitive Machines / NASA CLPS",
+      "country": "Estados Unidos",
+      "year": 2024,
+      "category": "reciente",
+      "lat": -80.13,
+      "lon": 1.44,
+      "elevation_m": 2579,
+      "precision": "lander",
+      "source": {
+        "name": "NASA — NASA's LRO Images Intuitive Machines' Odysseus Lander",
+        "url": "https://www.nasa.gov/missions/lro/nasas-lro-images-intuitive-machines-odysseus-lander/"
+      }
+    },
+    {
+      "id": "blue-ghost-m1",
+      "name": "Blue Ghost M1 — Mons Latreille, Mar de las Crisis",
+      "mission": "Blue Ghost Mission 1 (CLPS)",
+      "agency": "Firefly Aerospace / NASA CLPS",
+      "country": "Estados Unidos",
+      "year": 2025,
+      "category": "reciente",
+      "lat": 18.5623,
+      "lon": 61.8103,
+      "elevation_m": -3650,
+      "precision": "lander",
+      "source": {
+        "name": "LROC — Blue Ghost Lunar Lander Seen From Above",
+        "url": "https://lroc.im-ldi.com/images/1407"
+      }
+    },
+    {
+      "id": "im-2",
+      "name": "IM-2 Athena — Mons Mouton",
+      "mission": "IM-2 (CLPS)",
+      "agency": "Intuitive Machines / NASA CLPS",
+      "country": "Estados Unidos",
+      "year": 2025,
+      "category": "reciente",
+      "lat": -84.7906,
+      "lon": 29.1957,
+      "elevation_m": null,
+      "precision": "lander",
+      "source": {
+        "name": "LROC — IM-2 Athena Seen Obliquely",
+        "url": "https://lroc.im-ldi.com/images/1408"
+      }
+    },
+    {
+      "id": "mons-mouton",
+      "name": "Mons Mouton (región candidata Artemis III)",
+      "mission": "Artemis III (candidato)",
+      "agency": "NASA",
+      "country": "Estados Unidos",
+      "year": null,
+      "category": "candidato",
+      "lat": -84.6,
+      "lon": 31.0,
+      "elevation_m": null,
+      "precision": "centro_de_rasgo",
+      "notes": "Centro del rasgo según la IAU; la región candidata real abarca ~15 × 15 km.",
+      "source": {
+        "name": "USGS Gazetteer of Planetary Nomenclature — Mons Mouton",
+        "url": "https://planetarynames.wr.usgs.gov/Feature/16070"
+      }
+    },
+    {
+      "id": "mons-malapert",
+      "name": "Mons Malapert (región candidata Artemis III)",
+      "mission": "Artemis III (candidato)",
+      "agency": "NASA",
+      "country": "Estados Unidos",
+      "year": null,
+      "category": "candidato",
+      "lat": -85.98,
+      "lon": -1.67,
+      "elevation_m": null,
+      "precision": "centro_de_rasgo",
+      "notes": "Centro del rasgo según la IAU; corresponde a la región candidata Malapert Massif.",
+      "source": {
+        "name": "USGS Gazetteer of Planetary Nomenclature — Mons Malapert",
+        "url": "https://planetarynames.wr.usgs.gov/Feature/16338"
+      }
+    },
+    {
+      "id": "shackleton-ridge",
+      "name": "Cresta Shackleton–de Gerlache (borde de Shackleton)",
+      "mission": "Referencia de iluminación del polo sur",
+      "agency": "NASA LRO",
+      "country": null,
+      "year": null,
+      "category": "candidato",
+      "lat": -89.684,
+      "lon": -163.261,
+      "elevation_m": null,
+      "precision": "punto_de_interes",
+      "notes": "Intersección de la cresta con el borde del cráter Shackleton; partes de la cresta están iluminadas hasta ~90 % del tiempo.",
+      "source": {
+        "name": "LROC — Islands in the Dark",
+        "url": "https://www.lroc.asu.edu/images/1105"
+      }
+    },
+    {
+      "id": "change-7",
+      "name": "Chang'e 7 — Borde de Shackleton (objetivo)",
+      "mission": "Chang'e 7",
+      "agency": "CNSA",
+      "country": "China",
+      "year": 2026,
+      "category": "candidato",
+      "lat": -88.8,
+      "lon": 123.4,
+      "elevation_m": null,
+      "precision": "aproximada",
+      "notes": "Sitio preferido no anunciado oficialmente; coordenada de fuente secundaria (Wikipedia). Actualizar cuando la CNSA publique el sitio.",
+      "source": {
+        "name": "Wikipedia — Chang'e 7 (fuente secundaria)",
+        "url": "https://en.wikipedia.org/wiki/Chang%27e_7"
+      }
+    }
+  ]
+}

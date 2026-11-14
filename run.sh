@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
 # Levanta la aplicación completa (API + frontend) en http://localhost:8000
+#   ./run.sh        levanta el servidor
+#   ./run.sh test   corre las pruebas
+#   ./run.sh data   descarga kernels, texturas y Three.js
 set -euo pipefail
 
 cd "$(dirname "$0")/backend"
@@ -7,19 +10,29 @@ cd "$(dirname "$0")/backend"
 # Aísla el entorno de paquetes externos (p. ej. ROS agrega plugins de pytest vía PYTHONPATH).
 unset PYTHONPATH
 
-if ! .venv/bin/python -c "import fastapi, uvicorn" 2>/dev/null; then
-  rm -rf .venv
+if [ ! -x .venv/bin/python ]; then
   # En Debian/Ubuntu sin python3-venv falla la creación con pip; se usa el pip del sistema.
   python3 -m venv .venv 2>/dev/null || { rm -rf .venv; python3 -m venv --without-pip .venv; }
-  if .venv/bin/python -m pip --version >/dev/null 2>&1; then
-    .venv/bin/python -m pip install -r requirements.txt
-  else
-    python3 -m pip --python .venv/bin/python install -r requirements.txt
-  fi
 fi
 
-if [ "${1:-}" = "test" ]; then
-  exec .venv/bin/python -m pytest
+# Reinstala dependencias solo cuando cambia requirements.txt.
+if ! cmp -s requirements.txt .venv/requirements.installed; then
+  if .venv/bin/python -m pip --version >/dev/null 2>&1; then
+    .venv/bin/python -m pip install -q -r requirements.txt
+  else
+    python3 -m pip -q --python .venv/bin/python install -r requirements.txt
+  fi
+  cp requirements.txt .venv/requirements.installed
+fi
+
+case "${1:-}" in
+  test) exec .venv/bin/python -m pytest ;;
+  data) exec .venv/bin/python scripts/download_data.py "${@:2}" ;;
+esac
+
+if [ ! -f data/kernels/de440s.bsp ]; then
+  echo "Faltan los datos externos: ejecuta primero ./run.sh data" >&2
+  exit 1
 fi
 
 exec .venv/bin/python -m uvicorn app.main:app --reload --port "${PORT:-8000}"

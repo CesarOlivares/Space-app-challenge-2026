@@ -192,10 +192,10 @@ Las tareas se hacen en orden: cada una parte de lo que dejó la anterior. Una ta
 
 | ✓ | ID | Tarea | Verificación |
 |---|---|---|---|
-| [ ] | T-06 | Definir el formato de `sites.json` (id, nombre, lat, lon, misión, tipo, fuente) | Formato documentado en el README de `data/` |
-| [ ] | T-07 | Llenar el catálogo: Apolo, CLPS, otras misiones y candidatos del polo sur | Cada sitio tiene su fuente y se ubica bien en Moon Trek |
-| [ ] | T-08 | Descargar los kernels de efemérides y la textura lunar, con un script reproducible | El script deja los archivos en `data/` y `public/textures/` desde cero |
-| [ ] | T-09 | Generar con JPL Horizons los casos de referencia (sitio, fecha → azimut, elevación) | Archivo de casos guardado en `tests/` con al menos un sitio polar y uno ecuatorial |
+| [x] | T-06 | Definir el formato de `sites.json` (id, nombre, lat, lon, misión, tipo, fuente) | Formato documentado en el README de `data/` |
+| [x] | T-07 | Llenar el catálogo: Apolo, CLPS, otras misiones y candidatos del polo sur | Cada sitio tiene su fuente y se ubica bien en Moon Trek |
+| [x] | T-08 | Descargar los kernels de efemérides y la textura lunar, con un script reproducible | El script deja los archivos en `data/` y `public/textures/` desde cero |
+| [x] | T-09 | Generar con JPL Horizons los casos de referencia (sitio, fecha → azimut, elevación) | Archivo de casos guardado en `tests/` con al menos un sitio polar y uno ecuatorial |
 
 ### Fase 2 — Modelo
 

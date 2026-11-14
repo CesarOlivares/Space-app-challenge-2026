@@ -1,0 +1,51 @@
+# Datos
+
+| Ruta | Contenido | En git |
+|---|---|---|
+| `sites.json` | Catálogo curado de sitios de aterrizaje | Sí |
+| `kernels/` | Kernels SPICE de efemérides y orientación lunar | No, se descargan con `./run.sh data` |
+| `horizons/` | Máscaras de horizonte por terreno (fase 7) | Sí, cuando existan |
+
+Las texturas del globo y Three.js también se descargan con `./run.sh data`, en `frontend/public/textures/` y `frontend/vendor/`.
+
+## Formato de `sites.json`
+
+```json
+{
+  "version": 1,
+  "coordinate_system": "…",
+  "sites": [ { …sitio… } ]
+}
+```
+
+Sistema de coordenadas: Mean Earth/Polar Axis (ME), el mismo de LROC, LOLA y JPL Horizons. Latitud planetocéntrica en grados, positiva al norte. Longitud en grados, **positiva al este, en el rango [-180, 180]** (las fuentes que usan 0–360 se convierten restando 360).
+
+| Campo | Tipo | Obligatorio | Descripción |
+|---|---|---|---|
+| `id` | texto | Sí | Identificador único en minúsculas con guiones, usado en la URL de la API |
+| `name` | texto | Sí | Nombre visible |
+| `mission` | texto | Sí | Misión o programa |
+| `agency` | texto | Sí | Agencia o empresa |
+| `country` | texto o `null` | Sí | País; `null` para puntos de referencia sin misión |
+| `year` | entero o `null` | Sí | Año de aterrizaje o planificado; `null` si no aplica |
+| `category` | `historico` · `reciente` · `candidato` | Sí | `historico`: antes de 2019. `reciente`: aterrizajes desde 2019. `candidato`: objetivos futuros o puntos de interés |
+| `lat` | número | Sí | Latitud, [-90, 90] |
+| `lon` | número | Sí | Longitud este, [-180, 180] |
+| `elevation_m` | número o `null` | Sí | Elevación respecto de la esfera de 1737,4 km, según la fuente |
+| `precision` | ver abajo | Sí | Qué tan exacta es la coordenada |
+| `notes` | texto | No | Aclaraciones para el usuario |
+| `source.name` | texto | Sí | Fuente de la coordenada |
+| `source.url` | texto | Sí | Enlace a la fuente |
+
+Valores de `precision`:
+
+- `lander`: posición del módulo medida en imágenes de LRO (error de metros a decenas de metros).
+- `punto_de_interes`: punto concreto publicado por LROC, sin módulo.
+- `centro_de_rasgo`: centro oficial IAU de un rasgo (montaña, cráter). Representa una región, no un punto de aterrizaje.
+- `aproximada`: fuente secundaria o sitio no anunciado oficialmente. Revisar antes de usar en decisiones.
+
+## Agregar un sitio
+
+1. Buscar la coordenada en una fuente primaria, en este orden: tabla de coordenadas LROC, páginas de imágenes de LROC o NASA, Gazetteer de la IAU.
+2. Convertir la longitud al rango [-180, 180].
+3. Agregar la entrada y correr `./run.sh test`: `tests/test_sites_catalog.py` valida campos, rangos e identificadores.
