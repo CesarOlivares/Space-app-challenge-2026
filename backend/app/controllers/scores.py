@@ -23,7 +23,7 @@ from app.models.scoring import (
     evaluate,
     evaluate_all,
 )
-from app.models.site import Site
+from app.models.site import Site, custom_site
 from app.models.terrain import evaluate_terrain
 
 router = APIRouter(prefix="/api", tags=["puntajes"])
@@ -38,6 +38,37 @@ def scores(
 ) -> dict:
     """Evaluates all catalog sites for a landing date, returning Energy, Communication, Terrain scores and topography."""
     results = evaluate_all(ephemeris, tuple(catalog.values()), date, config)
+    return {
+        "date": iso(date),
+        "config": config_json(config),
+        "scores": [evaluation_json(r, detailed=False) for r in results],
+    }
+
+
+class CustomPoint(BaseModel):
+    """Arbitrary lunar surface coordinates placed by the user."""
+
+    lat: float = Field(ge=-90.0, le=90.0, description="Planetocentric latitude in degrees [-90, 90]")
+    lon: float = Field(ge=-180.0, le=180.0, description="East longitude in degrees [-180, 180]")
+    name: str | None = Field(default=None, max_length=60, description="Optional custom label")
+
+
+class CustomScoresRequest(BaseModel):
+    """Batch evaluation payload for user-placed arbitrary lunar points."""
+
+    points: list[CustomPoint] = Field(min_length=1, max_length=50)
+
+
+@router.post("/scores/custom")
+def custom_scores(
+    request: CustomScoresRequest,
+    date: datetime = Depends(landing_date),
+    config: ScoringConfig = Depends(coarse_config),
+    ephemeris: Ephemeris = Depends(get_ephemeris),
+) -> dict:
+    """Evaluates user-placed arbitrary (lat, lon) points under the active general weighted ponderator."""
+    sites = tuple(custom_site(p.lat, p.lon) for p in request.points)
+    results = evaluate_all(ephemeris, sites, date, config)
     return {
         "date": iso(date),
         "config": config_json(config),

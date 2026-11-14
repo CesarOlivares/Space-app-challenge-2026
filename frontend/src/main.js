@@ -7,6 +7,7 @@
 import {
   fetchBestDates,
   fetchComparison,
+  fetchCustomScores,
   fetchIllumination,
   fetchRiskGrid,
   fetchScores,
@@ -134,13 +135,24 @@ function placeTooltip(lines, x, y) {
 }
 
 /**
- * Displays the hover tooltip for a lunar site marker or risk zone on the 3D Moon.
+ * Displays the hover tooltip for a lunar site marker, risk zone, or arbitrary placement target.
  * @param {string|null} id - Site identifier.
  * @param {number} x - Pointer clientX in pixels.
  * @param {number} y - Pointer clientY in pixels.
  * @param {Object|null} [zone] - Optional risk-grid zone payload when hovering terrain.
+ * @param {{ lat: number, lon: number }|null} [point] - Optional surface coordinates under cursor.
  */
-function showTooltip(id, x, y, zone = null) {
+function showTooltip(id, x, y, zone = null, point = null) {
+  if (!id && globe.placeMode && point) {
+    tooltip.replaceChildren(...[
+      ["strong", `Place Point (${point.lat.toFixed(2)}°, ${point.lon.toFixed(2)}°)`],
+      ["span", "Click on the 3D Moon to evaluate this location"],
+    ].map(([tag, text]) => Object.assign(document.createElement(tag), { textContent: text })));
+    tooltip.hidden = false;
+    tooltip.style.left = `${Math.min(x + 14, window.innerWidth - tooltip.offsetWidth - 8)}px`;
+    tooltip.style.top = `${y + 14}px`;
+    return;
+  }
   if (!id && zone?.cell) {
     const { lat, lon, cell } = zone;
     placeTooltip([
@@ -180,7 +192,8 @@ function showTooltip(id, x, y, zone = null) {
 // --- Vistas ---------------------------------------------------------------
 
 const globe = new GlobeView(document.getElementById("globe"), {
-  onHover: (id, x, y, zone) => showTooltip(id, x, y, zone),
+  onHover: (id, x, y, zone, point) => showTooltip(id, x, y, zone, point),
+  onPlacePoint: (lat, lon) => addCustomSite(lat, lon, ""),
   // Sin los archivos de relieve (./run.sh data --no-hires) se avisa y se desactivan los controles.
   onReliefStatus: (status) => {
     for (const el of document.querySelectorAll("#relief-on, #relief-ex")) el.disabled = status !== "ready";
@@ -189,9 +202,20 @@ const globe = new GlobeView(document.getElementById("globe"), {
   onSelect: (id) => toggleSelect(id),
 });
 
+const placePinToggle = document.getElementById("place-pin-toggle");
+if (placePinToggle) {
+  placePinToggle.addEventListener("click", () => {
+    const next = !globe.placeMode;
+    globe.setPlaceMode(next);
+    placePinToggle.classList.toggle("active", next);
+    placePinToggle.setAttribute("aria-pressed", String(next));
+  });
+}
+
 const list = new SiteList(drawer, {
   onSelect: (id) => toggleSelect(id),
   onHover: (id) => globe.setHover(id),
+  onRemove: (id) => removeCustomSite(id),
 });
 list.setSites(state.sites);
 
@@ -208,6 +232,7 @@ const detail = new DetailPanel(document.getElementById("detail"), {
 const card = new SiteCard(document.getElementById("sitecard"), {
   onDetail: () => openDetail(),
   onRemove: () => deselect(state.selectedId),
+  onDeletePin: () => removeCustomSite(state.selectedId),
   onOpenView: (id) => openStageView(id),
 });
 
@@ -629,6 +654,8 @@ async function addCustomSite(lat, lon, name, { selectIt = true } = {}) {
 }
 
 function removeCustomSite(id) {
+  const site = state.sites.get(id);
+  if (!site || site.category !== "personalizado") return; // historic/catalog pins are immutable
   state.sites.delete(id);
   state.scores.delete(id);
   globe.removeSite(id);
@@ -636,6 +663,29 @@ function removeCustomSite(id) {
   state.selected = state.selected.filter((x) => x !== id);
   applySelection();
 }
+
+/**
+ * Removes all user-placed arbitrary pins from the globe, list, and active selection.
+ */
+function clearAllCustomSites() {
+  const customIds = [...state.sites.values()]
+    .filter((s) => s.category === "personalizado")
+    .map((s) => s.id);
+  for (const id of customIds) {
+    state.sites.delete(id);
+    state.scores.delete(id);
+    globe.removeSite(id);
+  }
+  state.selected = state.selected.filter((id) => !customIds.includes(id));
+  list.setScores([...state.scores.values()]);
+  applySelection();
+}
+
+document.getElementById("clear-selection")?.addEventListener("click", () => {
+  state.selected = [];
+  applySelection();
+});
+document.getElementById("clear-pins")?.addEventListener("click", () => clearAllCustomSites());
 
 // Un sitio por su referencia: id del catálogo o "lat,lon" (con cualquier cantidad de decimales).
 function siteForRef(ref) {
@@ -797,13 +847,13 @@ async function loadDate(date) {
   setStatus("status.computing", {}, "busy");
   const custom = [...state.sites.values()].filter((s) => s.category === "personalizado");
   try {
-    const [scores, illumination, ...customSkies] = await Promise.all([
+    const [scores, illumination, customPayload] = await Promise.all([
       fetchScores(date, state.config),
       fetchIllumination(date),
-      ...custom.map((s) => fetchSky(siteRef(s.id), date, state.config)),
+      custom.length ? fetchCustomScores(custom, date, state.config) : Promise.resolve({ scores: [] }),
     ]);
     if (request !== state.request) return; // llegó una fecha más nueva mientras tanto
-    const all = [...scores.scores, ...customSkies];
+    const all = [...scores.scores, ...customPayload.scores];
     state.scores = new Map(all.map((s) => [s.site_id, s]));
     state.illumination = illumination;
     globe.setScores(all);

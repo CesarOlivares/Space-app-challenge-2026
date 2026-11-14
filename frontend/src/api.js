@@ -64,6 +64,26 @@ export function fetchSky(ref, date, config) {
   });
 }
 
+/**
+ * Batch-evaluates user-placed arbitrary (lat, lon) points under the active general ponderator.
+ * @param {Array<{ lat: number, lon: number, userName?: string|null, name?: string }>} points - Arbitrary lunar coordinates.
+ * @param {Date} date - Mission landing date (UTC).
+ * @param {import("./views/SettingsPanel.js").DEFAULT_CONFIG} config - Scoring configuration.
+ * @returns {Promise<{ date: string, config: Object, scores: Array<Object> }>}
+ */
+export function fetchCustomScores(points, date, config) {
+  return request("/api/scores/custom", {
+    params: { date: isoUtc(date), ...configParams(config) },
+    body: {
+      points: points.map((p) => ({
+        lat: p.lat,
+        lon: p.lon,
+        name: p.userName ?? p.name ?? null,
+      })),
+    },
+  });
+}
+
 export function fetchTimeline(ref, date, config) {
   return request(`/api/sites/${encodeURIComponent(ref)}/timeline`, {
     params: {
