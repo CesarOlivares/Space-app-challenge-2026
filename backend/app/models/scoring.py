@@ -28,6 +28,7 @@ import numpy as np
 from app.models.ephemeris import Ephemeris, Track
 from app.models.horizon import horizon_for
 from app.models.site import Site
+from app.models.terrain import TerrainMetrics, evaluate_terrain
 from app.models.windows import (
     Interval,
     hours_until_rise,
@@ -42,23 +43,41 @@ PANELS = ("tiempo", "horizontal", "vertical")
 
 @dataclass(frozen=True)
 class ScoringConfig:
+    """Configuration parameters for lunar landing site evaluation.
+
+    Attributes:
+        window_days: Mission evaluation window duration in days.
+        step_hours: Sampling interval in hours.
+        sun_margin_deg: Minimum required solar elevation above horizon in degrees.
+        earth_margin_deg: Minimum required Earth elevation above horizon in degrees.
+        weight_energy: Relative weight for the Energy score (E).
+        weight_communication: Relative weight for the Communication score (C).
+        weight_terrain: Relative weight for the Terrain & Landing Safety score (T).
+        max_slope_deg: Critical lander tip-over slope limit in degrees.
+        panel: Solar panel orientation mode ("tiempo", "horizontal", or "vertical").
+    """
+
     window_days: float = 14.0
     step_hours: float = 2.0
     sun_margin_deg: float = 0.0
     earth_margin_deg: float = 0.0
     weight_energy: float = 0.5
     weight_communication: float = 0.5
+    weight_terrain: float = 1.0
+    max_slope_deg: float = 15.0
     panel: str = "tiempo"
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         if self.panel not in PANELS:
-            raise ValueError(f"panel desconocido: {self.panel}; opciones: {', '.join(PANELS)}")
+            raise ValueError(f"unknown panel orientation: {self.panel}; options: {', '.join(PANELS)}")
         if self.window_days <= 0 or self.step_hours <= 0:
-            raise ValueError("window_days y step_hours deben ser positivos")
-        if self.weight_energy < 0 or self.weight_communication < 0:
-            raise ValueError("los pesos no pueden ser negativos")
-        if self.weight_energy + self.weight_communication == 0:
-            raise ValueError("al menos un peso debe ser mayor que cero")
+            raise ValueError("window_days and step_hours must be positive")
+        if self.max_slope_deg <= 2.0:
+            raise ValueError("max_slope_deg must be greater than 2.0 degrees")
+        if self.weight_energy < 0 or self.weight_communication < 0 or self.weight_terrain < 0:
+            raise ValueError("weights cannot be negative")
+        if self.weight_energy + self.weight_communication + self.weight_terrain == 0:
+            raise ValueError("at least one weight must be greater than zero")
 
     @property
     def window_hours(self) -> float:
@@ -84,6 +103,8 @@ class BodyMetrics:
 
 @dataclass(frozen=True)
 class SiteEvaluation:
+    """Complete landing site evaluation combining illumination, comms, and terrain safety."""
+
     site: Site
     landing: datetime
     config: ScoringConfig
@@ -91,6 +112,12 @@ class SiteEvaluation:
     earth: BodyMetrics
     energy: float
     communication: float
+    terrain_score: float
+    slope_deg: float
+    roughness_m: float
+    elevation_m: float
+    slope_ok: bool
+    terrain: TerrainMetrics
     total: float
     viable: bool
 
@@ -117,9 +144,77 @@ def communication_score(earth_fraction: float) -> float:
     return 100.0 * earth_fraction
 
 
-def total_score(energy: float, communication: float, config: ScoringConfig) -> float:
-    weights = config.weight_energy + config.weight_communication
-    return (config.weight_energy * energy + config.weight_communication * communication) / weights
+def compute_terrain_score(terrain: TerrainMetrics, max_slope_deg: float = 15.0) -> float:
+    """Computes the Topography & Landing Safety score (T) on a 0-100 scale.
+
+    Combines a slope sub-score (70% weight) and a surface roughness sub-score
+    (30% weight):
+        - slope_deg <= 2.0 deg -> S_slope = 100.0
+        - slope_deg >= max_slope_deg -> S_slope = 0.0
+        - 2.0 < slope_deg < max_slope_deg -> linear decay from 100.0 to 0.0
+        - S_rough = max(0.0, 100.0 * (1.0 - roughness_m / 5.0))
+
+    If slope_deg exceeds max_slope_deg, the combined score is capped at
+    min(15.0, 0.3 * S_rough).
+
+    Args:
+        terrain: Topographical metrics for the landing site.
+        max_slope_deg: Critical lander tip-over slope limit in degrees.
+
+    Returns:
+        Terrain safety score rounded to 1 decimal place in [0.0, 100.0].
+    """
+    if terrain.slope_deg <= 2.0:
+        slope_sub = 100.0
+    elif terrain.slope_deg >= max_slope_deg:
+        slope_sub = 0.0
+    else:
+        slope_sub = 100.0 * (1.0 - (terrain.slope_deg - 2.0) / (max_slope_deg - 2.0))
+
+    rough_sub = max(0.0, 100.0 * (1.0 - terrain.roughness_m / 5.0))
+
+    if terrain.slope_deg > max_slope_deg:
+        return round(min(15.0, 0.3 * rough_sub), 1)
+    return round(0.7 * slope_sub + 0.3 * rough_sub, 1)
+
+
+def total_score(
+    energy: float,
+    communication: float,
+    config: ScoringConfig,
+    terrain_score: float | None = None,
+) -> float:
+    """Computes the weighted overall landing site score P in [0.0, 100.0].
+
+    Formula:
+        P = (w_E * E + w_C * C + w_T * T) / (w_E + w_C + w_T)
+
+    When `terrain_score` is omitted (None), falls back to the legacy two-term
+    weighted average over Energy and Communication for backward compatibility.
+
+    Args:
+        energy: Energy score (E) in [0, 100].
+        communication: Communication score (C) in [0, 100].
+        config: Scoring configuration with component weights.
+        terrain_score: Optional Terrain & Landing Safety score (T) in [0, 100].
+
+    Returns:
+        Weighted overall score in [0.0, 100.0], or 0.0 if total weight is zero.
+    """
+    if terrain_score is None:
+        weights = config.weight_energy + config.weight_communication
+        if weights <= 0.0:
+            return 0.0
+        return (config.weight_energy * energy + config.weight_communication * communication) / weights
+
+    weights = config.weight_energy + config.weight_communication + config.weight_terrain
+    if weights <= 0.0:
+        return 0.0
+    return (
+        config.weight_energy * energy
+        + config.weight_communication * communication
+        + config.weight_terrain * terrain_score
+    ) / weights
 
 
 def body_metrics(track: Track, margin_deg: float, site: Site, window_hours: float) -> BodyMetrics:
@@ -142,15 +237,36 @@ def body_metrics(track: Track, margin_deg: float, site: Site, window_hours: floa
     )
 
 
-def evaluate(ephemeris: Ephemeris, site: Site, landing: datetime,
-             config: ScoringConfig = ScoringConfig()) -> SiteEvaluation:
+def evaluate(
+    ephemeris: Ephemeris,
+    site: Site,
+    landing: datetime,
+    config: ScoringConfig = ScoringConfig(),
+    terrain: TerrainMetrics | None = None,
+) -> SiteEvaluation:
+    """Evaluates a lunar landing site at a given landing epoch.
+
+    Combines solar illumination (Energy), Earth line-of-sight (Communication),
+    and surface topography (Terrain & Landing Safety) into a unified score and
+    landing viability decision.
+
+    Args:
+        ephemeris: Loaded JPL ephemeris instance.
+        site: Target landing site.
+        landing: Landing epoch (UTC or naive treated as UTC).
+        config: Scoring and safety configuration parameters.
+        terrain: Optional pre-resolved TerrainMetrics; evaluated from coordinates if None.
+
+    Returns:
+        Immutable SiteEvaluation containing all sub-scores, metrics, and viability.
+    """
     window_h = config.window_hours
     sun_track = ephemeris.track(site, "sun", landing, window_h, config.step_hours)
     earth_track = ephemeris.track(site, "earth", landing, window_h, config.step_hours)
     sun = body_metrics(sun_track, config.sun_margin_deg, site, window_h)
     earth = body_metrics(earth_track, config.earth_margin_deg, site, window_h)
 
-    # Horas continuas de luz desde el aterrizaje; si el Sol no se pone, toda la ventana.
+    # Continuous sunlight hours from landing; full window if the Sun never sets.
     if not sun.visible:
         continuous = 0.0
     elif sun.hours_until_set is None:
@@ -159,12 +275,19 @@ def evaluate(ephemeris: Ephemeris, site: Site, landing: datetime,
         continuous = sun.hours_until_set
 
     if config.panel == "tiempo":
-        use = sun.visible_fraction  # exacta, con los cruces interpolados
+        use = sun.visible_fraction  # exact, with interpolated crossings
     else:
         horizon = horizon_for(site, config.sun_margin_deg)
         use = solar_use(sun_track, horizon.clearance(sun_track.azimuth, sun_track.elevation), config.panel)
     energy = energy_score(use, continuous, window_h)
     communication = communication_score(earth.visible_fraction)
+
+    resolved_terrain = terrain or getattr(site, "terrain", None) or evaluate_terrain(site.lat, site.lon)
+    t_score = compute_terrain_score(resolved_terrain, config.max_slope_deg)
+    slope_ok = resolved_terrain.slope_deg <= config.max_slope_deg
+    overall = total_score(energy, communication, config, terrain_score=t_score)
+    viable = bool(sun.visible and earth.visible and slope_ok)
+
     return SiteEvaluation(
         site=site,
         landing=sun_track.start,
@@ -173,8 +296,14 @@ def evaluate(ephemeris: Ephemeris, site: Site, landing: datetime,
         earth=earth,
         energy=energy,
         communication=communication,
-        total=total_score(energy, communication, config),
-        viable=sun.visible and earth.visible,
+        terrain_score=t_score,
+        slope_deg=resolved_terrain.slope_deg,
+        roughness_m=resolved_terrain.roughness_m,
+        elevation_m=resolved_terrain.elevation_m,
+        slope_ok=slope_ok,
+        terrain=resolved_terrain,
+        total=overall,
+        viable=viable,
     )
 
 
