@@ -13,32 +13,32 @@ Lunar Site Explorer: un globo lunar 3D para comparar sitios y fechas de aterriza
 
 ## Requisitos
 
-- Python 3.10 o superior
-- Un navegador actual (Chrome o Firefox)
+- Python 3.10 o superior (instalado en el PATH)
+- Un navegador actual (Chrome, Firefox o Edge)
+- **Git** (en Windows, se utiliza **Git Bash** para ejecutar los comandos del proyecto)
 
-No se necesita Node.js: el frontend son módulos ES servidos tal cual por el backend.
+No se necesita Node.js: el frontend son módulos ES nativos servidos directamente por el backend.
 
 ## Levantar la aplicación
 
-La primera vez, descarga los datos externos (unos 60 MB: kernels de efemérides de NAIF/JPL, texturas lunares de NASA SVS y Three.js):
+Todo el flujo se opera mediante el comando `./run.sh` en Bash (Linux, macOS o **Git Bash** en Windows).
 
-```bash
-./run.sh data
-```
+1. **Descargar datos externos (primera vez, ~60 MB):**
+   Descarga los kernels de efemérides del JPL (DE440), orientación lunar, texturas de NASA SVS y Three.js local:
+   ```bash
+   ./run.sh data
+   ```
+   *Notas:*
+   - `./run.sh data` también procesa la textura 8K y el relieve del globo. Para omitir alta resolución y ahorrar espacio, puedes usar `./run.sh data --no-hires`.
+   - Opcional: `./run.sh data --dem` descarga además el DEM polar LOLA (116 MB), necesario para recalcular máscaras (`./run.sh horizons`) o usar relieve en coordenadas personalizadas.
 
-Luego levanta la aplicación:
+2. **Iniciar la aplicación:**
+   ```bash
+   ./run.sh
+   ```
+   La primera ejecución crea automáticamente el entorno virtual en `backend/.venv` e instala las dependencias. Abre tu navegador en http://localhost:8000. Para usar otro puerto: `PORT=8080 ./run.sh`.
 
-```bash
-./run.sh
-```
-
-La primera ejecución crea el entorno virtual en `backend/.venv` e instala las dependencias. Abre http://localhost:8000. Para usar otro puerto: `PORT=8080 ./run.sh`.
-
-Una vez descargados los datos, la aplicación funciona sin conexión a internet.
-
-`./run.sh data` también genera la textura 8K y el relieve del globo (unos 120 MB de descarga y 16 MB de archivos). Con `--no-hires` se omiten y el globo queda en 4K sin relieve.
-
-Opcional: `./run.sh data --dem` descarga además el modelo de elevación polar de LOLA (116 MB). Solo hace falta para recalcular las máscaras de horizonte (`./run.sh horizons`) o para que las coordenadas personalizadas del polo sur usen el relieve real.
+Una vez descargados los datos, la aplicación funciona de forma **100% offline**, sin requerir conexión a internet.
 
 ## Uso rápido
 
@@ -52,11 +52,15 @@ Opcional: `./run.sh data --dem` descarga además el modelo de elevación polar d
 - **Exportar CSV:** puntajes de todos los sitios para la fecha actual.
 - **Mejores fechas:** en el detalle de un sitio, busca las mejores fechas de aterrizaje de los próximos 30 días.
 
-## Pruebas
+## Pruebas automáticas
+
+Para ejecutar la batería completa de pruebas (efemérides contra JPL Horizons, validación del modelo, catálogo y APIs):
 
 ```bash
 ./run.sh test
 ```
+
+Las pruebas se ejecutan con `pytest` y validan la física astronómica, horizonte por relieve y las funciones de puntaje.
 
 ## Estructura
 

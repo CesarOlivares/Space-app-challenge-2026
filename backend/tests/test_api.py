@@ -1,3 +1,4 @@
+from pathlib import Path
 import time
 
 import pytest
@@ -6,6 +7,8 @@ from fastapi.testclient import TestClient
 from app.main import app
 
 DATE = "2026-12-15T00:00:00Z"
+DEM_FILE = Path(__file__).resolve().parents[1] / "data" / "dem" / "ldem_75s_120m.img"
+requires_dem = pytest.mark.skipif(not DEM_FILE.exists(), reason="falta el DEM: ./run.sh data --dem")
 
 
 @pytest.fixture(scope="module")
@@ -130,6 +133,7 @@ def test_errores_de_entrada_claros(client, method, url, kwargs, status):
     assert response.json()["detail"]
 
 
+@requires_dem
 def test_terrain_cutout_im2_json(client):
     res = client.get("/api/sites/im-2/terrain", params={"size": 64, "step": 1})
     assert res.status_code == 200
@@ -144,6 +148,7 @@ def test_terrain_cutout_im2_json(client):
     assert 0 <= data["grid"]["safe_landing_fraction"] <= 1.0
 
 
+@requires_dem
 def test_terrain_cutout_base64(client):
     res = client.get("/api/sites/im-2/terrain", params={"size": 32, "format": "base64"})
     assert res.status_code == 200
@@ -152,6 +157,7 @@ def test_terrain_cutout_base64(client):
     assert "slopes_b64" in data
 
 
+@requires_dem
 def test_terrain_cutout_binary(client):
     res = client.get("/api/sites/im-2/terrain", params={"size": 32, "format": "binary"})
     assert res.status_code == 200
@@ -160,6 +166,7 @@ def test_terrain_cutout_binary(client):
     assert len(res.content) == 32 * 32 * 4  # 32x32 float32
 
 
+@requires_dem
 def test_terrain_cutout_ecuador_error(client):
     # Apollo 11 está en el ecuador, fuera del DEM polar LOLA
     res = client.get("/api/sites/apollo-11/terrain")
