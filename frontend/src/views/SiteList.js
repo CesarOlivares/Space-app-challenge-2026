@@ -7,16 +7,23 @@ import { encode, notViableReason } from "./encoding.js";
 const escape = escapeHtml;
 
 export class SiteList {
-  constructor(root, { onSelect, onHover }) {
+  constructor(root, { onSelect, onHover, onRemove = () => {} }) {
     this.list = root.querySelector("#site-list");
     this.filter = root.querySelector("#filter-south-pole");
     this.onSelect = onSelect;
+    this.onRemove = onRemove;
     this.selectedIds = new Set();
     this.sites = new Map();
     this.scores = [];
 
     this.filter.addEventListener("change", () => this.#render());
     this.list.addEventListener("click", (e) => {
+      const removeBtn = e.target.closest("[data-remove-site]");
+      if (removeBtn) {
+        e.stopPropagation();
+        this.onRemove(removeBtn.dataset.removeSite);
+        return;
+      }
       const row = e.target.closest("[data-site-id]");
       if (row) onSelect(row.dataset.siteId);
     });
@@ -81,6 +88,9 @@ export class SiteList {
       const status = score.viable
         ? `<span class="status ok">${t("verdict.viable")}</span>`
         : `<span class="status bad">${t("verdict.notViable")}</span><span class="reason">${escape(notViableReason(score))}</span>`;
+      const removePinBtn = site.category === "personalizado"
+        ? `<button type="button" class="small remove-pin" data-remove-site="${escape(site.id)}" aria-label="Remove pin" title="Remove pin">✕</button>`
+        : "";
       return `
         <li data-site-id="${escape(site.id)}" aria-selected="${this.selectedIds.has(site.id)}" tabindex="0">
           <span class="dot" style="background:${color}"></span>
@@ -89,6 +99,7 @@ export class SiteList {
             <small>${t(`category.${site.category}`)} · ${site.lat.toFixed(2)}°, ${site.lon.toFixed(2)}°${slopeText}</small>
           </span>
           <span class="score">${Math.round(total)}</span>
+          ${removePinBtn}
           <span class="sub">${t("list.energyShort")} ${Math.round(energy)} · ${t("list.commShort")} ${Math.round(communication)}${easeText}${shieldText} ${status}</span>
         </li>`;
     }).join("");

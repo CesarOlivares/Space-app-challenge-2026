@@ -213,6 +213,7 @@ if (placePinToggle) {
 const list = new SiteList(drawer, {
   onSelect: (id) => toggleSelect(id),
   onHover: (id) => globe.setHover(id),
+  onRemove: (id) => removeCustomSite(id),
 });
 list.setSites(state.sites);
 
@@ -229,6 +230,7 @@ const detail = new DetailPanel(document.getElementById("detail"), {
 const card = new SiteCard(document.getElementById("sitecard"), {
   onDetail: () => openDetail(),
   onRemove: () => deselect(state.selectedId),
+  onDeletePin: () => removeCustomSite(state.selectedId),
   onOpenView: (id) => openStageView(id),
 });
 
@@ -649,6 +651,29 @@ function removeCustomSite(id) {
   state.selected = state.selected.filter((x) => x !== id);
   applySelection();
 }
+
+/**
+ * Removes all user-placed arbitrary pins from the globe, list, and active selection.
+ */
+function clearAllCustomSites() {
+  const customIds = [...state.sites.values()]
+    .filter((s) => s.category === "personalizado")
+    .map((s) => s.id);
+  for (const id of customIds) {
+    state.sites.delete(id);
+    state.scores.delete(id);
+    globe.removeSite(id);
+  }
+  state.selected = state.selected.filter((id) => !customIds.includes(id));
+  list.setScores([...state.scores.values()]);
+  applySelection();
+}
+
+document.getElementById("clear-selection")?.addEventListener("click", () => {
+  state.selected = [];
+  applySelection();
+});
+document.getElementById("clear-pins")?.addEventListener("click", () => clearAllCustomSites());
 
 // Un sitio por su referencia: id del catálogo o "lat,lon" (con cualquier cantidad de decimales).
 function siteForRef(ref) {

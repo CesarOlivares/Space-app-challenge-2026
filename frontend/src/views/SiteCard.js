@@ -7,12 +7,13 @@ import { countdown } from "./DetailPanel.js";
 import { notViableReason } from "./encoding.js";
 
 export class SiteCard {
-  // onDetail(): abrir el detalle · onRemove(): quitar de la selección · onOpenView(id): abrir una vista adicional
-  constructor(root, { onDetail, onRemove, onOpenView }) {
+  // onDetail(): open detail · onRemove(): deselect · onDeletePin(): delete custom pin · onOpenView(id): open extra view
+  constructor(root, { onDetail, onRemove, onDeletePin = () => {}, onOpenView }) {
     this.root = root;
     root.addEventListener("click", (event) => {
       if (event.target.closest("[data-action=detail]")) onDetail();
       if (event.target.closest("[data-action=remove]")) onRemove();
+      if (event.target.closest("[data-action=delete-pin]")) onDeletePin();
       const view = event.target.closest("[data-view-id]");
       if (view) onOpenView(view.dataset.viewId);
     });
@@ -71,6 +72,7 @@ export class SiteCard {
       ${selectedCount === 1 ? `<p class="hint">${escapeHtml(t("card.hint"))}</p>` : ""}
       <div class="actions">
         <button type="button" class="btn" data-action="detail">${escapeHtml(t("card.detail"))}</button>
+        ${site.category === "personalizado" ? `<button type="button" class="btn" data-action="delete-pin">Remove pin</button>` : ""}
         ${extra}
       </div>`;
   }
