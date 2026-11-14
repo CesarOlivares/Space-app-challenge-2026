@@ -55,6 +55,7 @@ La Tierra cuenta como visible con su centro al menos $m_T = 2°$ sobre el horizo
 im-2 y mons-mouton están casi en el mismo lugar y con la misma geometría; el relieve los separa en 24 puntos.
 
 **Lado de la Tierra.** No limita: en 2027 la Luna está a más de 10° sobre al menos uno de los tres complejos DSN (Goldstone, Madrid, Canberra) el 98 % del tiempo, con cortes de 1,5 h como máximo. Es igual para todos los sitios, así que no entra al puntaje.
+
 ### Terreno (T) y protección (A)
 
 - **T · facilidad de aterrizaje**: 65 % pendiente, 25 % rugosidad y 10 % despeje de aproximación (planeo de 18°). Con pendiente sobre el límite (`max_slope_deg`) el puntaje se desploma.
