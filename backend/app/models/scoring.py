@@ -127,10 +127,12 @@ class SiteEvaluation:
     total: float
     viable: bool
     landing_ease_score: float = 0.0
-    asteroid_protection_score: float = 0.0
-    asteroid_score: float = 0.0
+    # None cuando no hay relieve real alrededor del sitio (horizonte esférico): "sin datos", no "0".
+    asteroid_protection_score: float | None = None
+    asteroid_score: float | None = None
+    has_relief_data: bool = False
     sky_view_factor: float = 1.0
-    solid_angle_shielded_pct: float = 0.0
+    solid_angle_shielded_pct: float | None = None
     horizon_shield_profile_deg: tuple[float, ...] = ()
 
 
@@ -386,7 +388,13 @@ def evaluate(
     profile_36 = tuple(base_horizon.horizon_profile_36())
 
     t_score = compute_landing_ease_score(resolved_terrain, config.max_slope_deg, approach_pct)
-    a_score = compute_asteroid_protection_score(ballistic_raw, resolved_terrain.slope_deg)
+    # Sin máscara de horizonte con relieve (solo hay DEM al sur de 80° S) el blindaje no se puede
+    # estimar: A queda sin datos y el puntaje global se renormaliza sin él.
+    has_relief = base_horizon.kind == "terreno"
+    a_score = compute_asteroid_protection_score(ballistic_raw, resolved_terrain.slope_deg) if has_relief else None
+    if not has_relief:
+        shielded_pct = None
+        profile_36 = ()
     slope_ok = resolved_terrain.slope_deg <= config.max_slope_deg
     overall = total_score(
         energy,
@@ -416,6 +424,7 @@ def evaluate(
         landing_ease_score=t_score,
         asteroid_protection_score=a_score,
         asteroid_score=a_score,
+        has_relief_data=has_relief,
         sky_view_factor=svf,
         solid_angle_shielded_pct=shielded_pct,
         horizon_shield_profile_deg=profile_36,
