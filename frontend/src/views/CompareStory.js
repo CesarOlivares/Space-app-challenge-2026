@@ -203,11 +203,11 @@ const METRICS = [
   },
   {
     key: "terrain", label: "mTerrain", goal: "gTerrain", icon: "kpiTerrain",
-    value: (r) => r.scores.terrain ?? 0,
-    sub: (r) => tr("subTerrain", {
+    value: (r) => r.scores.terrain ?? null, // null: sin pendiente medida (fuera del DEM polar)
+    sub: (r) => (r.scores.terrain == null ? tr("noData") : tr("subTerrain", {
       v: num(r.topography?.slope_deg ?? 0, 1),
       src: tr(r.topography?.source === "lola_dem" ? "srcLola" : "srcCatalog"),
-    }),
+    })),
     reason: (w, o) => tr("reasonTerrain", {
       a: num(w.topography?.slope_deg ?? 0, 1), b: num(o.topography?.slope_deg ?? 0, 1),
     }),

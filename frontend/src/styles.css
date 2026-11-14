@@ -1103,6 +1103,44 @@ select {
   margin-right: 4px;
 }
 
+.terrain-patch-controls {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 6px;
+  width: 100%;
+  max-width: 320px;
+}
+
+.terrain-patch-btn {
+  flex: 1;
+  font-size: 11px;
+  padding: 5px 4px;
+  background: var(--surface-2, #141a29);
+  color: var(--text-muted, #94a3b8);
+  border: 1px solid var(--border, #242e42);
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+
+.terrain-patch-btn:hover:not(:disabled) {
+  background: var(--surface-3, #1e2638);
+  color: var(--text, #f1f5f9);
+}
+
+.terrain-patch-btn.active {
+  background: var(--accent, #38bdf8);
+  color: #060912;
+  font-weight: 600;
+  border-color: var(--accent, #38bdf8);
+}
+
+.terrain-patch-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
 .terrain-patch-canvas {
   display: block;
   width: 100%;
@@ -1116,6 +1154,14 @@ select {
 
 .terrain-patch-canvas:active {
   cursor: grabbing;
+}
+
+.terrain-patch-legend {
+  font-size: 11px;
+  color: var(--text-muted, #94a3b8);
+  margin-top: 6px;
+  max-width: 320px;
+  line-height: 1.35;
 }
 
 /* Modo simple y modo técnico */
@@ -1469,3 +1515,19 @@ a.btn {
 .mini .ref { opacity: 0.55; }
 .bar.nodata-bar b { font-weight: 400; color: var(--ink-muted); font-size: 0.75rem; }
 .bar.nodata-bar .track { background: repeating-linear-gradient(135deg, transparent 0 4px, rgba(255, 255, 255, 0.1) 4px 8px); }
+
+.layer-grid .btn-suitability {
+  grid-column: 1 / -1;
+  background: rgba(52, 211, 153, 0.12);
+  border-color: rgba(52, 211, 153, 0.45);
+  color: #34d399;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.layer-grid .btn-suitability[aria-pressed="true"] {
+  background: rgba(52, 211, 153, 0.3);
+  border-color: #34d399;
+  color: #ffffff;
+  box-shadow: 0 0 14px rgba(52, 211, 153, 0.45);
+}

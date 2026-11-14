@@ -1,8 +1,13 @@
+from pathlib import Path
+
 import numpy as np
+import pytest
 
 from app.models.horizon import SphericalHorizon, TerrainHorizon, horizon_for
 from app.models.terrain import HorizonMask
 from app.models.site import custom_site
+
+DEM_FILE = Path(__file__).resolve().parents[1] / "data" / "dem" / "ldem_75s_120m.img"
 
 
 def test_horizonte_esferico_es_cero():
@@ -40,6 +45,7 @@ def test_mascara_interpola_y_da_la_vuelta():
     np.testing.assert_allclose(horizon.elevation(np.array([45, 90, 315, 360, -45])), [3, 5, 4, 1, 4])
 
 
+@pytest.mark.skipif(not DEM_FILE.exists(), reason="falta el DEM: ./run.sh data --dem")
 def test_mascara_personalizada_se_guarda_en_cache_y_se_recupera():
     from app.models.horizon import CACHE_DIR, terrain_mask
 

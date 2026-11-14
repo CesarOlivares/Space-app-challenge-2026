@@ -63,3 +63,26 @@ def test_cutout_polar_site(dem):
 def test_cutout_fuera_de_rango(dem):
     with pytest.raises(ValueError, match="no cubre"):
         dem.cutout(0.0, 0.0, size_px=64)
+
+
+def test_terrain_patch_solar_mapping(dem, ephemeris):
+    from datetime import datetime
+    from app.models.terrain import evaluate_terrain_patch
+
+    date = datetime.fromisoformat("2026-12-15T00:00:00+00:00")
+    patch = evaluate_terrain_patch(
+        -84.7906, 29.1957, size=25, ephemeris=ephemeris, date=date, window_days=14.0
+    )
+    assert patch["size"] == 25
+    assert patch["source"] == "lola_dem"
+    assert "solar" in patch
+    solar = patch["solar"]
+    assert len(solar["exposure_pct"]) == 25
+    assert len(solar["exposure_pct"][0]) == 25
+    assert len(solar["instant_lit"]) == 25
+    assert 0.0 <= solar["mean_solar_pct"] <= 100.0
+    assert 0.0 <= solar["optimal_landing_pct"] <= 100.0
+    assert solar["sun_elevation_deg"] > 0
+    # Verifica que la iluminación varía espacialmente según el relieve local
+    flat_solar = [v for row in solar["exposure_pct"] for v in row]
+    assert min(flat_solar) < max(flat_solar)

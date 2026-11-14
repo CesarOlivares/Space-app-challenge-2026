@@ -155,10 +155,17 @@ function showTooltip(id, x, y, zone = null, point = null) {
   }
   if (!id && zone?.cell) {
     const { lat, lon, cell } = zone;
+    const measured = cell.landing_ease != null && cell.slope_deg != null;
     placeTooltip([
       ["strong", t("tip.zone", { lat: num(lat, 1), lon: num(lon, 1) })],
-      ["span", t("tip.terrain", { score: Math.round(cell.landing_ease), slope: num(cell.slope_deg, 1), label: slopeWord(cell.slope_deg) })],
-      ["span", t("tip.zoneProtection", { score: Math.round(cell.asteroid_protection) })],
+      ["span", measured
+        ? t("tip.terrain", { score: Math.round(cell.landing_ease), slope: num(cell.slope_deg, 1), label: slopeWord(cell.slope_deg) })
+        : t("tip.zoneNoTerrain")],
+      ["span", t("tip.zoneEstimate", {
+        suitability: Math.round(cell.suitability ?? 0),
+        solar: Math.round(cell.solar_exposure ?? 0),
+        comm: Math.round(cell.earth_comm ?? 0),
+      })],
     ], x, y);
     return;
   }
@@ -554,7 +561,7 @@ async function loadActive() {
     const [sky, timeline, patch] = await Promise.all([
       fetchSky(ref, state.date, state.config),
       fetchTimeline(ref, state.date, state.config),
-      fetchTerrainPatch(ref).catch(() => null),
+      fetchTerrainPatch(ref, 25, state.date, state.config.window_days).catch(() => null),
     ]);
     if (request !== state.detailRequest) return;
     sky.site = { ...sky.site, ...site }; // conserva nombres y traducciones del lado del cliente

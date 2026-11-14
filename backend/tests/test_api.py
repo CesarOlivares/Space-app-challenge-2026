@@ -1,3 +1,4 @@
+from pathlib import Path
 import time
 
 import pytest
@@ -6,6 +7,8 @@ from fastapi.testclient import TestClient
 from app.main import app
 
 DATE = "2026-12-15T00:00:00Z"
+DEM_FILE = Path(__file__).resolve().parents[1] / "data" / "dem" / "ldem_75s_120m.img"
+requires_dem = pytest.mark.skipif(not DEM_FILE.exists(), reason="falta el DEM: ./run.sh data --dem")
 
 
 @pytest.fixture(scope="module")
@@ -130,6 +133,7 @@ def test_errores_de_entrada_claros(client, method, url, kwargs, status):
     assert response.json()["detail"]
 
 
+@requires_dem
 def test_terrain_cutout_im2_json(client):
     res = client.get("/api/sites/im-2/terrain", params={"size": 64, "step": 1})
     assert res.status_code == 200
@@ -144,6 +148,7 @@ def test_terrain_cutout_im2_json(client):
     assert 0 <= data["grid"]["safe_landing_fraction"] <= 1.0
 
 
+@requires_dem
 def test_terrain_cutout_base64(client):
     res = client.get("/api/sites/im-2/terrain", params={"size": 32, "format": "base64"})
     assert res.status_code == 200
@@ -152,6 +157,7 @@ def test_terrain_cutout_base64(client):
     assert "slopes_b64" in data
 
 
+@requires_dem
 def test_terrain_cutout_binary(client):
     res = client.get("/api/sites/im-2/terrain", params={"size": 32, "format": "binary"})
     assert res.status_code == 200
@@ -160,6 +166,7 @@ def test_terrain_cutout_binary(client):
     assert len(res.content) == 32 * 32 * 4  # 32x32 float32
 
 
+@requires_dem
 def test_terrain_cutout_ecuador_error(client):
     # Apollo 11 está en el ecuador, fuera del DEM polar LOLA
     res = client.get("/api/sites/apollo-11/terrain")
@@ -215,3 +222,42 @@ def test_total_sin_relieve_se_renormaliza_sin_proteccion(client):
     assert s["terrain"] is None and s["asteroid"] is None
     expected = (0.5 * s["energy"] + 0.5 * s["communication"]) / 1.0
     assert s["total"] == pytest.approx(expected, abs=0.1)
+
+
+@requires_dem
+def test_terrain_patch_solar_endpoint(client):
+    res = client.get("/api/sites/im-2/patch", params={"size": 25, "date": DATE, "window_days": 14})
+    assert res.status_code == 200
+    data = res.json()
+    assert data["site_id"] == "im-2"
+    assert data["size"] == 25
+    assert len(data["elevation_m"]) == 25
+    assert len(data["slope_deg"]) == 25
+    assert "solar" in data
+    solar = data["solar"]
+    assert len(solar["exposure_pct"]) == 25
+    assert len(solar["instant_lit"]) == 25
+    assert 0.0 <= solar["mean_solar_pct"] <= 100.0
+    assert 0.0 <= solar["optimal_landing_pct"] <= 100.0
+    assert "sun_azimuth_deg" in solar
+    assert "sun_elevation_deg" in solar
+
+
+def test_risk_grid_endpoint(client):
+    res = client.get("/api/risk-grid", params={"max_slope_deg": 12.0})
+    assert res.status_code == 200
+    data = res.json()
+    assert data["cols"] == 72
+    assert data["rows"] == 36
+    assert len(data["cells"]) == 72 * 36
+    first = data["cells"][0]
+    assert {"lat", "lon", "elevation_m", "slope_deg", "landing_ease", "asteroid_protection", "solar_exposure", "earth_comm", "suitability"} <= set(first.keys())
+    assert 0.0 <= first["solar_exposure"] <= 100.0
+    assert 0.0 <= first["earth_comm"] <= 100.0
+    assert 0.0 <= first["suitability"] <= 100.0
+    # Terreno medido solo dentro del DEM polar; el resto va en null, sin valores inventados.
+    assert all(c["asteroid_protection"] is None for c in data["cells"])
+    north = data["cells"][-1]
+    assert north["slope_deg"] is None and north["landing_ease"] is None
+
+

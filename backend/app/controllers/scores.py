@@ -1,5 +1,6 @@
 from datetime import datetime, timedelta
 from functools import lru_cache
+import math
 
 from fastapi import APIRouter, Depends, Query
 import numpy as np
@@ -158,10 +159,12 @@ def scores_matrix(
 
 @lru_cache(maxsize=1)
 def _build_risk_grid(max_slope_deg: float = 15.0) -> dict:
-    """Builds and caches a 72x36 global grid of measured slope and Landing Ease.
+    """Builds and caches a 72x36 global grid for the on-globe heatmap overlays.
 
-    Cells without polar DEM coverage carry None. There is no asteroid
-    protection layer: it needs a terrain horizon per cell, which a 5° grid cannot give.
+    Slope and Landing Ease are measured: cells without polar DEM coverage carry None.
+    Solar exposure and Earth line-of-sight are coarse geometric estimates (latitude,
+    sub-Earth point), refined with measured relief where the DEM exists. There is no
+    asteroid protection layer: it needs a terrain horizon per cell, which a 5° grid cannot give.
     """
     cols, rows = 72, 36
     lon_step = 360.0 / cols
@@ -169,16 +172,71 @@ def _build_risk_grid(max_slope_deg: float = 15.0) -> dict:
     cells = []
     for r in range(rows):
         lat = -90.0 + (r + 0.5) * lat_step
+        lat_rad = math.radians(lat)
+        lat_abs = abs(lat)
         for c in range(cols):
             lon = -180.0 + (c + 0.5) * lon_step
+            lon_rad = math.radians(lon)
             metrics = evaluate_terrain(lat, lon)
             landing_ease = compute_landing_ease_score(metrics, max_slope_deg=max_slope_deg)
+            measured = metrics.available
+
+            # Solar exposure estimation (% illumination over synodic cycle):
+            # Mid/equatorial latitudes: ~50% day/night cycle.
+            # Polar latitudes (|lat| > 65°): grazing sun depends on elevation and equator-facing
+            # slope aspect; that refinement only applies where the DEM gives measured relief.
+            if lat_abs <= 65.0:
+                solar_exp = 50.0 + 3.0 * math.cos(lat_rad)
+            elif not measured:
+                solar_exp = 50.0
+            else:
+                polar_frac = (lat_abs - 65.0) / 25.0
+                elev_km = metrics.elevation_m / 1000.0
+                solar_base = 45.0 + 18.0 * float(np.clip(elev_km / 2.0, -1.0, 1.0))
+                aspect_rad = math.radians(metrics.aspect_deg)
+                slope_rad = math.radians(metrics.slope_deg)
+                # Slopes facing toward the equator receive more grazing sun
+                slope_facing = math.sin(slope_rad) * math.cos(aspect_rad if lat < 0 else aspect_rad - math.pi)
+                polar_solar = float(np.clip(solar_base + 15.0 * slope_facing, 5.0, 95.0))
+                solar_exp = (1.0 - polar_frac) * 50.0 + polar_frac * polar_solar
+
+            # Earth Direct-to-Earth Communication Line-of-Sight estimation:
+            # Tidal locking: Sub-Earth point is near (0°, 0°).
+            cos_delta = math.cos(lat_rad) * math.cos(lon_rad)
+            delta_deg = math.degrees(math.acos(float(np.clip(cos_delta, -1.0, 1.0))))
+            earth_el_deg = 90.0 - delta_deg
+            if earth_el_deg > 5.0:
+                earth_comm = 100.0
+            elif earth_el_deg < -5.0:
+                earth_comm = 0.0
+            else:
+                # Libration transition limb (-5° to +5°)
+                earth_comm = float(np.clip((earth_el_deg + 5.0) * 10.0, 0.0, 100.0))
+
+            # Deep polar basins with low Earth elevation have terrain blockage
+            if measured and lat_abs > 75.0 and earth_el_deg < 10.0 and metrics.elevation_m < -600:
+                earth_comm = max(0.0, earth_comm - 35.0)
+
+            # Combined Suitability (3-variable intersection: Landing Ease + Solar Access + Earth Comm).
+            # Without measured terrain, Landing Ease is left out and the other weights renormalize.
+            solar_term = solar_exp * (100.0 / 75.0) if solar_exp <= 75.0 else 100.0
+            if landing_ease is None:
+                suitability = (0.35 * solar_term + 0.25 * earth_comm) / 0.60
+            else:
+                suitability = 0.40 * landing_ease + 0.35 * solar_term + 0.25 * earth_comm
+                if metrics.slope_deg > max_slope_deg:
+                    suitability = min(suitability, 18.0)
+
             cells.append({
                 "lat": round(lat, 2),
                 "lon": round(lon, 2),
+                "elevation_m": None if metrics.elevation_m is None else round(metrics.elevation_m, 1),
                 "slope_deg": None if metrics.slope_deg is None else round(metrics.slope_deg, 2),
                 "landing_ease": None if landing_ease is None else round(landing_ease, 1),
                 "asteroid_protection": None,
+                "solar_exposure": round(float(np.clip(solar_exp, 0.0, 100.0)), 1),
+                "earth_comm": round(float(np.clip(earth_comm, 0.0, 100.0)), 1),
+                "suitability": round(float(np.clip(suitability, 0.0, 100.0)), 1),
             })
     return {
         "cols": cols,

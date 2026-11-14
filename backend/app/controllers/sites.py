@@ -42,13 +42,19 @@ def sky(
 def terrain_patch(
     site_ref: str,
     size: int = Query(25, ge=5, le=51, description="Odd grid dimension (e.g. 25 for 25x25 cells)"),
+    date: datetime = Depends(landing_date),
+    window_days: float = Query(14.0, gt=0, le=60, description="Duración de la ventana de análisis solar en días"),
     catalog: dict[str, Site] = Depends(get_catalog),
+    ephemeris: Ephemeris = Depends(get_ephemeris),
 ) -> dict:
-    """Returns a local NxN elevation and slope grid around the landing site for 3D relief inspection."""
+    """Returns a local NxN elevation, slope, and solar illumination grid around the landing site."""
     if size % 2 == 0:
         raise ValueError("size must be an odd integer")
     site = resolve_site(site_ref, catalog)
-    patch = evaluate_terrain_patch(site.lat, site.lon, size=size)
+    h_mask = horizon_for(site)
+    patch = evaluate_terrain_patch(
+        site.lat, site.lon, size=size, ephemeris=ephemeris, date=date, window_days=window_days, horizon_mask=h_mask
+    )
     return {"site_id": site.id, **patch}
 
 

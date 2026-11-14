@@ -97,13 +97,18 @@ export function fetchTimeline(ref, date, config) {
 }
 
 /**
- * Fetches a local NxN elevation and slope grid around a landing site.
+ * Fetches a local NxN elevation, slope, and solar illumination grid around a landing site.
  * @param {string} ref - Site id or "lat,lon" coordinates.
  * @param {number} [size=25] - Odd grid dimension.
+ * @param {Date|null} [date=null] - Landing date in UTC.
+ * @param {number} [windowDays=14] - Solar analysis window duration in days.
  * @returns {Promise<Object>}
  */
-export function fetchTerrainPatch(ref, size = 25) {
-  return request(`/api/sites/${encodeURIComponent(ref)}/patch`, { params: { size } });
+export function fetchTerrainPatch(ref, size = 25, date = null, windowDays = 14) {
+  const params = { size };
+  if (date) params.date = isoUtc(date);
+  if (windowDays) params.window_days = windowDays;
+  return request(`/api/sites/${encodeURIComponent(ref)}/patch`, { params });
 }
 
 export function fetchBestDates(ref, date, config, { days, stepHours }) {

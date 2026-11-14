@@ -151,18 +151,20 @@
                 <div class="lola-bar"></div>
                 <div class="lola-ticks"><span>−9 km</span><span>0 km</span><span>+10 km</span></div>
               </div>
-              <!-- Capas de riesgo ocultas: la grilla de 5° no tiene datos medidos fuera del DEM polar -->
-              <div id="moon-layer-bar" class="buttons layer-grid" role="group" data-i18n-attr="aria-label: layer.group" hidden>
+              <!-- Pendiente: medida solo dentro del DEM polar. Sol, señal y aptitud: estimación geométrica gruesa. -->
+              <div id="moon-layer-bar" class="buttons layer-grid" role="group" data-i18n-attr="aria-label: layer.group">
                 <button type="button" data-layer="surface" class="active" aria-pressed="true" data-i18n="layer.surface">Superficie real</button>
-                <button type="button" data-layer="risk-a" aria-pressed="false" data-i18n="layer.a">Riesgo A</button>
-                <button type="button" data-layer="risk-b" aria-pressed="false" data-i18n="layer.b">Riesgo B</button>
-                <button type="button" data-layer="safe-havens" aria-pressed="false" data-i18n="layer.safe">Refugios seguros</button>
+                <button type="button" data-layer="risk-a" aria-pressed="false" data-i18n="layer.a">Pendiente</button>
+                <button type="button" data-layer="solar" aria-pressed="false" data-i18n="layer.solar">Mapa solar</button>
+                <button type="button" data-layer="comm" aria-pressed="false" data-i18n="layer.comm">Señal Tierra</button>
+                <button type="button" data-layer="suitability" class="btn-suitability" aria-pressed="false" data-i18n="layer.suitability">Aptitud global</button>
               </div>
-              <div class="layer-legend caption" hidden>
+              <div class="layer-legend caption">
                 <p data-i18n="layers.note"></p>
                 <p><span class="swatch" style="--c:#10c891"></span><span class="swatch" style="--c:#f5a519"></span><span class="swatch" style="--c:#e12d37"></span> <span data-i18n="layers.a"></span></p>
-                <p><span class="swatch" style="--c:#0ea5e9"></span><span class="swatch" style="--c:#ea580c"></span> <span data-i18n="layers.b"></span></p>
-                <p><span class="swatch" style="--c:#2dd4bf"></span> <span data-i18n="layers.safe"></span></p>
+                <p><span class="swatch" style="--c:#facc15"></span><span class="swatch" style="--c:#f97316"></span><span class="swatch" style="--c:#3b82f6"></span> <span data-i18n="layers.solar"></span></p>
+                <p><span class="swatch" style="--c:#22c55e"></span><span class="swatch" style="--c:#eab308"></span><span class="swatch" style="--c:#e11d48"></span> <span data-i18n="layers.comm"></span></p>
+                <p><span class="swatch" style="--c:#34d399"></span><span class="swatch" style="--c:#0ea5e9"></span><span class="swatch" style="--c:#f59e0b"></span> <span data-i18n="layers.suitability"></span></p>
               </div>
             </section>
 
