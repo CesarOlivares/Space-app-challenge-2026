@@ -100,3 +100,7 @@ REST endpoints (`GET /api/scores`, `GET /api/sites/{site_ref}/sky`, `POST /api/c
 - `max_slope_deg` (float, default `15.0`, `2.0 < max_slope_deg <= 45.0`)
 
 Responses include `"terrain"` inside `"scores"` and a `"topography"` object (`elevation_m`, `slope_deg`, `roughness_m`, `slope_ok`, `source`).
+
+## Team Integration & Long-Term Roadmap
+
+For subsystem integration contracts (Solar Autonomy `E`, Communication Stability `C`, Topography `T`, and Asteroid/Meteoroid Safety `A`), cross-module physics formulas, and our 4-phase 3D relief & Mission Control UX roadmap, see [docs/TEAM_INTEGRATION_AND_ROADMAP.md](docs/TEAM_INTEGRATION_AND_ROADMAP.md).
