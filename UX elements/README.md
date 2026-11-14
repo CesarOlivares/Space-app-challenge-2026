@@ -15,6 +15,10 @@ Elementos visuales para elevar el diseño del frontend: paleta, tipografía, íc
 
 Nombres de archivo en minúsculas, con guiones y sin espacios: `icono-sol.svg`, `mockup-detalle-v2.png`.
 
+## Kit actual
+
+`iconos/` tiene los 23 SVG del kit del equipo (estilo HUD, monocromos con `currentColor`: toman el color del texto o de la variable que se les asigne). El uso asignado a cada uno está en el inventario de [docs/CICLO-2-VISUAL.md](../docs/CICLO-2-VISUAL.md).
+
 ## Lo que ya usa el frontend
 
 Los colores viven como variables CSS en `frontend/src/styles.css` (`:root`). Cambiar un valor allí cambia toda la interfaz.

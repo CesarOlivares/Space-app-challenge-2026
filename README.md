@@ -6,6 +6,7 @@ Lunar Site Explorer: un globo lunar 3D para comparar sitios y fechas de aterriza
 - [Propuesta, requerimientos, arquitectura y plan de trabajo](docs/PROPUESTA.md)
 - [API: rutas y formato de las respuestas](docs/API.md)
 - [Modelo matemático y fuentes de los criterios](docs/modelo/README.md)
+- [Ciclo 2: rediseño visual, relieve 3D y estructura en tres partes](docs/CICLO-2-VISUAL.md)
 - [UX elements: elementos visuales para el frontend](UX%20elements/README.md)
 
 ## Requisitos
