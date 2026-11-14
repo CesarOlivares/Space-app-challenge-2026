@@ -12,7 +12,9 @@ horizonte real: un cuerpo bajo él queda tapado por el terreno.
 from __future__ import annotations
 
 import json
+import math
 from dataclasses import dataclass
+from functools import lru_cache
 from pathlib import Path
 
 import numpy as np
@@ -157,3 +159,149 @@ def compute_mask(dem: PolarDEM, lat: float, lon: float,
         observer_height_m=observer_height_m,
         source=DEM_SOURCE,
     )
+
+
+_DEM_DIR = Path(__file__).resolve().parents[2] / "data" / "dem"
+
+
+@dataclass(frozen=True)
+class TerrainMetrics:
+    """Immutable topographical safety and elevation metrics for a lunar surface site.
+
+    Attributes:
+        elevation_m: Altitude in meters relative to the 1,737.4 km mean lunar sphere.
+        slope_deg: Local surface slope in degrees (>= 0.0).
+        roughness_m: Local RMS surface roughness in meters (>= 0.0).
+        source: Data origin identifier ("catalog", "lola_dem", or "fallback").
+    """
+
+    elevation_m: float
+    slope_deg: float
+    roughness_m: float
+    source: str
+
+
+@lru_cache(maxsize=1)
+def _get_polar_dem() -> PolarDEM | None:
+    """Loads and caches the South Pole LOLA DEM if present on disk.
+
+    Returns:
+        Opened PolarDEM instance, or None when the DEM file is absent.
+    """
+    return PolarDEM.open(_DEM_DIR)
+
+
+def _evaluate_lola_dem(dem: PolarDEM, lat: float, lon: float) -> TerrainMetrics | None:
+    """Computes slope and RMS roughness from a 3x3 LOLA DEM pixel window.
+
+    Fits a local plane z(x, y) = a*x + b*y + c over the 3x3 neighborhood around
+    (lat, lon) scaled by DEM_SCALE_M (120 m/pixel), then derives:
+        slope_deg = degrees(arctan(sqrt((dz/dx)^2 + (dz/dy)^2)))
+        roughness_m = RMS(z - (a*x + b*y + c))
+
+    Args:
+        dem: Opened South Pole LOLA DEM instance.
+        lat: Planetocentric latitude in degrees.
+        lon: East longitude in degrees.
+
+    Returns:
+        TerrainMetrics with source="lola_dem", or None if outside DEM bounds.
+    """
+    if lat > DEM_MAX_LAT:
+        return None
+    line, sample = PolarDEM.pixel(np.asarray(lat, dtype=float), np.asarray(lon, dtype=float))
+    l_idx = int(round(float(line)))
+    s_idx = int(round(float(sample)))
+    if not (1 <= l_idx <= DEM_SIZE - 2 and 1 <= s_idx <= DEM_SIZE - 2):
+        return None
+
+    patch = dem.data[l_idx - 1 : l_idx + 2, s_idx - 1 : s_idx + 2].astype(float) * DEM_HEIGHT_SCALE
+    dz_dx = float(np.sum(patch[:, 2] - patch[:, 0])) / (6.0 * DEM_SCALE_M)
+    dz_dy = float(np.sum(patch[2, :] - patch[0, :])) / (6.0 * DEM_SCALE_M)
+    slope_deg = math.degrees(math.atan(math.hypot(dz_dx, dz_dy)))
+
+    coords = np.array([-DEM_SCALE_M, 0.0, DEM_SCALE_M], dtype=float)
+    dx_grid, dy_grid = np.meshgrid(coords, coords)
+    plane_z = float(np.mean(patch)) + dz_dx * dx_grid + dz_dy * dy_grid
+    roughness_m = float(np.sqrt(np.mean((patch - plane_z) ** 2)))
+
+    elevation_m = float(dem.height(np.asarray(lat, dtype=float), np.asarray(lon, dtype=float)))
+    return TerrainMetrics(
+        elevation_m=round(elevation_m, 1),
+        slope_deg=round(max(0.0, slope_deg), 2),
+        roughness_m=round(max(0.0, roughness_m), 2),
+        source="lola_dem",
+    )
+
+
+def _evaluate_fallback(lat: float, lon: float) -> TerrainMetrics:
+    """Provides a deterministic, smooth coordinate-based terrain estimate.
+
+    Used when coordinates lie outside polar DEM coverage or when the DEM file
+    is not installed locally.
+
+    Args:
+        lat: Planetocentric latitude in degrees.
+        lon: East longitude in degrees.
+
+    Returns:
+        TerrainMetrics with source="fallback".
+    """
+    lat_rad = math.radians(lat)
+    lon_rad = math.radians(lon)
+    polar_factor = abs(math.sin(lat_rad)) ** 2
+    elevation_m = -1800.0 + 3400.0 * polar_factor + 700.0 * math.cos(2.0 * lon_rad) * math.cos(lat_rad)
+    slope_deg = 2.0 + 5.5 * polar_factor + 2.5 * abs(math.sin(3.0 * lat_rad + lon_rad))
+    roughness_m = 0.5 + 0.9 * polar_factor + 0.4 * abs(math.cos(2.0 * lat_rad - lon_rad))
+    return TerrainMetrics(
+        elevation_m=round(elevation_m, 1),
+        slope_deg=round(max(0.0, slope_deg), 2),
+        roughness_m=round(max(0.0, roughness_m), 2),
+        source="fallback",
+    )
+
+
+@lru_cache(maxsize=1024)
+def _evaluate_from_coordinates(lat_deg: float, lon_deg: float) -> TerrainMetrics:
+    """Cached topographical lookup for coordinates without catalog metadata.
+
+    Args:
+        lat_deg: Rounded planetocentric latitude in degrees.
+        lon_deg: Rounded east longitude in degrees.
+
+    Returns:
+        TerrainMetrics from the LOLA DEM when covered, otherwise fallback.
+    """
+    dem = _get_polar_dem()
+    if dem is not None:
+        lola_metrics = _evaluate_lola_dem(dem, lat_deg, lon_deg)
+        if lola_metrics is not None:
+            return lola_metrics
+    return _evaluate_fallback(lat_deg, lon_deg)
+
+
+def evaluate_terrain(lat: float, lon: float, site_data: dict | None = None) -> TerrainMetrics:
+    """Evaluates lunar surface elevation, slope, and roughness for a site.
+
+    Resolution priority:
+        1. Curated catalog metadata ("catalog") when `site_data["terrain"]` exists.
+        2. South Pole LOLA DEM ("lola_dem") 3x3 plane fit when available and covered.
+        3. Deterministic smooth coordinate estimator ("fallback").
+
+    Args:
+        lat: Planetocentric latitude in degrees [-90, 90].
+        lon: East longitude in degrees [-180, 180].
+        site_data: Optional raw catalog dictionary for the site.
+
+    Returns:
+        Immutable TerrainMetrics instance with elevation, slope, roughness, and source.
+    """
+    if site_data and isinstance(site_data.get("terrain"), dict):
+        terrain = site_data["terrain"]
+        return TerrainMetrics(
+            elevation_m=float(terrain["elevation_m"]),
+            slope_deg=max(0.0, float(terrain["slope_deg"])),
+            roughness_m=max(0.0, float(terrain["roughness_m"])),
+            source="catalog",
+        )
+    return _evaluate_from_coordinates(round(float(lat), 6), round(float(lon), 6))

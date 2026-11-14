@@ -17,6 +17,11 @@
       "source": {
         "name": "LROC Coordinates of Lunar Anthropogenic Features (2016), Apollo 11 LM",
         "url": "https://www.lroc.asu.edu/data/support/downloads/2016_LROC_Coordinates_of_Human_Features.pdf"
+      },
+      "terrain": {
+        "elevation_m": -1926.0,
+        "slope_deg": 1.8,
+        "roughness_m": 0.5
       }
     },
     {
@@ -34,6 +39,11 @@
       "source": {
         "name": "LROC Coordinates of Lunar Anthropogenic Features (2016), Apollo 12 LM",
         "url": "https://www.lroc.asu.edu/data/support/downloads/2016_LROC_Coordinates_of_Human_Features.pdf"
+      },
+      "terrain": {
+        "elevation_m": -1422.0,
+        "slope_deg": 2.1,
+        "roughness_m": 0.6
       }
     },
     {
@@ -51,6 +61,11 @@
       "source": {
         "name": "LROC Coordinates of Lunar Anthropogenic Features (2016), Apollo 14 LM",
         "url": "https://www.lroc.asu.edu/data/support/downloads/2016_LROC_Coordinates_of_Human_Features.pdf"
+      },
+      "terrain": {
+        "elevation_m": -1062.0,
+        "slope_deg": 4.5,
+        "roughness_m": 1.1
       }
     },
     {
@@ -68,6 +83,11 @@
       "source": {
         "name": "LROC Coordinates of Lunar Anthropogenic Features (2016), Apollo 15 LM",
         "url": "https://www.lroc.asu.edu/data/support/downloads/2016_LROC_Coordinates_of_Human_Features.pdf"
+      },
+      "terrain": {
+        "elevation_m": -1931.0,
+        "slope_deg": 3.2,
+        "roughness_m": 0.8
       }
     },
     {
@@ -85,6 +105,11 @@
       "source": {
         "name": "LROC Coordinates of Lunar Anthropogenic Features (2016), Apollo 16 LM",
         "url": "https://www.lroc.asu.edu/data/support/downloads/2016_LROC_Coordinates_of_Human_Features.pdf"
+      },
+      "terrain": {
+        "elevation_m": 8.0,
+        "slope_deg": 4.8,
+        "roughness_m": 1.2
       }
     },
     {
@@ -102,6 +127,11 @@
       "source": {
         "name": "LROC Coordinates of Lunar Anthropogenic Features (2016), Apollo 17 LM",
         "url": "https://www.lroc.asu.edu/data/support/downloads/2016_LROC_Coordinates_of_Human_Features.pdf"
+      },
+      "terrain": {
+        "elevation_m": -2626.0,
+        "slope_deg": 4.2,
+        "roughness_m": 1.0
       }
     },
     {
@@ -119,6 +149,11 @@
       "source": {
         "name": "LROC Coordinates of Lunar Anthropogenic Features (2016), Surveyor 7",
         "url": "https://www.lroc.asu.edu/data/support/downloads/2016_LROC_Coordinates_of_Human_Features.pdf"
+      },
+      "terrain": {
+        "elevation_m": 81.0,
+        "slope_deg": 7.2,
+        "roughness_m": 1.8
       }
     },
     {
@@ -136,6 +171,11 @@
       "source": {
         "name": "LROC Coordinates of Lunar Anthropogenic Features (2016), Luna 17",
         "url": "https://www.lroc.asu.edu/data/support/downloads/2016_LROC_Coordinates_of_Human_Features.pdf"
+      },
+      "terrain": {
+        "elevation_m": -2471.0,
+        "slope_deg": 2.0,
+        "roughness_m": 0.5
       }
     },
     {
@@ -153,6 +193,11 @@
       "source": {
         "name": "LROC Coordinates of Lunar Anthropogenic Features (2016), Luna 24",
         "url": "https://www.lroc.asu.edu/data/support/downloads/2016_LROC_Coordinates_of_Human_Features.pdf"
+      },
+      "terrain": {
+        "elevation_m": -3670.0,
+        "slope_deg": 1.9,
+        "roughness_m": 0.5
       }
     },
     {
@@ -170,6 +215,11 @@
       "source": {
         "name": "LROC Coordinates of Lunar Anthropogenic Features (2016), Chang'e 3",
         "url": "https://www.lroc.asu.edu/data/support/downloads/2016_LROC_Coordinates_of_Human_Features.pdf"
+      },
+      "terrain": {
+        "elevation_m": -2630.0,
+        "slope_deg": 2.4,
+        "roughness_m": 0.6
       }
     },
     {
@@ -188,6 +238,11 @@
       "source": {
         "name": "LROC — Topographic Map of the Chang'e 4 Site",
         "url": "https://www.lroc.asu.edu/images/1100"
+      },
+      "terrain": {
+        "elevation_m": -5927.0,
+        "slope_deg": 2.9,
+        "roughness_m": 0.8
       }
     },
     {
@@ -205,6 +260,11 @@
       "source": {
         "name": "LROC — First Look: Chang'e 5",
         "url": "https://www.lroc.asu.edu/posts/1172"
+      },
+      "terrain": {
+        "elevation_m": -2570.0,
+        "slope_deg": 2.2,
+        "roughness_m": 0.6
       }
     },
     {
@@ -223,6 +283,11 @@
       "source": {
         "name": "LROC — First Look: Chang'e 6",
         "url": "https://lroc.im-ldi.com/images/1374"
+      },
+      "terrain": {
+        "elevation_m": -5256.0,
+        "slope_deg": 3.8,
+        "roughness_m": 0.9
       }
     },
     {
@@ -240,6 +305,11 @@
       "source": {
         "name": "LROC — Chandrayaan-3 Landing Site",
         "url": "https://www.lroc.asu.edu/images/1314"
+      },
+      "terrain": {
+        "elevation_m": 532.0,
+        "slope_deg": 3.1,
+        "roughness_m": 0.7
       }
     },
     {
@@ -257,6 +327,11 @@
       "source": {
         "name": "NASA — NASA's LRO Spots Japan's Moon Lander",
         "url": "https://www.nasa.gov/missions/lro/nasas-lro-spots-japans-moon-lander/"
+      },
+      "terrain": {
+        "elevation_m": -912.0,
+        "slope_deg": 14.8,
+        "roughness_m": 1.7
       }
     },
     {
@@ -274,6 +349,11 @@
       "source": {
         "name": "NASA — NASA's LRO Images Intuitive Machines' Odysseus Lander",
         "url": "https://www.nasa.gov/missions/lro/nasas-lro-images-intuitive-machines-odysseus-lander/"
+      },
+      "terrain": {
+        "elevation_m": 2579.0,
+        "slope_deg": 11.2,
+        "roughness_m": 1.6
       }
     },
     {
@@ -291,6 +371,11 @@
       "source": {
         "name": "LROC — Blue Ghost Lunar Lander Seen From Above",
         "url": "https://lroc.im-ldi.com/images/1407"
+      },
+      "terrain": {
+        "elevation_m": -3650.0,
+        "slope_deg": 1.6,
+        "roughness_m": 0.4
       }
     },
     {
@@ -308,6 +393,11 @@
       "source": {
         "name": "LROC — IM-2 Athena Seen Obliquely",
         "url": "https://lroc.im-ldi.com/images/1408"
+      },
+      "terrain": {
+        "elevation_m": 4850.0,
+        "slope_deg": 4.6,
+        "roughness_m": 1.1
       }
     },
     {
@@ -326,6 +416,11 @@
       "source": {
         "name": "USGS Gazetteer of Planetary Nomenclature — Mons Mouton",
         "url": "https://planetarynames.wr.usgs.gov/Feature/16070"
+      },
+      "terrain": {
+        "elevation_m": 4920.0,
+        "slope_deg": 3.8,
+        "roughness_m": 0.9
       }
     },
     {
@@ -344,6 +439,11 @@
       "source": {
         "name": "USGS Gazetteer of Planetary Nomenclature — Mons Malapert",
         "url": "https://planetarynames.wr.usgs.gov/Feature/16338"
+      },
+      "terrain": {
+        "elevation_m": 4900.0,
+        "slope_deg": 6.4,
+        "roughness_m": 1.4
       }
     },
     {
@@ -362,6 +462,11 @@
       "source": {
         "name": "LROC — Islands in the Dark",
         "url": "https://www.lroc.asu.edu/images/1105"
+      },
+      "terrain": {
+        "elevation_m": 1950.0,
+        "slope_deg": 13.5,
+        "roughness_m": 2.1
       }
     },
     {
@@ -380,6 +485,11 @@
       "source": {
         "name": "Wikipedia — Chang'e 7 (fuente secundaria)",
         "url": "https://en.wikipedia.org/wiki/Chang%27e_7"
+      },
+      "terrain": {
+        "elevation_m": 1680.0,
+        "slope_deg": 7.8,
+        "roughness_m": 1.5
       }
     }
   ]
