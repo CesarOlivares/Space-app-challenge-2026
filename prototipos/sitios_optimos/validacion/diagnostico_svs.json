@@ -1,0 +1,36 @@
+{
+ "5027": {
+  "cuadros": 365,
+  "sitios": 140,
+  "por_holgura": {
+   "umbral10_mayor_0.0": 0.901,
+   "umbral10_mayor_0.5": 0.9167,
+   "umbral10_mayor_1.0": 0.9309,
+   "umbral10_mayor_2.0": 0.9479,
+   "umbral20_mayor_0.0": 0.8929,
+   "umbral20_mayor_0.5": 0.9141,
+   "umbral20_mayor_1.0": 0.9278,
+   "umbral20_mayor_2.0": 0.946
+  },
+  "espejo_lon_invertida": 0.5046,
+  "desfase_-1_dia": 0.8456,
+  "desfase_1_dia": 0.8438
+ },
+ "4930": {
+  "cuadros": 365,
+  "sitios": 41,
+  "por_holgura": {
+   "umbral10_mayor_0.0": 0.8787,
+   "umbral10_mayor_0.5": 0.9193,
+   "umbral10_mayor_1.0": 0.9375,
+   "umbral10_mayor_2.0": 0.9649,
+   "umbral20_mayor_0.0": 0.8406,
+   "umbral20_mayor_0.5": 0.8883,
+   "umbral20_mayor_1.0": 0.9101,
+   "umbral20_mayor_2.0": 0.948
+  },
+  "espejo_lon_invertida": 0.4341,
+  "desfase_-1_dia": 0.7918,
+  "desfase_1_dia": 0.7919
+ }
+}
