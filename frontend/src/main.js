@@ -14,6 +14,7 @@ import { Controls } from "./views/Controls.js";
 import { CustomSiteForm } from "./views/CustomSiteForm.js";
 import { DetailPanel } from "./views/DetailPanel.js";
 import { GlobeView } from "./views/GlobeView.js";
+import { SettingsPanel, DEFAULT_CONFIG } from "./views/SettingsPanel.js";
 import { SiteList } from "./views/SiteList.js";
 import { notViableReason } from "./views/encoding.js";
 
@@ -31,6 +32,8 @@ const state = {
   scores: new Map(), // por id, para la fecha actual
   illumination: null,
   date: null,
+  config: { ...DEFAULT_CONFIG },
+  playing: false,
   selectedId: null,
   compare: [], // [{ ref, date, name }]
   request: 0,
@@ -104,9 +107,22 @@ new CustomSiteForm(document.getElementById("custom-site"), {
 
 const controls = new Controls(document.getElementById("controls"), {
   onDateChange: (date) => loadDate(date),
+  // Durante la animación solo se actualizan el globo y la lista; el detalle, al pausar.
+  onPlayChange: (playing) => {
+    state.playing = playing;
+    if (!playing && state.selectedId) loadDetail();
+  },
   onView: (view) => {
     if (view === "south-pole") globe.focusSouthPole();
     if (view === "near-side" && state.illumination) globe.focusNearSide(state.illumination);
+  },
+});
+
+new SettingsPanel(document.getElementById("settings"), {
+  onChange: (config) => {
+    state.config = config;
+    document.getElementById("legend-days").textContent = config.windowDays;
+    loadDate(state.date);
   },
 });
 
@@ -136,8 +152,8 @@ async function loadDetail() {
   try {
     const ref = siteRef(id);
     const [sky, timeline] = await Promise.all([
-      fetchSky(ref, state.date),
-      fetchTimeline(ref, state.date, { days: 14, stepHours: 2 }),
+      fetchSky(ref, state.date, state.config),
+      fetchTimeline(ref, state.date, state.config),
     ]);
     if (request !== state.detailRequest) return;
     sky.site.name = site.name; // conserva el nombre dado a un sitio personalizado
@@ -153,7 +169,7 @@ async function loadDetail() {
 // --- Sitios personalizados ------------------------------------------------
 
 async function addCustomSite(lat, lon, name) {
-  const sky = await fetchSky(`${lat},${lon}`, state.date); // valida y calcula en el servidor
+  const sky = await fetchSky(`${lat},${lon}`, state.date, state.config); // valida y calcula en el servidor
   const site = { ...sky.site, name: name || sky.site.name };
   if (!state.sites.has(site.id)) {
     state.sites.set(site.id, site);
@@ -196,7 +212,7 @@ async function openCompare() {
   compareView.open();
   compareView.showMessage("Calculando…");
   try {
-    const data = await fetchComparison(state.compare);
+    const data = await fetchComparison(state.compare, state.config);
     data.results.forEach((r, i) => {
       // Los sitios personalizados conservan el nombre que les dio el usuario.
       if (r.site.category === "personalizado") r.site.name = state.compare[i].name;
@@ -223,9 +239,9 @@ async function loadDate(date) {
   const custom = [...state.sites.values()].filter((s) => s.category === "personalizado");
   try {
     const [scores, illumination, ...customSkies] = await Promise.all([
-      fetchScores(date),
+      fetchScores(date, state.config),
       fetchIllumination(date),
-      ...custom.map((s) => fetchSky(siteRef(s.id), date)),
+      ...custom.map((s) => fetchSky(siteRef(s.id), date, state.config)),
     ]);
     if (request !== state.request) return; // llegó una fecha más nueva mientras tanto
     const all = [...scores.scores, ...customSkies];
@@ -236,7 +252,7 @@ async function loadDate(date) {
     list.setScores(all);
     const viable = all.filter((s) => s.viable).length;
     setStatus(`${viable} de ${all.length} sitios viables`, "ok");
-    if (state.selectedId) loadDetail();
+    if (state.selectedId && !state.playing) loadDetail();
   } catch (error) {
     if (request === state.request) setStatus(`Error: ${error.message}`, "error");
   }

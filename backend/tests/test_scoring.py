@@ -61,6 +61,26 @@ def test_sitio_ecuatorial_de_noche_no_es_viable(ephemeris, catalog):
     assert result.sun.hours_until_rise > 0
 
 
+def test_orientacion_de_paneles(ephemeris, catalog):
+    # 15/12/2026: amanece en Apollo 11 (Sol alto los días siguientes) y en IM-2 el Sol ronda los 2°.
+    date = datetime.fromisoformat("2026-12-15T00:00:00+00:00")
+
+    def energy(site_id, panel):
+        return evaluate(ephemeris, catalog[site_id], date, ScoringConfig(panel=panel)).energy
+
+    # Por tiempo de luz ambos saturan; con paneles planos el Sol bajo del polo rinde poco.
+    assert energy("apollo-11", "tiempo") == energy("im-2", "tiempo") == 100
+    assert energy("apollo-11", "horizontal") > energy("im-2", "horizontal") + 20
+    # Con paneles verticales el polo aprovecha casi todo y el ecuador pierde con el Sol alto.
+    assert energy("im-2", "vertical") > 99
+    assert energy("apollo-11", "vertical") < energy("im-2", "vertical")
+
+
+def test_panel_desconocido():
+    with pytest.raises(ValueError):
+        ScoringConfig(panel="diagonal")
+
+
 def test_puntajes_en_rango(ephemeris, catalog):
     for site in catalog.values():
         result = evaluate(ephemeris, site, LANDING)

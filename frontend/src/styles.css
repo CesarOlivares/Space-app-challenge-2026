@@ -431,6 +431,92 @@ input {
   stroke-width: 3px;
 }
 
+.sky-cursor {
+  fill: none;
+  stroke-width: 2;
+}
+
+/* Línea de tiempo */
+
+.timeline {
+  display: block;
+  width: 100%;
+  height: auto;
+  cursor: crosshair;
+  touch-action: none;
+}
+
+.strip-bg {
+  fill: rgba(255, 255, 255, 0.06);
+}
+
+.strip-label {
+  fill: #05070d;
+  font-size: 6px;
+  font-weight: 700;
+}
+
+.timeline-bg {
+  fill: #03050a;
+}
+
+.timeline-ground {
+  fill: #2a2d33;
+}
+
+.timeline-line {
+  fill: none;
+  stroke-width: 1.4;
+}
+
+.timeline-cursor line {
+  stroke: rgba(255, 255, 255, 0.6);
+  stroke-width: 0.75;
+}
+
+.timeline-readout {
+  min-height: 2.6em;
+}
+
+/* Animación */
+
+.play {
+  align-items: center;
+}
+
+.play #play[aria-pressed="true"] {
+  background: #1d4f73;
+  border-color: #2b6a96;
+}
+
+label.inline {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+
+select {
+  padding: 5px 6px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: #0b0f18;
+  color: var(--text);
+  font: inherit;
+}
+
+.custom select {
+  width: 100%;
+  margin-top: 2px;
+}
+
+.custom input[type="range"] {
+  padding: 0;
+  accent-color: var(--accent);
+}
+
 /* Barra lateral: leyenda, coordenadas y ranking */
 
 #sidebar {

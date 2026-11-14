@@ -29,6 +29,17 @@
           <button type="button" data-shift-days="1">+1 d</button>
           <button type="button" data-shift-days="7">+7 d</button>
         </div>
+        <div class="buttons play" role="group" aria-label="Animación">
+          <button type="button" id="play" aria-pressed="false">▶ Animar</button>
+          <label class="inline">Paso
+            <select id="play-speed">
+              <option value="2">2 h</option>
+              <option value="6" selected>6 h</option>
+              <option value="12">12 h</option>
+              <option value="24">1 día</option>
+            </select>
+          </label>
+        </div>
         <div class="buttons" role="group" aria-label="Vista">
           <button type="button" data-view="near-side">Vista desde la Tierra</button>
           <button type="button" data-view="south-pole">Polo sur</button>
@@ -61,7 +72,7 @@
           <dt><span class="legend-size"><i></i><i></i><i></i></span></dt>
           <dd><b>Tamaño</b>: puntaje global</dd>
           <dt><span class="legend-glow"></span></dt>
-          <dd><b>Brillo</b>: energía (luz solar en 14 días)</dd>
+          <dd><b>Brillo</b>: energía (luz solar en <span id="legend-days">14</span> días)</dd>
           <dt><span class="swatch" style="--c: var(--comm-high)"></span></dt>
           <dd><b>Celeste</b>: Tierra visible casi siempre (≥ 95 %)</dd>
           <dt><span class="swatch" style="--c: var(--comm-mid)"></span></dt>
@@ -83,6 +94,31 @@
           <label>Nombre (opcional)<input name="name" type="text" maxlength="60" placeholder="Mi sitio" /></label>
           <p class="form-error" role="alert" hidden></p>
           <button type="submit" class="primary">Agregar al globo</button>
+        </form>
+      </details>
+
+      <details class="custom">
+        <summary>Ajustes del puntaje</summary>
+        <form id="settings">
+          <label>Peso de cada criterio
+            <input name="weight" type="range" min="0" max="100" step="5" aria-describedby="weight-output" />
+          </label>
+          <output id="weight-output" class="caption"></output>
+          <label>Paneles solares
+            <select name="panel">
+              <option value="tiempo">Solo tiempo de luz (sin orientación)</option>
+              <option value="horizontal">Horizontales: rinden más con el Sol alto</option>
+              <option value="vertical">Verticales que siguen al Sol (módulos polares)</option>
+            </select>
+          </label>
+          <div class="fields">
+            <label>Ventana (días)<input name="window" type="number" min="1" max="30" step="1" /></label>
+            <span></span>
+            <label>Sol mínimo (°)<input name="sun-margin" type="number" min="0" max="20" step="0.5" /></label>
+            <label>Tierra mínima (°)<input name="earth-margin" type="number" min="0" max="20" step="0.5" /></label>
+          </div>
+          <p class="caption">Los márgenes exigen esa elevación para contar al Sol o a la Tierra como visibles (p. ej. para despejar una antena).</p>
+          <button type="button" data-action="reset">Restablecer</button>
         </form>
       </details>
 

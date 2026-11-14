@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
+from typing import Literal
 
 from fastapi import HTTPException, Query, Request
 
@@ -56,6 +57,9 @@ def _config_dependency(default_step_hours: float):
         earth_margin_deg: float = Query(0.0, ge=-5, le=30, description="Elevación mínima de la Tierra"),
         weight_energy: float = Query(0.5, ge=0, le=1),
         weight_communication: float = Query(0.5, ge=0, le=1),
+        panel: Literal["tiempo", "horizontal", "vertical"] = Query(
+            "tiempo", description="Orientación de los paneles para el puntaje de energía"
+        ),
     ) -> ScoringConfig:
         return ScoringConfig(
             window_days=window_days,
@@ -64,6 +68,7 @@ def _config_dependency(default_step_hours: float):
             earth_margin_deg=earth_margin_deg,
             weight_energy=weight_energy,
             weight_communication=weight_communication,
+            panel=panel,
         )
 
     return scoring_config

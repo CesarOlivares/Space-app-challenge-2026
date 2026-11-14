@@ -3,8 +3,13 @@
 Se muestrea la posición del Sol y la Tierra durante la ventana de misión
 (por defecto 14 días, aproximadamente la parte iluminada de un día lunar):
 
-- Energía E = 50 % fracción de la ventana con Sol visible
+- Energía E = 50 % aprovechamiento solar de la ventana
               + 50 % horas continuas de luz desde el aterrizaje / horas de la ventana
+  El aprovechamiento depende de la orientación de los paneles (`panel`):
+    "tiempo"      fracción del tiempo con Sol visible, sin importar su altura
+    "horizontal"  promedio de sen(elevación): paneles planos; premia el Sol alto
+    "vertical"    promedio de cos(elevación): paneles verticales que giran hacia
+                  el Sol, como en los módulos polares; premia el Sol bajo
 - Comunicación C = fracción de la ventana con la Tierra visible
 - Global P = (wE·E + wC·C) / (wE + wC)
 
@@ -32,6 +37,9 @@ from app.models.windows import (
 )
 
 
+PANELS = ("tiempo", "horizontal", "vertical")
+
+
 @dataclass(frozen=True)
 class ScoringConfig:
     window_days: float = 14.0
@@ -40,8 +48,11 @@ class ScoringConfig:
     earth_margin_deg: float = 0.0
     weight_energy: float = 0.5
     weight_communication: float = 0.5
+    panel: str = "tiempo"
 
     def __post_init__(self):
+        if self.panel not in PANELS:
+            raise ValueError(f"panel desconocido: {self.panel}; opciones: {', '.join(PANELS)}")
         if self.window_days <= 0 or self.step_hours <= 0:
             raise ValueError("window_days y step_hours deben ser positivos")
         if self.weight_energy < 0 or self.weight_communication < 0:
@@ -84,9 +95,22 @@ class SiteEvaluation:
     viable: bool
 
 
-def energy_score(sun_fraction: float, continuous_hours: float, window_hours: float) -> float:
+def energy_score(solar_use: float, continuous_hours: float, window_hours: float) -> float:
     continuity = min(1.0, continuous_hours / window_hours)
-    return 100.0 * (0.5 * sun_fraction + 0.5 * continuity)
+    return 100.0 * (0.5 * solar_use + 0.5 * continuity)
+
+
+def solar_use(track: Track, clearance: np.ndarray, panel: str) -> float:
+    """Aprovechamiento solar promedio en la ventana (0 a 1) según la orientación de los paneles."""
+    visible = clearance > 0
+    elevation = np.radians(np.clip(track.elevation, 0.0, 90.0))
+    if panel == "horizontal":
+        factor = np.sin(elevation)
+    elif panel == "vertical":
+        factor = np.cos(elevation)
+    else:
+        factor = np.ones_like(elevation)
+    return float(np.mean(np.where(visible, factor, 0.0)))
 
 
 def communication_score(earth_fraction: float) -> float:
@@ -134,7 +158,12 @@ def evaluate(ephemeris: Ephemeris, site: Site, landing: datetime,
     else:
         continuous = sun.hours_until_set
 
-    energy = energy_score(sun.visible_fraction, continuous, window_h)
+    if config.panel == "tiempo":
+        use = sun.visible_fraction  # exacta, con los cruces interpolados
+    else:
+        horizon = horizon_for(site, config.sun_margin_deg)
+        use = solar_use(sun_track, horizon.clearance(sun_track.azimuth, sun_track.elevation), config.panel)
+    energy = energy_score(use, continuous, window_h)
     communication = communication_score(earth.visible_fraction)
     return SiteEvaluation(
         site=site,

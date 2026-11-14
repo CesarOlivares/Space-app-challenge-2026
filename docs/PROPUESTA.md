@@ -20,7 +20,7 @@ Al mover la fecha, los puntos cambian de tamaño y brillo en vivo. Eso responde 
 
 Para un sitio y una fecha de aterrizaje se muestrea la posición del Sol y la Tierra a lo largo de una ventana de misión (por defecto 14 días terrestres, aproximadamente un día lunar de luz; configurable).
 
-- **Energía** `E`: fracción de la ventana con el Sol sobre el horizonte local, combinada con las horas continuas de luz desde el aterrizaje.
+- **Energía** `E`: aprovechamiento solar de la ventana, combinado con las horas continuas de luz desde el aterrizaje. El aprovechamiento depende de la orientación de los paneles: solo tiempo de luz (por defecto), paneles horizontales (premia el Sol alto) o verticales que siguen al Sol (premia el Sol bajo, como en los módulos polares).
 - **Comunicación** `C`: fracción de la ventana con la Tierra sobre el horizonte, con un margen mínimo de elevación configurable.
 - **Global**: `P = wE·E + wC·C`, con pesos ajustables por el usuario (por defecto 50/50).
 - **Condición dura**: si al momento de aterrizar el Sol o la Tierra no son visibles, el sitio se marca como no viable.
@@ -244,9 +244,9 @@ Las tareas se hacen en orden: cada una parte de lo que dejó la anterior. Una ta
 
 | ✓ | ID | Tarea | Verificación | RF |
 |---|---|---|---|---|
-| [ ] | T-30 | `TimelineView`: elevación del Sol y la Tierra con ventanas sombreadas | El gráfico coincide con los intervalos de T-13 | RF-12 |
-| [ ] | T-31 | Animación del tiempo con reproducir, pausar y velocidad | Se ve un día lunar completo animado | RF-13 |
-| [ ] | T-32 | Controles de pesos, duración de la ventana y margen de elevación | Mover un peso cambia los puntos del globo | RF-14 |
+| [x] | T-30 | `TimelineView`: elevación del Sol y la Tierra con ventanas sombreadas | El gráfico coincide con los intervalos de T-13 | RF-12 |
+| [x] | T-31 | Animación del tiempo con reproducir, pausar y velocidad | Se ve un día lunar completo animado | RF-13 |
+| [x] | T-32 | Controles de pesos, duración de la ventana y margen de elevación | Mover un peso cambia los puntos del globo | RF-14 |
 
 ### Fase 7 — Terreno
 

@@ -18,9 +18,8 @@ function el(name, attrs = {}, text) {
   return node;
 }
 
-function elevationRange(sky, timeline) {
-  const values = [sky.sun.elevation_deg, sky.earth.elevation_deg];
-  if (timeline) values.push(...timeline.sun.elevation_deg, ...timeline.earth.elevation_deg);
+// Rango vertical [abajo, arriba] en grados: ajustado a lo que está sobre el horizonte.
+export function elevationRange(values) {
   const visibleMax = Math.max(...values.filter((v) => v > -2), 0);
   const top = Math.min(90, Math.max(10, Math.ceil((visibleMax + 3) / 5) * 5));
   const bottom = -Math.max(5, Math.round(top * 0.3 / 5) * 5);
@@ -42,8 +41,11 @@ function trailSegments(azimuths, elevations) {
   return segments.filter((s) => s.length > 1);
 }
 
+// Devuelve { setCursor(i) }: marca la posición de ambos cuerpos en la muestra i de `timeline`.
 export function renderSky(container, sky, timeline = null, { height = 150, compact = false } = {}) {
-  const [bottom, top] = elevationRange(sky, timeline);
+  const values = [sky.sun.elevation_deg, sky.earth.elevation_deg];
+  if (timeline) values.push(...timeline.sun.elevation_deg, ...timeline.earth.elevation_deg);
+  const [bottom, top] = elevationRange(values);
   const y = (elevation) => ((top - elevation) / (top - bottom)) * height;
   const id = `sky-clip-${Math.random().toString(36).slice(2)}`;
 
@@ -105,5 +107,21 @@ export function renderSky(container, sky, timeline = null, { height = 150, compa
       `${label} ${below ? "↓ " : ""}${elev.toFixed(1)}°`));
   }
 
+  const cursor = el("g", { "clip-path": `url(#${id})` });
+  svg.append(cursor);
   container.replaceChildren(svg);
+
+  return {
+    setCursor(index) {
+      cursor.replaceChildren();
+      if (index == null || !timeline) return;
+      for (const body of ["sun", "earth"]) {
+        const az = timeline[body].azimuth_deg[index];
+        const elev = timeline[body].elevation_deg[index];
+        cursor.append(el("circle", {
+          cx: az, cy: y(Math.max(elev, bottom + 1)), r: 6, class: "sky-cursor", stroke: BODIES[body].color,
+        }));
+      }
+    },
+  };
 }

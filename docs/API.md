@@ -23,6 +23,7 @@ Los aceptan `/scores`, `/sky` y `/compare` como parámetros de consulta.
 | `earth_margin_deg` | 0 | [-5, 30] | Elevación mínima para contar la Tierra como visible |
 | `weight_energy` | 0,5 | [0, 1] | Peso de la energía en el puntaje global |
 | `weight_communication` | 0,5 | [0, 1] | Peso de la comunicación en el puntaje global |
+| `panel` | `tiempo` | `tiempo`, `horizontal`, `vertical` | Orientación de los paneles para la energía: solo tiempo de luz, paneles planos (sen de la elevación) o verticales que siguen al Sol (cos de la elevación) |
 
 La fórmula está en `backend/app/models/scoring.py` y en la sección 1 de la [propuesta](PROPUESTA.md). Todos los puntajes van de 0 a 100. `viable` es `true` solo si el Sol y la Tierra están sobre el horizonte al aterrizar.
 

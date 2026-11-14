@@ -4,6 +4,7 @@
 import { escapeHtml, formatDegrees, formatDuration, formatUtc } from "../format.js";
 import { notViableReason } from "./encoding.js";
 import { renderSky } from "./SkyView.js";
+import { renderTimeline } from "./TimelineView.js";
 
 const PRECISION_NOTES = {
   lander: "Posición del módulo medida en imágenes de LRO.",
@@ -123,6 +124,9 @@ export class DetailPanel {
       <p class="caption">Posición al aterrizar y trayectoria durante ${days} días (un punto por día).
         Horizonte ${sky.sun.horizon === "esferico" ? "esférico, sin relieve local" : "con relieve LOLA"}.</p>
 
+      <h3>Línea de tiempo</h3>
+      <div class="timeline-container"></div>
+
       <h3>Puntaje</h3>
       ${scoreBar("Energía", sky.scores.energy, "Luz solar durante la ventana y continuidad desde el aterrizaje")}
       ${scoreBar("Comunicación", sky.scores.communication, "Fracción de la ventana con la Tierra visible")}
@@ -148,7 +152,10 @@ export class DetailPanel {
       <div class="actions">${compareButton}${removeButton}</div>
       ${source ? `<p class="caption">Fuente de la coordenada: ${source}</p>` : ""}`;
 
-    renderSky(this.body.querySelector(".sky-container"), sky, timeline);
+    const skyView = renderSky(this.body.querySelector(".sky-container"), sky, timeline);
+    renderTimeline(this.body.querySelector(".timeline-container"), timeline, {
+      onScrub: (index) => skyView.setCursor(index),
+    });
   }
 
   close() {
