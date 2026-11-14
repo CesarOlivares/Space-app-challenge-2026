@@ -362,23 +362,6 @@ if (layerBar) {
     globe.setLayerMode(layer);
   });
 }
-
-// LOLA / LROC surface texture switcher
-const surfaceToggle = document.querySelector(".surface-toggle");
-const lolaColorbar = document.getElementById("lola-colorbar");
-if (surfaceToggle) {
-  surfaceToggle.addEventListener("click", (e) => {
-    const btn = e.target.closest("button[data-surface]");
-    if (!btn) return;
-    const mode = btn.dataset.surface;
-    for (const b of surfaceToggle.querySelectorAll("button[data-surface]")) {
-      b.classList.toggle("active", b === btn);
-      b.setAttribute("aria-pressed", String(b === btn));
-    }
-    if (lolaColorbar) lolaColorbar.hidden = mode !== "lola";
-    globe.setSurfaceMode(mode);
-  });
-}
 legendToggle.addEventListener("click", () => setLegend(legendCard.hidden));
 document.addEventListener("keydown", (event) => {
   if (event.key !== "Escape") return;
