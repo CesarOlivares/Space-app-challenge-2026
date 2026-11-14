@@ -1,4 +1,4 @@
-# API de Lunar Site Explorer
+# API de Zenith
 
 Todas las rutas cuelgan de `/api` y responden JSON. Con el servidor levantado, la documentación interactiva generada por FastAPI está en http://localhost:8000/docs.
 

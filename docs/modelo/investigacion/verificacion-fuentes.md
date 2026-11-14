@@ -1,6 +1,6 @@
 # Informe de Verificación Independiente de Fuentes y Datos
 
-**Proyecto:** Lunar Site Explorer — NASA Space Apps Challenge 2026  
+**Proyecto:** Zenith — NASA Space Apps Challenge 2026  
 **Documento auditado:** [informe-fuentes-y-validacion.md](informe-fuentes-y-validacion.md)  
 **Verificador:** antigravity  
 **Fecha:** 14 de noviembre de 2026  

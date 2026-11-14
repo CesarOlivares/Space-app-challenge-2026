@@ -44,7 +44,7 @@ En esta geometría rasante, el relieve topográfico (medido con precisión de me
 
 ---
 
-## 2. Cómo se Calcula el Mapa Solar en Moonland Planificator
+## 2. Cómo se Calcula el Mapa Solar en Zenith
 
 El cálculo se articula en dos niveles de detalle con algoritmos adaptados a su escala:
 

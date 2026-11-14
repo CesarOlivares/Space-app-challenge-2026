@@ -1,15 +1,15 @@
-# Lunar Site Explorer — Team Integration Guide & Long-Term Roadmap
+# Zenith — Team Integration Guide & Long-Term Roadmap
 
 ## 1. Executive Overview & The 4-Pillar Mission Architecture
 
-**Lunar Site Explorer** is a full-stack mission-planning platform (FastAPI + Python domain models + Vanilla JS ES Modules & Three.js) designed to evaluate candidate lunar landing sites and launch/landing epochs across four coupled aerospace subsystems:
+**Zenith** is a full-stack mission-planning platform (FastAPI + Python domain models + Vanilla JS ES Modules & Three.js) designed to evaluate candidate lunar landing sites and launch/landing epochs across four coupled aerospace subsystems:
 
 1. **Solar Autonomy (`E` — Energy):** Evaluates solar power generation and continuous illumination windows (`scoring.py`, `windows.py`, `ephemeris.py`) using JPL DE440s ephemerides and panel orientation models (`"tiempo"`, `"horizontal"`, `"vertical"`).
 2. **Communication Stability (`C` — Direct-to-Earth):** Evaluates line-of-sight visibility and link reliability with Earth stations over the mission window, accounting for lunar libration and local horizon obstructions.
 3. **Topography & Landing Safety (`T` — Terrain):** Evaluates local surface slope, RMS surface roughness, and elevation (`terrain.py`, `sites.json`) against spacecraft mechanical tip-over limits (`max_slope_deg`).
 4. **Asteroid & Meteoroid Safety (`A` — Ballistic Shielding):** Evaluates natural topographical sky-shielding against grazing micrometeoroids, impactor flux, and secondary ejecta hazards.
 
-Rather than treating these four subsystems as isolated spreadsheets, Lunar Site Explorer couples them through shared physical terrain and horizon models (`terrain.py` and `horizon.py`) and unifies them into a single mission score $P \in [0, 100]$ and an instantaneous landing viability gate (`viable`).
+Rather than treating these four subsystems as isolated spreadsheets, Zenith couples them through shared physical terrain and horizon models (`terrain.py` and `horizon.py`) and unifies them into a single mission score $P \in [0, 100]$ and an instantaneous landing viability gate (`viable`).
 
 ---
 

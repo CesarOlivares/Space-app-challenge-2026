@@ -1,4 +1,4 @@
-# Resultados de APIs y fuentes — Lunar Site Explorer
+# Resultados de APIs y fuentes — Zenith
 
 Autor: codex. Entrega: 2026-11-14T15:52:46.5684870-03:00. Pruebas HTTP: 14-11-2026; fechas de cada respuesta en JSON/raw.
 

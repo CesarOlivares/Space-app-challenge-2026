@@ -98,5 +98,5 @@ if [ ! -f data/kernels/de440s.bsp ]; then
 fi
 
 PORT="${PORT:-8000}"
-echo "Iniciando Lunar Site Explorer en http://localhost:$PORT"
+echo "Iniciando Zenith en http://localhost:$PORT"
 exec "$VENV_PYTHON" -m uvicorn app.main:app --reload --port "$PORT"

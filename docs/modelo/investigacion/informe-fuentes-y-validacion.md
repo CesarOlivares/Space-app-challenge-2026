@@ -1,4 +1,4 @@
-# Lunar Site Explorer: investigación de fuentes, APIs y validación del modelo
+# Zenith: investigación de fuentes, APIs y validación del modelo
 
 **Proyecto:** evaluación rápida de sitios de aterrizaje en el polo sur lunar — NASA Space Apps Challenge 2026.  
 **Fecha de la investigación:** 14 de noviembre de 2026.  

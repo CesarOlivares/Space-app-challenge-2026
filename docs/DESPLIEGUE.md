@@ -1,4 +1,4 @@
-# Guía de Despliegue en Producción — Moonland Planificator
+# Guía de Despliegue en Producción — Zenith
 
 Esta guía detalla la arquitectura, los servicios cloud recomendados y los pasos exactos para publicar la aplicación web completa (Backend FastAPI + Datos Masivos + Frontend Three.js).
 

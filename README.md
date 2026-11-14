@@ -1,6 +1,6 @@
 # Space-app-challenge-2026
 
-Lunar Site Explorer: un globo lunar 3D para comparar sitios y fechas de aterrizaje según la luz solar y la visibilidad de la Tierra. Proyecto para el NASA Space Apps Challenge 2026.
+Zenith: un globo lunar 3D para comparar sitios y fechas de aterrizaje según la luz solar y la visibilidad de la Tierra. Proyecto para el NASA Space Apps Challenge 2026.
 
 - [Desafío](docs/DESAFIO.md)
 - [Propuesta, requerimientos, arquitectura y plan de trabajo](docs/PROPUESTA.md)
@@ -92,7 +92,7 @@ La arquitectura es MVC: el modelo y los controladores viven en `backend/`, la vi
 
 ## Topography & Landing Safety (`T`)
 
-Lunar Site Explorer evaluates landing site safety alongside solar illumination (`E`) and Earth visibility (`C`).
+Zenith evaluates landing site safety alongside solar illumination (`E`) and Earth visibility (`C`).
 
 ### Data Sources & Resolution Priority
 `evaluate_terrain(lat, lon, site_data)` in `backend/app/models/terrain.py` resolves surface `TerrainMetrics` (`elevation_m`, `slope_deg`, `roughness_m`, `source`) in three tiers:
