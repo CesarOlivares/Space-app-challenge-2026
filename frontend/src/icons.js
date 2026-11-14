@@ -25,6 +25,13 @@ export const ICONS = {
   time: "glyph-concentric-gyro",
   gear: "hud-gear", // dibujado para el rediseño minimalista (el kit original no trae engranaje)
   loading: "hud-sensor-waveform",
+  // Indicadores de la comparación (UX elements/elementos-2 y elementos-3)
+  kpiComms: "deep_space_radar_dish",
+  kpiEnergy: "sun_radiant_corona",
+  kpiTerrain: "hud_3d_terrain_wireframe_mesh",
+  kpiShield: "comet_meteor_fireball",
+  kpiTotal: "rocket_launch_solid",
+  reticle: "hud_crosshair_lock_reticle",
   // Secciones
   globe: "wireframe-globe-isometric",
   astrolabe: "glyph-celestial-astrolabe",

@@ -31,7 +31,7 @@ export function formatDuration(hours) {
 }
 
 export function formatDegrees(value, digits = 1) {
-  return `${value.toFixed(digits)}°`;
+  return `${num(value, digits)}°`;
 }
 
 // Las rutas de la API aceptan el id del catálogo o "lat,lon"; los sitios
@@ -44,4 +44,14 @@ export function escapeHtml(text) {
   const div = document.createElement("div");
   div.textContent = text ?? "";
   return div.innerHTML;
+}
+
+// Número con el separador decimal del idioma (1,8 en español, 1.8 en inglés).
+const numberFormatters = new Map();
+export function num(value, digits = 0) {
+  const key = `${t("locale")}:${digits}`;
+  if (!numberFormatters.has(key)) {
+    numberFormatters.set(key, new Intl.NumberFormat(t("locale"), { minimumFractionDigits: digits, maximumFractionDigits: digits }));
+  }
+  return numberFormatters.get(key).format(value);
 }

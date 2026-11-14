@@ -1,3 +1,4 @@
+import { t } from "../i18n.js";
 /**
  * Interactive 2.5D local landing-zone relief inspector.
  * Renders a 25x25 elevation and slope grid color-coded by lander slope safety.
@@ -31,7 +32,7 @@ export function renderTerrainPatch(container, patch, maxSlopeDeg = 15.0) {
   canvas.width = WIDTH * (window.devicePixelRatio > 1 ? 2 : 1);
   canvas.height = HEIGHT * (window.devicePixelRatio > 1 ? 2 : 1);
   canvas.className = "terrain-patch-canvas";
-  canvas.setAttribute("aria-label", "Mapa 3D local de pendiente y elevación del sitio");
+  canvas.setAttribute("aria-label", t("detail.patchAria"));
 
   const ctx = canvas.getContext("2d");
   const scale = canvas.width / WIDTH;

@@ -756,6 +756,19 @@ export class GlobeView {
     this.#flyTo(target.direction, target.distance, durationMs, target);
   }
 
+  // Zoom cinematográfico hacia un grupo de sitios: encuadra su punto medio y se acerca tanto
+  // como lo permita su separación. Devuelve una promesa que se cumple al terminar el viaje.
+  flyToSites(ids, { durationMs = 1500 } = {}) {
+    const dirs = ids.map((id) => this.markers.get(id)?.group.position.clone().normalize()).filter(Boolean);
+    if (!dirs.length) return Promise.resolve();
+    const mid = dirs.reduce((a, b) => a.add(b), new THREE.Vector3());
+    const center = mid.lengthSq() < 1e-6 ? dirs[0].clone() : mid.normalize();
+    const spread = Math.max(...dirs.map((d) => d.angleTo(center)));
+    const distance = THREE.MathUtils.clamp(1.28 + spread * 1.6, 1.28, 3.2);
+    this.#flyTo(center, distance, durationMs);
+    return new Promise((resolve) => setTimeout(resolve, reducedMotion.matches ? 0 : durationMs));
+  }
+
   focusSouthPole() {
     this.#flyTo(SOUTH_POLE_DIRECTION.clone(), 1.8);
   }

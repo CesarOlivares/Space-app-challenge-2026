@@ -4,10 +4,9 @@
 // Las partes marcadas "tech-only" se ocultan en modo simple y las "simple-only"
 // en modo técnico (ver styles.css).
 
-import { escapeHtml, formatDegrees, formatDuration, formatUtc } from "../format.js";
+import { escapeHtml, formatDegrees, formatDuration, formatUtc, num } from "../format.js";
 import { siteName, siteNotes, t } from "../i18n.js";
 import { notViableReason } from "./encoding.js";
-import { renderRadarChart } from "./RadarChartView.js";
 import { renderSky } from "./SkyView.js";
 import { renderTerrainPatch } from "./TerrainPatchView.js";
 import { renderTimeline } from "./TimelineView.js";
@@ -53,11 +52,11 @@ export function plainSummary(sky) {
       ? t(sun.elevation_deg > 0 ? "plain.notInMission" : "plain.notThisMission")
       : t(sun.elevation_deg > 0 ? "plain.inDuration" : "plain.inTime", { duration: formatDuration(sun.hours_until_rise) });
     lines.push(sun.elevation_deg > 0
-      ? t("plain.sunBlocked", { elevation: sun.elevation_deg.toFixed(1), when })
-      : t("plain.sunNight", { elevation: Math.abs(sun.elevation_deg).toFixed(1), when }));
+      ? t("plain.sunBlocked", { elevation: num(sun.elevation_deg, 1), when })
+      : t("plain.sunNight", { elevation: num(Math.abs(sun.elevation_deg), 1), when }));
   }
   if (sun.max_elevation_deg < 10) {
-    lines.push(t("plain.lowSun", { max: sun.max_elevation_deg.toFixed(1) }));
+    lines.push(t("plain.lowSun", { max: num(sun.max_elevation_deg, 1) }));
   }
 
   if (earth.visible) {
@@ -146,8 +145,8 @@ export class DetailPanel {
     const slopeOk = topo.slope_ok !== false;
     const slopeTone = !slopeOk || slopeDeg > 10 ? "bad" : slopeDeg > 5 ? "warn" : "ok";
     const slopeLabel = !slopeOk
-      ? "Excede límite"
-      : slopeDeg <= 5 ? "Segura (≤ 5°)" : slopeDeg <= 10 ? "Moderada (5–10°)" : "Pronunciada (> 10°)";
+      ? t("slope.excess")
+      : slopeDeg <= 5 ? t("slope.safe") : slopeDeg <= 10 ? t("slope.moderate") : t("slope.steep");
 
     this.siteId = site.id;
     this.root.querySelector(".detail-title").textContent = siteName(site);
@@ -156,10 +155,10 @@ export class DetailPanel {
     const meta = [site.mission, site.agency, site.year].filter(Boolean).join(" · ");
     const notes = siteNotes(site);
     const goBanner = sky.viable
-      ? `<div class="readiness-banner go" role="status"><span class="badge">GO</span><span>${escapeHtml(t("verdict.viableAt", { date: formatUtc(sky.date) }))} · Pendiente ${slopeDeg.toFixed(1)}° ≤ ${maxSlopeDeg.toFixed(1)}°</span></div>`
-      : `<div class="readiness-banner nogo" role="alert"><span class="badge">NO-GO</span><span>${escapeHtml(t("verdict.notViableBecause", { reason: notViableReason(sky) }))}</span></div>`;
+      ? `<div class="readiness-banner go" role="status"><span class="badge">${t("badge.go")}</span><span>${escapeHtml(t("verdict.viableAt", { date: formatUtc(sky.date) }))} · ${t("detail.slopeWithin", { slope: num(slopeDeg, 1), max: num(maxSlopeDeg, 1) })}</span></div>`
+      : `<div class="readiness-banner nogo" role="alert"><span class="badge">${t("badge.nogo")}</span><span>${escapeHtml(t("verdict.notViableBecause", { reason: notViableReason(sky) }))}</span></div>`;
     const slopeWarning = !sky.viable && !slopeOk
-      ? `<p class="slope-warning" role="alert">Advertencia de seguridad: la pendiente local (${slopeDeg.toFixed(1)}°) supera el límite del aterrizador (${maxSlopeDeg.toFixed(1)}°).</p>`
+      ? `<p class="slope-warning" role="alert">${t("detail.slopeWarning", { slope: num(slopeDeg, 1), max: num(maxSlopeDeg, 1) })}</p>`
       : "";
     const counters = ["sun", "earth"].map((body) => {
       const c = countdown(body, sky[body], days);
@@ -172,8 +171,16 @@ export class DetailPanel {
     const removeButton = site.category === "personalizado"
       ? `<button type="button" data-action="remove">${t("detail.remove")}</button>` : "";
 
+    const noProtection = (sky.scores.asteroid_protection ?? sky.scores.asteroid) == null;
+    const protectionBar = noProtection
+      ? `<div class="bar nodata-bar" title="${escapeHtml(t("detail.protectionNone"))}"><span>${t("detail.protection")}</span><span class="track"></span><b>${t("detail.noData")}</b></div>`
+      : scoreBarRaw(t("detail.protection"), sky.scores.asteroid_protection ?? sky.scores.asteroid,
+        t("detail.protectionHint", { pct: num(topo.solid_angle_shielded_pct ?? 0, 1) }));
+    const slopeNote = t(slopeDeg <= 5 ? "slope.noteFlat" : slopeDeg <= 10 ? "slope.noteMod" : slopeDeg <= 20 ? "slope.noteSteep" : "slope.noteCliff");
+
+    // Orden por preguntas: ¿sirve? → ¿cuándo sirve? → ¿por qué? → detalle plegado.
     this.body.innerHTML = `
-      <p class="muted">${escapeHtml(meta)}${meta ? "<br>" : ""}${site.lat.toFixed(4)}°, ${site.lon.toFixed(4)}°
+      <p class="muted">${escapeHtml(meta)}${meta ? "<br>" : ""}${num(site.lat, 4)}°, ${num(site.lon, 4)}°
         · ${escapeHtml(t(`precision.${site.precision}`))}</p>
       ${notes ? `<p class="note">${escapeHtml(notes)}</p>` : ""}
       ${goBanner}
@@ -184,45 +191,58 @@ export class DetailPanel {
         <ul>${plain}</ul>
       </section>
 
-      <h3>${t("detail.sky")}</h3>
-      <div class="sky-container"></div>
-      <p class="caption">${escapeHtml(t("detail.skyCaption", { days }))} ${horizonText(sky.horizon)}</p>
-
-      <h3>${t("detail.timeline")}</h3>
-      <div class="timeline-container"></div>
-
-      <h3>${t("detail.score")}</h3>
-      <div class="radar-container"></div>
-      ${scoreBar("detail.energy", sky.scores.energy, "detail.energyHint")}
-      ${scoreBar("detail.communication", sky.scores.communication, "detail.communicationHint")}
-      ${scoreBarRaw("A) Landing Ease", sky.scores.landing_ease ?? sky.scores.terrain ?? 0, "Touchdown mechanical stability (Horn slope & roughness) + 18° EDL approach clearance")}
-      ${scoreBarRaw("B) Asteroid & Ejecta Shield", sky.scores.asteroid_protection ?? sky.scores.asteroid ?? 0, `Ballistic shielding from surrounding mountains (${(topo.solid_angle_shielded_pct ?? 0).toFixed(1)}% sky blocked, SVF ${(topo.sky_view_factor ?? 1).toFixed(3)})`)}
-      ${scoreBar("detail.total", sky.scores.total, "detail.totalHint")}
-
-      <h3>Topografía local</h3>
-      <div class="topography-summary">
-        <div>
-          <span class="muted">Pendiente</span>
-          <b>${slopeDeg.toFixed(1)}° <span class="slope-badge ${slopeTone}">${escapeHtml(slopeLabel)}</span></b>
-          <small class="muted">${slopeDeg <= 5 ? "Terreno plano (Apto HLS, CLPS y Rover)" : slopeDeg <= 10 ? "Pendiente moderada (Apto CLPS y Rover)" : slopeDeg <= 20 ? "Pendiente pronunciada (Solo Rover)" : "Escarpado (Riesgo alto)"}</small>
-        </div>
-        <div>
-          <span class="muted">Elevación</span>
-          <b>${topo.elevation_m != null ? `${Math.round(topo.elevation_m)} m` : "—"}</b>
-          <small class="muted">Ref. 1737,4 km</small>
-        </div>
-        <div>
-          <span class="muted">Rugosidad RMS</span>
-          <b>${topo.roughness_m != null ? `${roughnessM.toFixed(2)} m` : "—"}</b>
-          <small class="muted">${roughnessM <= 0.8 ? "Riesgo bajo de rocas" : roughnessM <= 1.5 ? "Riesgo moderado de bloques" : "Terreno rugoso / eyecciones"}</small>
-        </div>
+      <h3>${t("detail.bestTitle")}</h3>
+      <div class="best-dates">
+        <button type="button" data-action="best-dates">${t("detail.bestSearch", { days: BEST_DATES_DAYS })}</button>
+        <p class="caption tech-only">${t("detail.bestHelp", { step: BEST_DATES_STEP_HOURS })}</p>
+        <div class="best-results" aria-live="polite"></div>
       </div>
 
-      ${patch ? `
-      <h3>Zona de aterrizaje 3D (25×25)</h3>
-      <div class="terrain-patch-container"></div>
-      <p class="caption">Arrastra para rotar el relieve local (${patch.size}×${patch.size} celdas, ${patch.spacing_m} m/celda). Verde ≤ 5° · Ámbar 5–10° · Rojo &gt; 10°.</p>
-      ` : ""}
+      <h3>${t("detail.score")}</h3>
+      ${scoreBar("detail.energy", sky.scores.energy, "detail.energyHint")}
+      ${scoreBar("detail.communication", sky.scores.communication, "detail.communicationHint")}
+      ${scoreBarRaw(t("detail.terrain"), sky.scores.landing_ease ?? sky.scores.terrain ?? 0, t("detail.terrainHint"))}
+      ${protectionBar}
+      ${scoreBar("detail.total", sky.scores.total, "detail.totalHint")}
+      ${sky.viable ? "" : `<p class="caption">${t("detail.refNote")}</p>`}
+
+      <details class="fold" data-fold="sky">
+        <summary>${t("detail.skyGroup")}</summary>
+        <div class="fold-body">
+          <h3>${t("detail.sky")}</h3>
+          <div class="sky-container"></div>
+          <p class="caption">${escapeHtml(t("detail.skyCaption", { days }))} ${horizonText(sky.horizon)}</p>
+          <h3>${t("detail.timeline")}</h3>
+          <div class="timeline-container"></div>
+        </div>
+      </details>
+
+      <details class="fold" data-fold="topo">
+        <summary>${t("detail.topoGroup")}</summary>
+        <div class="fold-body">
+          <div class="topography-summary">
+            <div>
+              <span class="muted">${t("detail.slope")}</span>
+              <b>${num(slopeDeg, 1)}° <span class="slope-badge ${slopeTone}">${escapeHtml(slopeLabel)}</span></b>
+              <small class="muted">${slopeNote}</small>
+            </div>
+            <div>
+              <span class="muted">${t("detail.elevation")}</span>
+              <b>${topo.elevation_m != null ? `${num(Math.round(topo.elevation_m))} m` : "—"}</b>
+              <small class="muted">${t("detail.refRadius")} · ${topo.source === "lola_dem" ? t("detail.srcLola") : t("detail.srcCatalog")}</small>
+            </div>
+            <div>
+              <span class="muted">${t("detail.roughness")}</span>
+              <b>${topo.roughness_m != null ? `${num(roughnessM, 2)} m` : "—"}</b>
+              <small class="muted">${t(roughnessM <= 0.8 ? "detail.roughLow" : roughnessM <= 1.5 ? "detail.roughMid" : "detail.roughHigh")}</small>
+            </div>
+          </div>
+          ${patch ? `
+          <h3>${t("detail.patchTitle")}</h3>
+          <div class="terrain-patch-container"></div>
+          <p class="caption">${t("detail.patchCaption", { size: patch.size, spacing: patch.spacing_m })}</p>` : ""}
+        </div>
+      </details>
 
       <div class="tech-only">
         <h3>${t("detail.metrics", { days })}</h3>
@@ -236,31 +256,34 @@ export class DetailPanel {
             <tr><th scope="row">${t("detail.visibleFraction")}</th><td>${Math.round(sky.sun.visible_fraction * 100)} %</td><td>${Math.round(sky.earth.visible_fraction * 100)} %</td></tr>
           </tbody>
         </table>
-
         <h3>${t("detail.sunWindows")}</h3>
         <ul class="windows">${windowsList(sky.sun.windows)}</ul>
         <h3>${t("detail.earthWindows")}</h3>
         <ul class="windows">${windowsList(sky.earth.windows)}</ul>
       </div>
 
-      <h3>${t("detail.bestTitle")}</h3>
-      <div class="best-dates">
-        <button type="button" data-action="best-dates">${t("detail.bestSearch", { days: BEST_DATES_DAYS })}</button>
-        <p class="caption tech-only">${t("detail.bestHelp", { step: BEST_DATES_STEP_HOURS })}</p>
-        <div class="best-results" aria-live="polite"></div>
-      </div>
-
       <div class="actions">${removeButton}</div>
       ${source ? `<p class="caption">${t("detail.source", { source })}</p>` : ""}`;
 
-    const skyView = renderSky(this.body.querySelector(".sky-container"), sky, timeline);
-    renderTimeline(this.body.querySelector(".timeline-container"), timeline, {
-      onScrub: (index) => skyView.setCursor(index),
+    // Los gráficos miden su espacio: se dibujan al abrir cada bloque plegado, no antes.
+    const lazy = (name, draw) => {
+      const fold = this.body.querySelector(`[data-fold="${name}"]`);
+      fold.addEventListener("toggle", () => {
+        if (fold.open && !fold.dataset.drawn) {
+          fold.dataset.drawn = "1";
+          draw();
+        }
+      });
+    };
+    lazy("sky", () => {
+      const skyView = renderSky(this.body.querySelector(".sky-container"), sky, timeline);
+      renderTimeline(this.body.querySelector(".timeline-container"), timeline, {
+        onScrub: (index) => skyView.setCursor(index),
+      });
     });
-    renderRadarChart(this.body.querySelector(".radar-container"), [{ name: site.name, scores: sky.scores }]);
-    if (patch) {
-      renderTerrainPatch(this.body.querySelector(".terrain-patch-container"), patch, maxSlopeDeg);
-    }
+    lazy("topo", () => {
+      if (patch) renderTerrainPatch(this.body.querySelector(".terrain-patch-container"), patch, maxSlopeDeg);
+    });
   }
 
   showBestDatesLoading(count) {
