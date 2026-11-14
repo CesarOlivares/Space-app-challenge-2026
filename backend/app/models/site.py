@@ -6,9 +6,13 @@ import json
 from dataclasses import dataclass
 from pathlib import Path
 
+from app.models.terrain import TerrainMetrics, evaluate_terrain
+
 
 @dataclass(frozen=True)
 class Site:
+    """Immutable lunar landing site descriptor with attached topographical metrics."""
+
     id: str
     name: str
     lat: float
@@ -23,16 +27,20 @@ class Site:
     notes: str | None = None
     source_name: str | None = None
     source_url: str | None = None
+    terrain: TerrainMetrics | None = None
 
     @classmethod
     def from_dict(cls, data: dict) -> Site:
-        validate_coordinates(data["lat"], data["lon"])
+        """Builds a Site from a catalog JSON entry and attaches TerrainMetrics."""
+        lat = float(data["lat"])
+        lon = float(data["lon"])
+        validate_coordinates(lat, lon)
         source = data.get("source") or {}
         return cls(
             id=data["id"],
             name=data["name"],
-            lat=float(data["lat"]),
-            lon=float(data["lon"]),
+            lat=lat,
+            lon=lon,
             category=data["category"],
             precision=data["precision"],
             elevation_m=data.get("elevation_m"),
@@ -43,6 +51,7 @@ class Site:
             notes=data.get("notes"),
             source_name=source.get("name"),
             source_url=source.get("url"),
+            terrain=evaluate_terrain(lat, lon, site_data=data),
         )
 
 
@@ -55,12 +64,15 @@ def validate_coordinates(lat: float, lon: float) -> None:
 
 
 def custom_site(lat: float, lon: float, name: str | None = None) -> Site:
+    """Creates a custom Site from coordinates and attaches evaluated TerrainMetrics."""
     validate_coordinates(lat, lon)
+    lat_f, lon_f = float(lat), float(lon)
     return Site(
-        id=f"custom:{lat:.4f},{lon:.4f}",
-        name=name or f"Sitio personalizado ({lat:.4f}°, {lon:.4f}°)",
-        lat=float(lat),
-        lon=float(lon),
+        id=f"custom:{lat_f:.4f},{lon_f:.4f}",
+        name=name or f"Sitio personalizado ({lat_f:.4f}°, {lon_f:.4f}°)",
+        lat=lat_f,
+        lon=lon_f,
+        terrain=evaluate_terrain(lat_f, lon_f),
     )
 
 

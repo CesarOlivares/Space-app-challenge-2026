@@ -28,7 +28,7 @@ def scores(
     ephemeris: Ephemeris = Depends(get_ephemeris),
     catalog: dict[str, Site] = Depends(get_catalog),
 ) -> dict:
-    """Puntajes de todos los sitios del catálogo para una fecha (alimenta el globo)."""
+    """Evaluates all catalog sites for a landing date, returning Energy, Communication, Terrain scores and topography."""
     results = evaluate_all(ephemeris, tuple(catalog.values()), date, config)
     return {
         "date": iso(date),
@@ -53,7 +53,7 @@ def compare(
     ephemeris: Ephemeris = Depends(get_ephemeris),
     catalog: dict[str, Site] = Depends(get_catalog),
 ) -> dict:
-    """Métricas completas de 2 a 4 escenarios sitio-fecha, en el orden recibido."""
+    """Returns full illumination, communication, and topography metrics for 2 to 4 site-date scenarios."""
     results = [
         evaluate(ephemeris, resolve_site(s.site, catalog), as_utc(s.date), config)
         for s in request.scenarios

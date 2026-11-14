@@ -19,7 +19,7 @@ MAX_TIMELINE_POINTS = 5000
 
 @router.get("")
 def list_sites(catalog: dict[str, Site] = Depends(get_catalog)) -> dict:
-    """Catálogo de sitios curados."""
+    """Returns the curated catalog of lunar landing sites with topography metadata."""
     return {"sites": [site_json(site) for site in catalog.values()]}
 
 
@@ -31,7 +31,7 @@ def sky(
     ephemeris: Ephemeris = Depends(get_ephemeris),
     catalog: dict[str, Site] = Depends(get_catalog),
 ) -> dict:
-    """Sol y Tierra sobre el horizonte del sitio, tiempos hasta el ocaso y métricas de la ventana."""
+    """Returns Sun/Earth visibility, horizon profile, terrain safety score, and topography metrics for a site."""
     site = resolve_site(site_ref, catalog)
     return evaluation_json(evaluate(ephemeris, site, date, config), detailed=True)
 

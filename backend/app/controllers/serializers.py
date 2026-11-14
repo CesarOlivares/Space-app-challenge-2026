@@ -10,6 +10,7 @@ import numpy as np
 from app.models.horizon import SphericalHorizon, TerrainHorizon, horizon_for
 from app.models.scoring import BodyMetrics, ScoringConfig, SiteEvaluation
 from app.models.site import Site
+from app.models.terrain import TerrainMetrics, evaluate_terrain
 from app.models.windows import Interval
 
 
@@ -21,9 +22,34 @@ def at_offset(start: datetime, hours: float | None) -> str | None:
     return None if hours is None else iso(start + timedelta(hours=hours))
 
 
+def topography_json(terrain: TerrainMetrics, slope_ok: bool | None = None) -> dict:
+    """Serializes TerrainMetrics into the API topography payload.
+
+    Args:
+        terrain: Evaluated terrain metrics for a site.
+        slope_ok: Optional lander slope safety boolean against max_slope_deg.
+
+    Returns:
+        Dictionary containing elevation, slope, roughness, source, and optional slope_ok.
+    """
+    payload = {
+        "elevation_m": round(terrain.elevation_m, 1),
+        "slope_deg": round(terrain.slope_deg, 2),
+        "roughness_m": round(terrain.roughness_m, 2),
+        "source": terrain.source,
+    }
+    if slope_ok is not None:
+        payload["slope_ok"] = slope_ok
+    return payload
+
+
 def site_json(site: Site) -> dict:
+    """Serializes a Site dataclass into a JSON-compatible dictionary with topography."""
     data = asdict(site)
+    data.pop("terrain", None)
     data["source"] = {"name": data.pop("source_name"), "url": data.pop("source_url")}
+    terrain = site.terrain or evaluate_terrain(site.lat, site.lon)
+    data["topography"] = topography_json(terrain)
     return data
 
 
@@ -68,6 +94,7 @@ def body_json(body: BodyMetrics, start: datetime, detailed: bool) -> dict:
 
 
 def evaluation_json(result: SiteEvaluation, detailed: bool) -> dict:
+    """Serializes a SiteEvaluation into the REST API response format."""
     data = {
         "site_id": result.site.id,
         "date": iso(result.landing),
@@ -75,8 +102,10 @@ def evaluation_json(result: SiteEvaluation, detailed: bool) -> dict:
         "scores": {
             "energy": round(result.energy, 1),
             "communication": round(result.communication, 1),
+            "terrain": round(result.terrain_score, 1),
             "total": round(result.total, 1),
         },
+        "topography": topography_json(result.terrain, slope_ok=result.slope_ok),
         "sun": body_json(result.sun, result.landing, detailed),
         "earth": body_json(result.earth, result.landing, detailed),
     }
