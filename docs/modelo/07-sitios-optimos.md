@@ -79,7 +79,20 @@ Pendiente ≤ 8°, pesos iguales para iluminación, Tierra y cercanía a PSR.
 
 ### Resultados con las capas de PGDA 90
 
-Pendiente sobre 100 m, sombra permanente oficial y rugosidad: ver [`prototipos/sitios_optimos/resultados/`](../../prototipos/sitios_optimos/resultados/).
+Área al sur de 83° S, pendiente ≤ 8°, pesos iguales. Cada variante agrega una capa a la anterior. Detalle en [`resultados.json`](../../prototipos/sitios_optimos/resultados/resultados.json) y mapa de la variante D en [`mapa.png`](../../prototipos/sitios_optimos/resultados/mapa.png). Al azar, un píxel factible queda cerca de un sitio Artemis el 4,9 % de las veces.
+
+| Variante | Percentil mediano de los sitios Artemis | Sitios en el mejor 10 % | Mejores 50 sin diversidad: cerca / regiones | Mejores 50 con diversidad: cerca / regiones | Mejores 100 con diversidad: cerca / regiones |
+|---|---|---|---|---|---|
+| A: pendiente 120 m, sombra aproximada | 95,6 | 71 % | 54 % / 5 | 30 % / 11 | 22 % / 16 |
+| B: pendiente sobre 100 m (PGDA) | 95,6 | 71 % | 54 % / 5 | 32 % / 11 | 23 % / 16 |
+| C: B + sombra permanente oficial | 94,4 | 69 % | 50 % / 5 | **34 % / 12** | **29 % / 16** |
+| D: C + rugosidad a 100 m | 95,4 | 64 % | 44 % / 4 | 32 % / 9 | 27 % / 15 |
+
+- **Los 130 sitios Artemis tienen pendiente ≤ 8° sobre 100 m** según la capa de PGDA (mediana 2,65°, máximo 6,4°), coherente con el filtro de 8° que usó Wueller.
+- **Cambiar la fuente de la pendiente casi no mueve el resultado** (A contra B): el método es robusto a esa capa.
+- **La sombra permanente oficial es la mejor mejora** (C): con diversidad, 29 % de los 100 mejores candidatos quedan cerca de un sitio Artemis, seis veces el azar. El mapa oficial encuentra sombra permanente en 0,77 millones de celdas de 120 m que la aproximación no veía, porque detecta sombras más chicas que la celda.
+- **La rugosidad como término del puntaje no ayuda a reproducir Artemis** (D): los sitios Artemis son menos rugosos que el promedio (mediana 0,46 m contra 0,56 m), pero al sumarla con peso igual compite con la iluminación. Wueller no la usó. Sería mejor como restricción con umbral que como puntaje.
+- **Sesgo geográfico:** los mejores candidatos se concentran entre 83° y 85,5° S, en terreno que mira a la Tierra (visibilidad cercana a 100 %). Las regiones cercanas al polo (Shackleton, Connecting Ridge, de Gerlache, Haworth) quedan abajo porque ahí la Tierra se ve menos. Lo decide el peso de la Tierra: es una decisión de diseño, no un error.
 
 ## Limitaciones
 

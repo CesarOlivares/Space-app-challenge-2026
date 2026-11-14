@@ -18,6 +18,7 @@ Cada documento separa lo que **está implementado** (con el archivo donde vive) 
 | [Verificación del informe](investigacion/verificacion-fuentes.md) | Revisión independiente de las 17 referencias y los valores citados del informe | — |
 | [Pruebas de APIs](investigacion/pruebas-apis.md) | Qué responde cada fuente de datos, con código HTTP y contenido comprobado | — |
 | [Regiones Artemis](investigacion/regiones-artemis.md) | Códigos y nombres de las 16 regiones, umbrales oficiales y capas de recursos descargables | — |
+| [Metodología de la NASA](investigacion/metodologia-nasa.md) | Cómo selecciona la NASA los sitios Artemis: proceso CASSA, disponibilidad de misión y criterios del paso de 13 a 9 regiones | — |
 
 ## Cómo trabajar en esta carpeta
 
