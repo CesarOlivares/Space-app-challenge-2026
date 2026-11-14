@@ -201,3 +201,23 @@ def test_gzip_compression(client):
     res = client.get("/api/scores/matrix", params={"start": DATE, "days": 30, "step_hours": 12}, headers={"Accept-Encoding": "gzip"})
     assert res.status_code == 200
     assert res.headers.get("Content-Encoding") == "gzip"
+
+
+@requires_dem
+def test_terrain_patch_solar_endpoint(client):
+    res = client.get("/api/sites/im-2/patch", params={"size": 25, "date": DATE, "window_days": 14})
+    assert res.status_code == 200
+    data = res.json()
+    assert data["site_id"] == "im-2"
+    assert data["size"] == 25
+    assert len(data["elevation_m"]) == 25
+    assert len(data["slope_deg"]) == 25
+    assert "solar" in data
+    solar = data["solar"]
+    assert len(solar["exposure_pct"]) == 25
+    assert len(solar["instant_lit"]) == 25
+    assert 0.0 <= solar["mean_solar_pct"] <= 100.0
+    assert 0.0 <= solar["optimal_landing_pct"] <= 100.0
+    assert "sun_azimuth_deg" in solar
+    assert "sun_elevation_deg" in solar
+

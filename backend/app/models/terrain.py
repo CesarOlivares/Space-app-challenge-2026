@@ -396,33 +396,106 @@ def evaluate_terrain(lat: float, lon: float, site_data: dict | None = None) -> T
     return _evaluate_from_coordinates(round(float(lat), 6), round(float(lon), 6))
 
 
+def compute_patch_shadow_step(
+    elev: np.ndarray,
+    u_row: float,
+    u_col: float,
+    tan_sun: float,
+    step_m: float = DEM_SCALE_M,
+    observer_height_m: float = OBSERVER_HEIGHT_M,
+) -> np.ndarray:
+    """Calcula la máscara binaria de sombra (True = en sombra) para un paso direccional sobre el parche."""
+    size = elev.shape[0]
+    rows, cols = np.indices((size, size))
+    shadow = np.zeros((size, size), dtype=bool)
+    z_target = elev + observer_height_m
+
+    for k in range(1, size):
+        r_k = np.clip(np.round(rows + k * u_row).astype(int), 0, size - 1)
+        c_k = np.clip(np.round(cols + k * u_col).astype(int), 0, size - 1)
+        moved = (r_k != rows) | (c_k != cols)
+        dist = k * step_m
+        tan_obs = (elev[r_k, c_k] - z_target) / dist
+        shadow |= (moved & (tan_obs > tan_sun))
+    return shadow
+
+
+def compute_patch_solar_grid(
+    elev: np.ndarray,
+    lat: float,
+    lon: float,
+    sun_track,
+    horizon_mask=None,
+    step_m: float = DEM_SCALE_M,
+    observer_height_m: float = OBSERVER_HEIGHT_M,
+) -> tuple[np.ndarray, np.ndarray, float]:
+    """Calcula la iluminación instantánea en t0 y acumulada en la ventana para cada celda del parche.
+
+    Returns:
+        (instant_illum, window_illum_pct, mean_solar_pct)
+    """
+    size = elev.shape[0]
+    n_samples = len(sun_track.hours)
+
+    l0, s0 = PolarDEM.pixel(np.array([lat]), np.array([lon]))
+    l_n, s_n = PolarDEM.pixel(np.array([lat + 1e-4]), np.array([lon]))
+    l_e, s_e = PolarDEM.pixel(np.array([lat]), np.array([lon + 1e-4]))
+    v_n = np.array([float(l_n[0] - l0[0]), float(s_n[0] - s0[0])])
+    norm_n = np.linalg.norm(v_n)
+    v_n = v_n / norm_n if norm_n > 0 else np.array([-1.0, 0.0])
+    v_e = np.array([float(l_e[0] - l0[0]), float(s_e[0] - s0[0])])
+    norm_e = np.linalg.norm(v_e)
+    v_e = v_e / norm_e if norm_e > 0 else np.array([0.0, 1.0])
+
+    illum_sum = np.zeros((size, size), dtype=float)
+    instant_illum = np.zeros((size, size), dtype=bool)
+
+    for i in range(n_samples):
+        az = float(sun_track.azimuth[i])
+        el = float(sun_track.elevation[i])
+
+        if horizon_mask is not None:
+            horiz_el = float(horizon_mask.elevation(np.array([az]))[0])
+            if el <= horiz_el:
+                continue
+        elif el <= 0.0:
+            continue
+
+        u_sun = np.cos(np.radians(az)) * v_n + np.sin(np.radians(az)) * v_e
+        u_r, u_c = float(u_sun[0]), float(u_sun[1])
+        tan_sun = np.tan(np.radians(el))
+
+        shadow = compute_patch_shadow_step(elev, u_r, u_c, tan_sun, step_m, observer_height_m)
+        is_lit = ~shadow
+        illum_sum += is_lit
+        if i == 0:
+            instant_illum = is_lit
+
+    window_illum_pct = (illum_sum / max(1, n_samples)) * 100.0
+    mean_solar_pct = float(np.mean(window_illum_pct))
+    return instant_illum, window_illum_pct, mean_solar_pct
+
+
 def evaluate_terrain_patch(
     lat: float,
     lon: float,
     size: int = 25,
     site_data: dict | None = None,
+    ephemeris=None,
+    date=None,
+    window_days: float = 14.0,
+    horizon_mask=None,
 ) -> dict:
-    """Generates a local `size x size` elevation and slope grid around `(lat, lon)`.
-
-    Uses the South Pole LOLA DEM when available and covered; otherwise synthesizes
-    a deterministic local relief grid matching the site's evaluated elevation, slope,
-    and roughness so the 2.5D/3D local landing zone inspector always works.
-
-    Args:
-        lat: Planetocentric latitude in degrees [-90, 90].
-        lon: East longitude in degrees [-180, 180].
-        size: Odd grid dimension (default 25 -> 25x25 cells at 120 m spacing).
-        site_data: Optional raw catalog dictionary for the site.
-
-    Returns:
-        Dictionary with `size`, `spacing_m`, `elevation_m` (2D list), `slope_deg` (2D list),
-        and `source` ("lola_dem" or "synthetic").
-    """
+    """Generates a local `size x size` elevation, slope, and solar grid around `(lat, lon)`."""
     if size < 5 or size % 2 == 0:
         raise ValueError("patch size must be an odd integer >= 5")
 
     dem = _get_polar_dem()
     half = size // 2
+    source = "synthetic"
+    elev = None
+    slopes = None
+
     if dem is not None and lat <= DEM_MAX_LAT:
         line, sample = PolarDEM.pixel(np.asarray(lat, dtype=float), np.asarray(lon, dtype=float))
         l_idx = int(round(float(line)))
@@ -437,34 +510,53 @@ def evaluate_terrain_patch(
             dz_dy = (padded[2:, 1:-1] - padded[:-2, 1:-1]) / (2.0 * DEM_SCALE_M)
             slopes = np.degrees(np.arctan(np.hypot(dz_dx, dz_dy)))
             elev = padded[1:-1, 1:-1]
-            return {
-                "size": size,
-                "spacing_m": DEM_SCALE_M,
-                "elevation_m": np.round(elev, 1).tolist(),
-                "slope_deg": np.round(slopes, 2).tolist(),
-                "source": "lola_dem",
-            }
+            source = "lola_dem"
 
-    metrics = evaluate_terrain(lat, lon, site_data=site_data)
-    coords = (np.arange(size, dtype=float) - half) * DEM_SCALE_M
-    gx, gy = np.meshgrid(coords, coords)
-    slope_rad = math.radians(metrics.slope_deg)
-    aspect_rad = math.radians(metrics.aspect_deg)
-    grad = math.tan(slope_rad)
-    # Tilted base plane + deterministic craterlet/undulation scaled by roughness_m.
-    base_plane = metrics.elevation_m + grad * (gx * math.sin(aspect_rad) + gy * math.cos(aspect_rad))
-    phase = math.radians(lat * 7.0 + lon * 13.0)
-    undulation = metrics.roughness_m * (
-        1.2 * np.sin(gx / 280.0 + phase) * np.cos(gy / 280.0 - phase)
-        + 0.6 * np.cos((gx + gy) / 190.0 + phase)
-    )
-    elev = base_plane + undulation
-    dz_dy_g, dz_dx_g = np.gradient(elev, DEM_SCALE_M)
-    slopes = np.degrees(np.arctan(np.hypot(dz_dx_g, dz_dy_g)))
-    return {
+    if elev is None:
+        metrics = evaluate_terrain(lat, lon, site_data=site_data)
+        coords = (np.arange(size, dtype=float) - half) * DEM_SCALE_M
+        gx, gy = np.meshgrid(coords, coords)
+        slope_rad = math.radians(metrics.slope_deg)
+        aspect_rad = math.radians(metrics.aspect_deg)
+        grad = math.tan(slope_rad)
+        base_plane = metrics.elevation_m + grad * (gx * math.sin(aspect_rad) + gy * math.cos(aspect_rad))
+        phase = math.radians(lat * 7.0 + lon * 13.0)
+        undulation = metrics.roughness_m * (
+            1.2 * np.sin(gx / 280.0 + phase) * np.cos(gy / 280.0 - phase)
+            + 0.6 * np.cos((gx + gy) / 190.0 + phase)
+        )
+        elev = base_plane + undulation
+        dz_dy_g, dz_dx_g = np.gradient(elev, DEM_SCALE_M)
+        slopes = np.degrees(np.arctan(np.hypot(dz_dx_g, dz_dy_g)))
+
+    result = {
         "size": size,
         "spacing_m": DEM_SCALE_M,
         "elevation_m": np.round(elev, 1).tolist(),
         "slope_deg": np.round(slopes, 2).tolist(),
-        "source": "synthetic",
+        "source": source,
     }
+
+    if ephemeris is not None and date is not None:
+        from app.models.site import Site
+
+        dummy_site = Site(id="patch", name="patch", lat=lat, lon=lon)
+        track = ephemeris.track(dummy_site, "sun", date, duration_h=window_days * 24.0, step_h=6.0)
+        instant_illum, window_illum_pct, mean_solar_pct = compute_patch_solar_grid(
+            elev, lat, lon, track, horizon_mask=horizon_mask
+        )
+        safe_slope = slopes <= 10.0
+        good_sun = window_illum_pct >= 50.0
+        optimal_pct = float(np.mean(safe_slope & good_sun)) * 100.0
+
+        result["solar"] = {
+            "window_days": window_days,
+            "exposure_pct": np.round(window_illum_pct, 1).tolist(),
+            "instant_lit": instant_illum.tolist(),
+            "mean_solar_pct": round(mean_solar_pct, 1),
+            "optimal_landing_pct": round(optimal_pct, 1),
+            "sun_azimuth_deg": round(float(track.azimuth[0]), 2),
+            "sun_elevation_deg": round(float(track.elevation[0]), 2),
+        }
+
+    return result

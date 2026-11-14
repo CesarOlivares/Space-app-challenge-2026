@@ -219,9 +219,8 @@ export class DetailPanel {
       </div>
 
       ${patch ? `
-      <h3>Zona de aterrizaje 3D (25×25)</h3>
+      <h3>Zona de aterrizaje 3D (Relieve y Luz Solar)</h3>
       <div class="terrain-patch-container"></div>
-      <p class="caption">Arrastra para rotar el relieve local (${patch.size}×${patch.size} celdas, ${patch.spacing_m} m/celda). Verde ≤ 5° · Ámbar 5–10° · Rojo &gt; 10°.</p>
       ` : ""}
 
       <div class="tech-only">

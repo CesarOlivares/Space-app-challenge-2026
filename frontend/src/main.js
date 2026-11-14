@@ -501,7 +501,7 @@ async function loadActive() {
     const [sky, timeline, patch] = await Promise.all([
       fetchSky(ref, state.date, state.config),
       fetchTimeline(ref, state.date, state.config),
-      fetchTerrainPatch(ref).catch(() => null),
+      fetchTerrainPatch(ref, 25, state.date, state.config.window_days).catch(() => null),
     ]);
     if (request !== state.detailRequest) return;
     sky.site = { ...sky.site, ...site }; // conserva nombres y traducciones del lado del cliente

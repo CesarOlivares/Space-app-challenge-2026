@@ -1,6 +1,6 @@
 /**
- * Interactive 2.5D local landing-zone relief inspector.
- * Renders a 25x25 elevation and slope grid color-coded by lander slope safety.
+ * Interactive 2.5D local landing-zone relief and solar exposure inspector.
+ * Renders a 25x25 elevation, slope, and solar illumination grid with multi-layer overlays.
  */
 
 const WIDTH = 320;
@@ -19,6 +19,35 @@ function slopeColor(slopeDeg, maxSlopeDeg) {
 }
 
 /**
+ * Maps solar illumination percentage [0, 100] to a thermal radiance color.
+ * @param {number|null} solarPct
+ * @returns {string}
+ */
+function solarColor(solarPct) {
+  if (solarPct == null) return "#46c878";
+  if (solarPct < 20.0) return "#221c44"; // Deep shadow / cold trap
+  if (solarPct < 45.0) return "#64335c"; // Low illumination
+  if (solarPct < 70.0) return "#c46825"; // Moderate solar flux
+  if (solarPct < 85.0) return "#eab034"; // High sunlight
+  return "#fff68f"; // Peak eternal illumination
+}
+
+/**
+ * Combines slope safety and solar illumination into a unified suitability rating.
+ * @param {number} slopeDeg
+ * @param {number|null} solarPct
+ * @param {number} maxSlopeDeg
+ * @returns {string}
+ */
+function combinedColor(slopeDeg, solarPct, maxSlopeDeg) {
+  if (slopeDeg > maxSlopeDeg || slopeDeg > 10.0) return "#d55e00"; // Severe tip-over risk
+  if (solarPct != null && solarPct < 25.0) return "#1e2238"; // Permanent shadow / freezing risk
+  if (slopeDeg <= 5.0 && (solarPct == null || solarPct >= 60.0)) return "#36d399"; // Optimal touchdown zone!
+  if (slopeDeg <= 10.0 && (solarPct == null || solarPct >= 40.0)) return "#e69f00"; // Acceptable compromise
+  return "#965b25";
+}
+
+/**
  * Renders an interactive 2.5D isometric terrain patch inside `container`.
  * @param {HTMLElement} container - Target DOM element.
  * @param {Object} patch - Response payload from GET /api/sites/{id}/patch.
@@ -27,11 +56,25 @@ function slopeColor(slopeDeg, maxSlopeDeg) {
 export function renderTerrainPatch(container, patch, maxSlopeDeg = 15.0) {
   if (!container || !patch?.elevation_m?.length) return;
 
+  const wrapper = document.createElement("div");
+  wrapper.className = "terrain-patch-wrapper";
+
+  const controls = document.createElement("div");
+  controls.className = "terrain-patch-controls";
+  controls.innerHTML = `
+    <button type="button" class="terrain-patch-btn active" data-layer="slope">📐 Pendiente</button>
+    <button type="button" class="terrain-patch-btn" data-layer="solar" ${!patch.solar ? "disabled title='Datos solares no disponibles'" : ""}>☀️ Luz Solar</button>
+    <button type="button" class="terrain-patch-btn" data-layer="combined" ${!patch.solar ? "disabled title='Datos solares no disponibles'" : ""}>🎯 Aptitud</button>
+  `;
+
   const canvas = document.createElement("canvas");
   canvas.width = WIDTH * (window.devicePixelRatio > 1 ? 2 : 1);
   canvas.height = HEIGHT * (window.devicePixelRatio > 1 ? 2 : 1);
   canvas.className = "terrain-patch-canvas";
-  canvas.setAttribute("aria-label", "Mapa 3D local de pendiente y elevación del sitio");
+  canvas.setAttribute("aria-label", "Mapa 3D local de relieve y acceso solar del sitio");
+
+  const legend = document.createElement("p");
+  legend.className = "terrain-patch-legend caption";
 
   const ctx = canvas.getContext("2d");
   const scale = canvas.width / WIDTH;
@@ -39,15 +82,27 @@ export function renderTerrainPatch(container, patch, maxSlopeDeg = 15.0) {
 
   const elevGrid = patch.elevation_m;
   const slopeGrid = patch.slope_deg;
+  const solarGrid = patch.solar?.exposure_pct ?? null;
   const n = elevGrid.length;
   const flatElev = elevGrid.flat();
   const minElev = Math.min(...flatElev);
   const maxElev = Math.max(...flatElev);
   const elevSpan = Math.max(1.0, maxElev - minElev);
 
+  let currentLayer = "slope";
   let yaw = 0.65;
   let dragging = false;
   let lastX = 0;
+
+  const updateLegend = () => {
+    if (currentLayer === "solar" && patch.solar) {
+      legend.innerHTML = `Luz media: <b>${patch.solar.mean_solar_pct}%</b> · Púrpura &lt;20% (sombra) · Cobre 20–70% · Dorado &gt;70%`;
+    } else if (currentLayer === "combined" && patch.solar) {
+      legend.innerHTML = `Zona óptima: <b>${patch.solar.optimal_landing_pct}%</b> · Verde: Apta (≤10° y ≥50% luz) · Rojo: Pendiente crítica · Azul: Frío extremo`;
+    } else {
+      legend.innerHTML = `Relieve (${patch.size}×${patch.size} celdas, ${patch.spacing_m} m/celda) · Verde ≤5° · Ámbar 5–10° · Rojo &gt;10°`;
+    }
+  };
 
   const draw = () => {
     ctx.clearRect(0, 0, WIDTH, HEIGHT);
@@ -76,7 +131,8 @@ export function renderTerrainPatch(container, patch, maxSlopeDeg = 15.0) {
         const p01 = project(r, c + 1, elevGrid[r][c + 1]);
         const depth = (p00[2] + p10[2] + p11[2] + p01[2]) * 0.25;
         const slope = slopeGrid[r][c];
-        quads.push({ p00, p10, p11, p01, depth, slope });
+        const solar = solarGrid ? solarGrid[r][c] : null;
+        quads.push({ p00, p10, p11, p01, depth, slope, solar });
       }
     }
     quads.sort((a, b) => a.depth - b.depth);
@@ -88,8 +144,16 @@ export function renderTerrainPatch(container, patch, maxSlopeDeg = 15.0) {
       ctx.lineTo(q.p11[0], q.p11[1]);
       ctx.lineTo(q.p01[0], q.p01[1]);
       ctx.closePath();
-      ctx.fillStyle = slopeColor(q.slope, maxSlopeDeg);
-      ctx.globalAlpha = 0.72;
+
+      if (currentLayer === "solar") {
+        ctx.fillStyle = solarColor(q.solar);
+      } else if (currentLayer === "combined") {
+        ctx.fillStyle = combinedColor(q.slope, q.solar, maxSlopeDeg);
+      } else {
+        ctx.fillStyle = slopeColor(q.slope, maxSlopeDeg);
+      }
+
+      ctx.globalAlpha = 0.78;
       ctx.fill();
       ctx.globalAlpha = 0.35;
       ctx.strokeStyle = "#0a0e17";
@@ -97,7 +161,7 @@ export function renderTerrainPatch(container, patch, maxSlopeDeg = 15.0) {
       ctx.stroke();
     }
 
-    // Center lander reticle
+    // Retícula del centro del módulo
     ctx.globalAlpha = 1.0;
     const centerIdx = Math.floor(n / 2);
     const [cx, cy] = project(centerIdx, centerIdx, elevGrid[centerIdx][centerIdx]);
@@ -109,6 +173,16 @@ export function renderTerrainPatch(container, patch, maxSlopeDeg = 15.0) {
     ctx.lineWidth = 1.5;
     ctx.stroke();
   };
+
+  controls.addEventListener("click", (e) => {
+    const btn = e.target.closest("button[data-layer]");
+    if (!btn || btn.disabled) return;
+    controls.querySelectorAll(".terrain-patch-btn").forEach((b) => b.classList.remove("active"));
+    btn.classList.add("active");
+    currentLayer = btn.dataset.layer;
+    updateLegend();
+    draw();
+  });
 
   canvas.addEventListener("pointerdown", (e) => {
     dragging = true;
@@ -124,6 +198,11 @@ export function renderTerrainPatch(container, patch, maxSlopeDeg = 15.0) {
   canvas.addEventListener("pointerup", () => { dragging = false; });
   canvas.addEventListener("pointercancel", () => { dragging = false; });
 
+  updateLegend();
   draw();
-  container.replaceChildren(canvas);
+
+  wrapper.appendChild(controls);
+  wrapper.appendChild(canvas);
+  wrapper.appendChild(legend);
+  container.replaceChildren(wrapper);
 }
