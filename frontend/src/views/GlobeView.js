@@ -86,16 +86,32 @@ export class GlobeView {
     const relief = loader.load(`${TEXTURES}/ldem_3_8bit.jpg`);
 
     this.moon = new THREE.Mesh(
-      new THREE.SphereGeometry(1, 192, 96),
+      new THREE.SphereGeometry(1, 256, 128),
       new THREE.MeshStandardMaterial({
         map: color,
         bumpMap: relief,
         bumpScale: 2.5,
+        displacementMap: relief,
+        displacementScale: 0.004,
+        displacementBias: -0.002,
         roughness: 1,
         metalness: 0,
       }),
     );
     this.scene.add(this.moon);
+  }
+
+  /**
+   * Adjusts global 3D lunar relief vertical exaggeration.
+   * @param {number} factor - Exaggeration multiplier (1, 3, or 5).
+   */
+  setReliefExaggeration(factor) {
+    if (!this.moon) return;
+    const mat = this.moon.material;
+    mat.displacementScale = 0.004 * factor;
+    mat.displacementBias = -0.002 * factor;
+    mat.bumpScale = 2.5 * Math.sqrt(factor);
+    mat.needsUpdate = true;
   }
 
   removeSite(id) {

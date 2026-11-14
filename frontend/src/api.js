@@ -77,6 +77,16 @@ export function fetchTimeline(ref, date, config) {
 }
 
 /**
+ * Fetches a local NxN elevation and slope grid around a landing site.
+ * @param {string} ref - Site id or "lat,lon" coordinates.
+ * @param {number} [size=25] - Odd grid dimension.
+ * @returns {Promise<Object>}
+ */
+export function fetchTerrainPatch(ref, size = 25) {
+  return request(`/api/sites/${encodeURIComponent(ref)}/patch`, { params: { size } });
+}
+
+/**
  * Compares 2 to 4 site-date scenarios with full illumination and topography metrics.
  * Includes `weight_terrain` and `max_slope_deg` via `configParams(config)`.
  * @param {Array<{ ref: string, date: Date }>} scenarios - Scenarios to evaluate.

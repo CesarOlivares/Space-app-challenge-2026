@@ -6,6 +6,7 @@ import {
   fetchScores,
   fetchSites,
   fetchSky,
+  fetchTerrainPatch,
   fetchTimeline,
 } from "./api.js";
 import { formatUtc, siteRef } from "./format.js";
@@ -183,19 +184,55 @@ async function loadDetail() {
   detail.showLoading(site);
   try {
     const ref = siteRef(id);
-    const [sky, timeline] = await Promise.all([
+    const [sky, timeline, patch] = await Promise.all([
       fetchSky(ref, state.date, state.config),
       fetchTimeline(ref, state.date, state.config),
+      fetchTerrainPatch(ref).catch(() => null),
     ]);
     if (request !== state.detailRequest) return;
-    sky.site.name = site.name; // conserva el nombre dado a un sitio personalizado
+    sky.site.name = site.name; // preserve custom site name
     detail.render(sky, timeline, {
       inCompare: state.compare.some((c) => c.ref === ref && c.date.getTime() === state.date.getTime()),
       compareFull: state.compare.length >= MAX_COMPARE,
+      patch,
     });
   } catch (error) {
     if (request === state.detailRequest) detail.showError(`No se pudo cargar el detalle: ${error.message}`);
   }
+}
+
+// --- 3D Relief Exaggeration & Demo Presets ----------------------------------
+
+const reliefButtons = [...document.querySelectorAll("[data-relief]")];
+for (const button of reliefButtons) {
+  button.addEventListener("click", () => {
+    const factor = Number(button.dataset.relief);
+    globe.setReliefExaggeration(factor);
+    for (const b of reliefButtons) {
+      const active = b === button;
+      b.classList.toggle("active", active);
+      b.setAttribute("aria-pressed", String(active));
+    }
+  });
+}
+
+const demoSelect = document.getElementById("demo-scenario");
+if (demoSelect) {
+  demoSelect.addEventListener("change", async () => {
+    const val = demoSelect.value;
+    if (!val) return;
+    if (val === "artemis-south") {
+      await loadDate(new Date("2026-12-15T00:00:00Z"));
+      globe.focusSouthPole();
+      select("mons-mouton");
+    } else if (val === "im1-slope") {
+      await loadDate(new Date("2026-12-15T00:00:00Z"));
+      select("im-1");
+    } else if (val === "apollo11-flat") {
+      await loadDate(new Date("2026-12-15T00:00:00Z"));
+      select("apollo-11");
+    }
+  });
 }
 
 // --- Sitios personalizados ------------------------------------------------

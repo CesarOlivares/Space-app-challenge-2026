@@ -3,6 +3,7 @@
 import { escapeHtml, formatDegrees, formatDuration, formatUtc } from "../format.js";
 import { countdown } from "./DetailPanel.js";
 import { notViableReason } from "./encoding.js";
+import { renderRadarChart } from "./RadarChartView.js";
 import { renderSky } from "./SkyView.js";
 
 // Comparable rows; `better` indicates whether "max" or "min" wins for highlighting.
@@ -11,6 +12,7 @@ const ROWS = [
   { label: "Energía", value: (r) => r.scores.energy, show: (v) => Math.round(v), better: "max" },
   { label: "Comunicación", value: (r) => r.scores.communication, show: (v) => Math.round(v), better: "max" },
   { label: "Terreno (T)", value: (r) => r.scores.terrain ?? 0, show: (v) => Math.round(v), better: "max" },
+  { label: "Seguridad (A)", value: (r) => r.scores.asteroid ?? 0, show: (v) => Math.round(v), better: "max" },
   { label: "Pendiente local (°)", value: (r) => r.topography?.slope_deg ?? 0, show: (v) => `${v.toFixed(1)}°`, better: "min" },
   { label: "Elevación (m)", value: (r) => r.topography?.elevation_m ?? 0, show: (v) => `${Math.round(v)} m` },
   { label: "Elevación del Sol", value: (r) => r.sun.elevation_deg, show: (v) => formatDegrees(v) },
@@ -95,6 +97,7 @@ export class CompareView {
       </tr>`).join("");
 
     this.content.innerHTML = `
+      <div class="compare-radar"></div>
       <div class="compare-scroll">
         <table class="compare-table">
           <thead><tr><td></td>${header}</tr></thead>
@@ -103,6 +106,11 @@ export class CompareView {
       </div>
       <p class="caption">Resaltado: mejor valor de cada fila. Ventana de misión de ${results[0].config.window_days} días desde cada aterrizaje.</p>`;
 
+    renderRadarChart(
+      this.content.querySelector(".compare-radar"),
+      results.map((r) => ({ name: r.site.name, scores: r.scores })),
+      { size: 230 },
+    );
     results.forEach((r, i) => {
       renderSky(this.content.querySelector(`.sky-container[data-index="${i}"]`), r, null, { height: 80, compact: true });
     });

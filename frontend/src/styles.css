@@ -946,3 +946,136 @@ select {
   color: #ffb49a;
   font-size: 0.82rem;
 }
+
+/* Phase 2 & 3: 3D Relief, Mission Control Readiness, Radar & Patch */
+
+.relief-toggle {
+  align-items: center;
+}
+
+.relief-toggle .caption {
+  margin-right: 4px;
+}
+
+.relief-toggle button.active {
+  border-color: var(--accent, #56b4e9);
+  background: rgba(86, 180, 233, 0.18);
+}
+
+.demo-picker {
+  display: block;
+  margin-top: 6px;
+  font-size: 0.78rem;
+  color: var(--muted);
+}
+
+.demo-picker select {
+  width: 100%;
+  margin-top: 2px;
+}
+
+.readiness-banner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  margin: 8px 0;
+  border-radius: 6px;
+  font-size: 0.84rem;
+  font-weight: 500;
+}
+
+.readiness-banner .badge {
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 0.74rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+.readiness-banner.go {
+  background: rgba(70, 200, 120, 0.14);
+  border: 1px solid rgba(70, 200, 120, 0.38);
+  color: #9ff0bf;
+}
+
+.readiness-banner.go .badge {
+  background: #2f9e5b;
+  color: #05160c;
+}
+
+.readiness-banner.nogo {
+  background: rgba(213, 94, 0, 0.16);
+  border: 1px solid rgba(213, 94, 0, 0.45);
+  color: #ffb49a;
+}
+
+.readiness-banner.nogo .badge {
+  background: #d55e00;
+  color: #fff;
+}
+
+.radar-container,
+.compare-radar {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin: 8px 0 12px;
+}
+
+.radar-svg {
+  width: 210px;
+  height: auto;
+  overflow: visible;
+}
+
+.radar-ring {
+  fill: none;
+  stroke: rgba(255, 255, 255, 0.12);
+  stroke-width: 0.8;
+}
+
+.radar-axis {
+  stroke: rgba(255, 255, 255, 0.16);
+  stroke-width: 0.8;
+}
+
+.radar-label {
+  fill: var(--muted);
+  font-size: 8.5px;
+  font-weight: 600;
+}
+
+.radar-legend {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px;
+  margin-top: 4px;
+  font-size: 0.76rem;
+  color: var(--muted);
+}
+
+.radar-legend i {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+  background: var(--c);
+  margin-right: 4px;
+}
+
+.terrain-patch-canvas {
+  display: block;
+  width: 100%;
+  max-width: 320px;
+  height: auto;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: #060912;
+  cursor: grab;
+}
+
+.terrain-patch-canvas:active {
+  cursor: grabbing;
+}

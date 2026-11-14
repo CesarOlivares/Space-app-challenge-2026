@@ -10,6 +10,7 @@ from app.models.ephemeris import BODIES, Ephemeris
 from app.models.horizon import horizon_for
 from app.models.scoring import ScoringConfig, evaluate
 from app.models.site import Site
+from app.models.terrain import evaluate_terrain_patch
 from app.models.windows import visibility_intervals
 
 router = APIRouter(prefix="/api/sites", tags=["sitios"])
@@ -34,6 +35,20 @@ def sky(
     """Returns Sun/Earth visibility, horizon profile, terrain safety score, and topography metrics for a site."""
     site = resolve_site(site_ref, catalog)
     return evaluation_json(evaluate(ephemeris, site, date, config), detailed=True)
+
+
+@router.get("/{site_ref}/patch")
+def terrain_patch(
+    site_ref: str,
+    size: int = Query(25, ge=5, le=51, description="Odd grid dimension (e.g. 25 for 25x25 cells)"),
+    catalog: dict[str, Site] = Depends(get_catalog),
+) -> dict:
+    """Returns a local NxN elevation and slope grid around the landing site for 3D relief inspection."""
+    if size % 2 == 0:
+        raise ValueError("size must be an odd integer")
+    site = resolve_site(site_ref, catalog)
+    patch = evaluate_terrain_patch(site.lat, site.lon, size=size)
+    return {"site_id": site.id, **patch}
 
 
 @router.get("/{site_ref}/timeline")

@@ -3,7 +3,9 @@
 
 import { escapeHtml, formatDegrees, formatDuration, formatUtc } from "../format.js";
 import { notViableReason } from "./encoding.js";
+import { renderRadarChart } from "./RadarChartView.js";
 import { renderSky } from "./SkyView.js";
+import { renderTerrainPatch } from "./TerrainPatchView.js";
 import { renderTimeline } from "./TimelineView.js";
 
 const PRECISION_NOTES = {
@@ -97,17 +99,42 @@ export class DetailPanel {
   }
 
   /**
-   * Renders the full site detail view including viability verdict, sky panorama,
-   * timeline, Energy/Communication/Terrain score bars, and local topography summary.
+   * Returns a human-readable engineering interpretation for local terrain slope.
+   * @param {number} slopeDeg - Local surface slope in degrees.
+   * @returns {string}
+   */
+  #slopeSemantic(slopeDeg) {
+    if (slopeDeg <= 5.0) return "Terreno plano (Apto HLS, CLPS y Rover)";
+    if (slopeDeg <= 10.0) return "Pendiente moderada (Apto CLPS y Rover)";
+    if (slopeDeg <= 20.0) return "Pendiente pronunciada (Solo Rover)";
+    return "Escarpado (Riesgo alto de vuelco)";
+  }
+
+  /**
+   * Returns a human-readable engineering interpretation for RMS surface roughness.
+   * @param {number} roughnessM - RMS surface roughness in meters.
+   * @returns {string}
+   */
+  #roughnessSemantic(roughnessM) {
+    if (roughnessM <= 0.8) return "Riesgo bajo de rocas";
+    if (roughnessM <= 1.5) return "Riesgo moderado de bloques";
+    return "Terreno rugoso / eyecciones";
+  }
+
+  /**
+   * Renders the full site detail view including GO/NO-GO banner, sky panorama,
+   * timeline, 4-axis radar chart, 2.5D terrain patch, and local topography summary.
    * @param {Object} sky - Detailed evaluation payload from /api/sites/{id}/sky.
    * @param {Object} timeline - Time-series payload from /api/sites/{id}/timeline.
-   * @param {{ inCompare: boolean, compareFull: boolean }} options
+   * @param {{ inCompare: boolean, compareFull: boolean, patch?: Object|null }} options
    */
-  render(sky, timeline, { inCompare, compareFull }) {
+  render(sky, timeline, { inCompare, compareFull, patch = null }) {
     const { site, config } = sky;
     const days = config.window_days;
     const topo = sky.topography ?? {};
     const slopeDeg = topo.slope_deg ?? 0;
+    const roughnessM = topo.roughness_m ?? 0;
+    const maxSlopeDeg = config.max_slope_deg ?? 15.0;
     const slopeOk = topo.slope_ok !== false;
     const slopeTone = !slopeOk || slopeDeg > 10 ? "bad" : slopeDeg > 5 ? "warn" : "ok";
     const slopeLabel = !slopeOk
@@ -119,11 +146,11 @@ export class DetailPanel {
     this.body.removeAttribute("aria-busy");
 
     const meta = [site.mission, site.agency, site.year].filter(Boolean).join(" · ");
-    const verdict = sky.viable
-      ? `<p class="verdict ok">Viable al aterrizar el ${escapeHtml(formatUtc(sky.date))}</p>`
-      : `<p class="verdict bad">No viable al aterrizar: ${escapeHtml(notViableReason(sky))}</p>`;
+    const goBanner = sky.viable
+      ? `<div class="readiness-banner go" role="status"><span class="badge">GO</span><span>Apto para aterrizar el ${escapeHtml(formatUtc(sky.date))} · Pendiente ${slopeDeg.toFixed(1)}° ≤ ${maxSlopeDeg.toFixed(1)}°</span></div>`
+      : `<div class="readiness-banner nogo" role="alert"><span class="badge">NO-GO</span><span>${escapeHtml(notViableReason(sky))}</span></div>`;
     const slopeWarning = !sky.viable && !slopeOk
-      ? `<p class="slope-warning" role="alert">Advertencia de seguridad: la pendiente local (${slopeDeg.toFixed(1)}°) supera el límite del aterrizador (${(config.max_slope_deg ?? 15).toFixed(1)}°).</p>`
+      ? `<p class="slope-warning" role="alert">Advertencia de seguridad: la pendiente local (${slopeDeg.toFixed(1)}°) supera el límite del aterrizador (${maxSlopeDeg.toFixed(1)}°).</p>`
       : "";
     const counters = ["sun", "earth"].map((body) => {
       const c = countdown(body, sky[body], days);
@@ -142,7 +169,7 @@ export class DetailPanel {
       <p class="muted">${escapeHtml(meta)}${meta ? "<br>" : ""}${site.lat.toFixed(4)}°, ${site.lon.toFixed(4)}°
         · ${escapeHtml(PRECISION_NOTES[site.precision] ?? "")}</p>
       ${site.notes ? `<p class="note">${escapeHtml(site.notes)}</p>` : ""}
-      ${verdict}
+      ${goBanner}
       ${slopeWarning}
       <div class="counters">${counters}</div>
 
@@ -154,10 +181,12 @@ export class DetailPanel {
       <h3>Línea de tiempo</h3>
       <div class="timeline-container"></div>
 
-      <h3>Puntaje</h3>
-      ${scoreBar("Energía", sky.scores.energy, "Luz solar durante la ventana y continuidad desde el aterrizaje")}
-      ${scoreBar("Comunicación", sky.scores.communication, "Fracción de la ventana con la Tierra visible")}
+      <h3>Huella de misión (4 pilares)</h3>
+      <div class="radar-container"></div>
+      ${scoreBar("Energía (E)", sky.scores.energy, "Luz solar durante la ventana y continuidad desde el aterrizaje")}
+      ${scoreBar("Comunicación (C)", sky.scores.communication, "Fracción de la ventana con la Tierra visible")}
       ${scoreBar("Terreno (T)", sky.scores.terrain ?? 0, "Seguridad topográfica según pendiente local y rugosidad")}
+      ${scoreBar("Seguridad (A)", sky.scores.asteroid ?? 0, "Blindaje balístico del horizonte (SVF) y baja rugosidad de rocas")}
       ${scoreBar("Global", sky.scores.total, "Promedio ponderado de energía, comunicación y terreno")}
 
       <h3>Topografía local</h3>
@@ -165,16 +194,25 @@ export class DetailPanel {
         <div>
           <span class="muted">Pendiente</span>
           <b>${slopeDeg.toFixed(1)}° <span class="slope-badge ${slopeTone}">${escapeHtml(slopeLabel)}</span></b>
+          <small class="muted">${escapeHtml(this.#slopeSemantic(slopeDeg))}</small>
         </div>
         <div>
           <span class="muted">Elevación</span>
           <b>${topo.elevation_m != null ? `${Math.round(topo.elevation_m)} m` : "—"}</b>
+          <small class="muted">Ref. 1737,4 km</small>
         </div>
         <div>
           <span class="muted">Rugosidad RMS</span>
-          <b>${topo.roughness_m != null ? `${topo.roughness_m.toFixed(2)} m` : "—"}</b>
+          <b>${topo.roughness_m != null ? `${roughnessM.toFixed(2)} m` : "—"}</b>
+          <small class="muted">${escapeHtml(this.#roughnessSemantic(roughnessM))}</small>
         </div>
       </div>
+
+      ${patch ? `
+      <h3>Zona de aterrizaje 3D (25×25)</h3>
+      <div class="terrain-patch-container"></div>
+      <p class="caption">Arrastra para rotar el relieve local (${patch.size}×${patch.size} celdas, ${patch.spacing_m} m/celda). Verde ≤ 5° · Ámbar 5–10° · Rojo &gt; 10°.</p>
+      ` : ""}
 
       <h3>Métricas en ${days} días</h3>
       <table class="metrics">
@@ -200,6 +238,10 @@ export class DetailPanel {
     renderTimeline(this.body.querySelector(".timeline-container"), timeline, {
       onScrub: (index) => skyView.setCursor(index),
     });
+    renderRadarChart(this.body.querySelector(".radar-container"), [{ name: site.name, scores: sky.scores }]);
+    if (patch) {
+      renderTerrainPatch(this.body.querySelector(".terrain-patch-container"), patch, maxSlopeDeg);
+    }
   }
 
   close() {

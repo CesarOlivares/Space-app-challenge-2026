@@ -44,6 +44,20 @@
           <button type="button" data-view="near-side">Vista desde la Tierra</button>
           <button type="button" data-view="south-pole">Polo sur</button>
         </div>
+        <div class="buttons relief-toggle" role="group" aria-label="Exageración de relieve 3D">
+          <span class="caption">Relieve 3D:</span>
+          <button type="button" data-relief="1" class="active" aria-pressed="true">1×</button>
+          <button type="button" data-relief="3" aria-pressed="false">3×</button>
+          <button type="button" data-relief="5" aria-pressed="false">5×</button>
+        </div>
+        <label class="demo-picker">Escenario demo
+          <select id="demo-scenario">
+            <option value="">Seleccionar escenario…</option>
+            <option value="artemis-south">Artemis III — Mons Mouton (Polo Sur)</option>
+            <option value="im1-slope">CLPS IM-1 — Pendiente límite (11,2°)</option>
+            <option value="apollo11-flat">Apollo 11 — Planicie segura (1,8°)</option>
+          </select>
+        </label>
         <p id="status" role="status">Conectando…</p>
 
         <section id="compare-bar" hidden aria-label="Comparación">
