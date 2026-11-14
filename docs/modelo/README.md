@@ -13,6 +13,7 @@ Cada documento separa lo que **está implementado** (con el archivo donde vive) 
 | [05 · Puntaje y viabilidad](05-puntaje.md) | Energía, comunicación, puntaje global, paneles, viabilidad | `scoring.py` |
 | [06 · Validación](06-validacion.md) | Cómo se comprobó cada parte y con qué error | `backend/tests/` |
 | [Referencias](referencias.md) | Fuentes de datos y bibliografía | — |
+| [Investigación de fuentes y validación](investigacion/informe-fuentes-y-validacion.md) | APIs y datos disponibles, casos publicados para comparar, revisión de cada supuesto y plan de pruebas | — |
 
 ## Cómo trabajar en esta carpeta
 
