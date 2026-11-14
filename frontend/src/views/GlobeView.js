@@ -688,8 +688,9 @@ export class GlobeView {
 
       // Update Evaluation A inner touchdown pad ring
       const topo = score.topography ?? {};
-      const ease = score.scores?.landing_ease ?? topo.landing_ease_score ?? 80;
+      const ease = score.scores?.landing_ease ?? topo.landing_ease_score;
       const slopeOk = topo.slope_ok !== false;
+      marker.padRing.visible = ease != null;
       if (!slopeOk) {
         marker.padRing.material.color.setHex(0xef4444); // Red: exceeds max_slope_deg
       } else if (ease >= 70) {

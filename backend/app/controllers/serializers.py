@@ -47,10 +47,10 @@ def topography_json(
         Dictionary containing elevation, slope, roughness, aspect, SVF, shielding, and scores.
     """
     payload = {
-        "elevation_m": round(terrain.elevation_m, 1),
-        "slope_deg": round(terrain.slope_deg, 2),
-        "roughness_m": round(terrain.roughness_m, 2),
-        "aspect_deg": round(terrain.aspect_deg, 1),
+        "elevation_m": _round(terrain.elevation_m, 1),
+        "slope_deg": _round(terrain.slope_deg, 2),
+        "roughness_m": _round(terrain.roughness_m, 2),
+        "aspect_deg": _round(terrain.aspect_deg, 1),
         "sky_view_factor": round(sky_view_factor if sky_view_factor is not None else terrain.sky_view_factor, 4),
         "source": terrain.source,
     }
@@ -129,9 +129,9 @@ def evaluation_json(result: SiteEvaluation, detailed: bool) -> dict:
         "scores": {
             "energy": round(result.energy, 1),
             "communication": round(result.communication, 1),
-            "landing_ease": round(result.landing_ease_score, 1),
+            "landing_ease": _round(result.landing_ease_score, 1),
             "asteroid_protection": _round(result.asteroid_protection_score, 1),
-            "terrain": round(result.landing_ease_score, 1),
+            "terrain": _round(result.landing_ease_score, 1),
             "asteroid": _round(result.asteroid_protection_score, 1),
             "total": round(result.total, 1),
         },

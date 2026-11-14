@@ -17,8 +17,12 @@ Se muestrea la posición del Sol y la Tierra durante la ventana de misión
   que además cubre el disco completo, de ~0,95° de radio).
 - Global P = (wE·E + wC·C) / (wE + wC)
 
+Terreno (T) y protección (A) se calculan y se muestran, pero por defecto pesan 0:
+sus constantes no tienen fuente publicada. T solo existe donde hay DEM polar.
+
 Todos los puntajes van de 0 a 100. El sitio es viable solo si al aterrizar
-el Sol y la Tierra están sobre el horizonte.
+el Sol y la Tierra están sobre el horizonte y, si hay dato de pendiente, esta
+no supera el límite.
 """
 
 from __future__ import annotations
@@ -68,8 +72,8 @@ class ScoringConfig:
     earth_margin_deg: float = EARTH_MARGIN_DEG
     weight_energy: float = 0.5
     weight_communication: float = 0.5
-    weight_terrain: float = 1.0
-    weight_protection: float = 0.5
+    weight_terrain: float = 0.0
+    weight_protection: float = 0.0
     max_slope_deg: float = 15.0
     panel: str = "tiempo"
 
@@ -123,15 +127,16 @@ class SiteEvaluation:
     earth: BodyMetrics
     energy: float
     communication: float
-    terrain_score: float
-    slope_deg: float
-    roughness_m: float
-    elevation_m: float
-    slope_ok: bool
+    terrain_score: float | None
+    slope_deg: float | None
+    roughness_m: float | None
+    elevation_m: float | None
+    slope_ok: bool | None
     terrain: TerrainMetrics
     total: float
     viable: bool
-    landing_ease_score: float = 0.0
+    # None sin dato de pendiente (fuera del DEM polar): T no entra al puntaje.
+    landing_ease_score: float | None = None
     # None cuando no hay relieve real alrededor del sitio (horizonte esférico): "sin datos", no "0".
     asteroid_protection_score: float | None = None
     asteroid_score: float | None = None
@@ -177,8 +182,8 @@ def compute_landing_ease_score(
     terrain: TerrainMetrics,
     max_slope_deg: float = 15.0,
     approach_clearance_pct: float = 100.0,
-) -> float:
-    """Computes Evaluation A — Landing Ease Score on a 0-100 scale.
+) -> float | None:
+    """Computes Evaluation A — Landing Ease Score on a 0-100 scale, or None without slope data.
 
     Physical basis: near-field touchdown mechanical stability (Horn 3x3 slope
     and RMS roughness vs spacecraft tip-over limits) combined with final EDL
@@ -197,8 +202,10 @@ def compute_landing_ease_score(
         approach_clearance_pct: Percentage of 360-degree azimuths below 18 deg glide slope.
 
     Returns:
-        Landing Ease Score rounded to 1 decimal place in [0.0, 100.0].
+        Landing Ease Score rounded to 1 decimal place in [0.0, 100.0], or None.
     """
+    if not terrain.available:
+        return None
     if terrain.slope_deg <= 2.0:
         slope_sub = 100.0
     elif terrain.slope_deg >= max_slope_deg:
@@ -214,7 +221,7 @@ def compute_landing_ease_score(
     return round(0.65 * slope_sub + 0.25 * rough_sub + 0.10 * approach_sub, 1)
 
 
-def compute_terrain_score(terrain: TerrainMetrics, max_slope_deg: float = 15.0) -> float:
+def compute_terrain_score(terrain: TerrainMetrics, max_slope_deg: float = 15.0) -> float | None:
     """Backward-compatible alias for `compute_landing_ease_score`."""
     return compute_landing_ease_score(terrain, max_slope_deg=max_slope_deg)
 
@@ -246,7 +253,7 @@ def compute_tilt_incidence_factor(
     return max(0.0, min(1.0, cos_i))
 
 
-def compute_asteroid_protection_score(ballistic_shield_raw: float, slope_deg: float) -> float:
+def compute_asteroid_protection_score(ballistic_shield_raw: float, slope_deg: float | None) -> float:
     """Computes Evaluation B — Asteroid & Ejecta Protection Score in [0.0, 100.0].
 
     Physical basis: Natural ballistic shielding provided by surrounding mountains
@@ -261,7 +268,8 @@ def compute_asteroid_protection_score(ballistic_shield_raw: float, slope_deg: fl
     Returns:
         Asteroid & ejecta protection score rounded to 1 decimal place in [0.0, 100.0].
     """
-    rockfall_penalty = float(np.clip(1.0 - (slope_deg - 12.0) / 25.0, 0.3, 1.0)) if slope_deg > 12.0 else 1.0
+    steep = slope_deg is not None and slope_deg > 12.0
+    rockfall_penalty = float(np.clip(1.0 - (slope_deg - 12.0) / 25.0, 0.3, 1.0)) if steep else 1.0
     return round(float(np.clip(ballistic_shield_raw * rockfall_penalty, 0.0, 100.0)), 1)
 
 
@@ -416,7 +424,7 @@ def evaluate(
     if not has_relief:
         shielded_pct = None
         profile_36 = ()
-    slope_ok = resolved_terrain.slope_deg <= config.max_slope_deg
+    slope_ok = resolved_terrain.slope_deg <= config.max_slope_deg if resolved_terrain.available else None
     overall = total_score(
         energy,
         communication,
@@ -424,7 +432,7 @@ def evaluate(
         terrain_score=t_score,
         protection_score=a_score,
     )
-    viable = bool(sun.visible and earth.visible and slope_ok)
+    viable = bool(sun.visible and earth.visible and slope_ok is not False)
 
     return SiteEvaluation(
         site=site,

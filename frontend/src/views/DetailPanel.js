@@ -139,14 +139,18 @@ export class DetailPanel {
     const { site, config } = sky;
     const days = config.window_days;
     const topo = sky.topography ?? {};
-    const slopeDeg = topo.slope_deg ?? 0;
-    const roughnessM = topo.roughness_m ?? 0;
+    const slopeDeg = topo.slope_deg;
+    const roughnessM = topo.roughness_m;
+    const hasSlope = slopeDeg != null;
     const maxSlopeDeg = config.max_slope_deg ?? 15.0;
     const slopeOk = topo.slope_ok !== false;
-    const slopeTone = !slopeOk || slopeDeg > 10 ? "bad" : slopeDeg > 5 ? "warn" : "ok";
-    const slopeLabel = !slopeOk
-      ? t("slope.excess")
-      : slopeDeg <= 5 ? t("slope.safe") : slopeDeg <= 10 ? t("slope.moderate") : t("slope.steep");
+    const slopeTone = !hasSlope ? "" : !slopeOk || slopeDeg > 10 ? "bad" : slopeDeg > 5 ? "warn" : "ok";
+    const slopeLabel = !hasSlope
+      ? t("detail.noData")
+      : !slopeOk
+        ? t("slope.excess")
+        : slopeDeg <= 5 ? t("slope.safe") : slopeDeg <= 10 ? t("slope.moderate") : t("slope.steep");
+    const ease = sky.scores.landing_ease ?? sky.scores.terrain;
 
     this.siteId = site.id;
     this.root.querySelector(".detail-title").textContent = siteName(site);
@@ -155,7 +159,7 @@ export class DetailPanel {
     const meta = [site.mission, site.agency, site.year].filter(Boolean).join(" · ");
     const notes = siteNotes(site);
     const goBanner = sky.viable
-      ? `<div class="readiness-banner go" role="status"><span class="badge">${t("badge.go")}</span><span>${escapeHtml(t("verdict.viableAt", { date: formatUtc(sky.date) }))} · ${t("detail.slopeWithin", { slope: num(slopeDeg, 1), max: num(maxSlopeDeg, 1) })}</span></div>`
+      ? `<div class="readiness-banner go" role="status"><span class="badge">${t("badge.go")}</span><span>${escapeHtml(t("verdict.viableAt", { date: formatUtc(sky.date) }))}${hasSlope ? ` · ${t("detail.slopeWithin", { slope: num(slopeDeg, 1), max: num(maxSlopeDeg, 1) })}` : ""}</span></div>`
       : `<div class="readiness-banner nogo" role="alert"><span class="badge">${t("badge.nogo")}</span><span>${escapeHtml(t("verdict.notViableBecause", { reason: notViableReason(sky) }))}</span></div>`;
     const slopeWarning = !sky.viable && !slopeOk
       ? `<p class="slope-warning" role="alert">${t("detail.slopeWarning", { slope: num(slopeDeg, 1), max: num(maxSlopeDeg, 1) })}</p>`
@@ -176,7 +180,10 @@ export class DetailPanel {
       ? `<div class="bar nodata-bar" title="${escapeHtml(t("detail.protectionNone"))}"><span>${t("detail.protection")}</span><span class="track"></span><b>${t("detail.noData")}</b></div>`
       : scoreBarRaw(t("detail.protection"), sky.scores.asteroid_protection ?? sky.scores.asteroid,
         t("detail.protectionHint", { pct: num(topo.solid_angle_shielded_pct ?? 0, 1) }));
-    const slopeNote = t(slopeDeg <= 5 ? "slope.noteFlat" : slopeDeg <= 10 ? "slope.noteMod" : slopeDeg <= 20 ? "slope.noteSteep" : "slope.noteCliff");
+    const terrainBar = ease == null
+      ? `<div class="bar nodata-bar" title="${escapeHtml(t("detail.terrainNone"))}"><span>${t("detail.terrain")}</span><span class="track"></span><b>${t("detail.noData")}</b></div>`
+      : scoreBarRaw(t("detail.terrain"), ease, t("detail.terrainHint"));
+    const slopeNote = !hasSlope ? t("detail.terrainNone") : t("detail.slopeScale");
 
     // Orden por preguntas: ¿sirve? → ¿cuándo sirve? → ¿por qué? → detalle plegado.
     this.body.innerHTML = `
@@ -201,7 +208,7 @@ export class DetailPanel {
       <h3>${t("detail.score")}</h3>
       ${scoreBar("detail.energy", sky.scores.energy, "detail.energyHint")}
       ${scoreBar("detail.communication", sky.scores.communication, "detail.communicationHint")}
-      ${scoreBarRaw(t("detail.terrain"), sky.scores.landing_ease ?? sky.scores.terrain ?? 0, t("detail.terrainHint"))}
+      ${terrainBar}
       ${protectionBar}
       ${scoreBar("detail.total", sky.scores.total, "detail.totalHint")}
       ${sky.viable ? "" : `<p class="caption">${t("detail.refNote")}</p>`}
@@ -223,7 +230,7 @@ export class DetailPanel {
           <div class="topography-summary">
             <div>
               <span class="muted">${t("detail.slope")}</span>
-              <b>${num(slopeDeg, 1)}° <span class="slope-badge ${slopeTone}">${escapeHtml(slopeLabel)}</span></b>
+              <b>${hasSlope ? `${num(slopeDeg, 1)}° ` : "— "}<span class="slope-badge ${slopeTone}">${escapeHtml(slopeLabel)}</span></b>
               <small class="muted">${slopeNote}</small>
             </div>
             <div>
@@ -233,11 +240,11 @@ export class DetailPanel {
             </div>
             <div>
               <span class="muted">${t("detail.roughness")}</span>
-              <b>${topo.roughness_m != null ? `${num(roughnessM, 2)} m` : "—"}</b>
-              <small class="muted">${t(roughnessM <= 0.8 ? "detail.roughLow" : roughnessM <= 1.5 ? "detail.roughMid" : "detail.roughHigh")}</small>
+              <b>${roughnessM != null ? `${num(roughnessM, 2)} m` : "—"}</b>
+              <small class="muted">${roughnessM != null ? t("detail.roughNote") : t("detail.noData")}</small>
             </div>
           </div>
-          ${patch ? `
+          ${patch?.elevation_m?.length ? `
           <h3>${t("detail.patchTitle")}</h3>
           <div class="terrain-patch-container"></div>
           <p class="caption">${t("detail.patchCaption", { size: patch.size, spacing: patch.spacing_m })}</p>` : ""}
@@ -282,7 +289,7 @@ export class DetailPanel {
       });
     });
     lazy("topo", () => {
-      if (patch) renderTerrainPatch(this.body.querySelector(".terrain-patch-container"), patch, maxSlopeDeg);
+      if (patch?.elevation_m?.length) renderTerrainPatch(this.body.querySelector(".terrain-patch-container"), patch, maxSlopeDeg);
     });
   }
 

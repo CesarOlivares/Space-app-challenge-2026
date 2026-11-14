@@ -210,7 +210,8 @@ def test_proteccion_sin_relieve_es_sin_datos_y_no_cero(client):
 
 
 def test_total_sin_relieve_se_renormaliza_sin_proteccion(client):
-    # Sin A, P = (0,5·E + 0,5·C + 1·T) / 2.
+    # Fuera del DEM polar no hay T ni A: se omiten y P = (0,5·E + 0,5·C) / 1.
     s = {x["site_id"]: x for x in client.get("/api/scores", params={"date": DATE}).json()["scores"]}["apollo-11"]["scores"]
-    expected = (0.5 * s["energy"] + 0.5 * s["communication"] + 1.0 * s["terrain"]) / 2.0
+    assert s["terrain"] is None and s["asteroid"] is None
+    expected = (0.5 * s["energy"] + 0.5 * s["communication"]) / 1.0
     assert s["total"] == pytest.approx(expected, abs=0.1)

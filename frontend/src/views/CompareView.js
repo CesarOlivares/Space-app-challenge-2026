@@ -8,14 +8,15 @@ import { notViableReason } from "./encoding.js";
 
 // Comparable rows; `better` indicates whether "max" or "min" wins for highlighting.
 const untilSet = (v) => (v === Infinity ? t("compare.noSet") : formatDuration(v));
+const orNoData = (show) => (v) => (v == null ? t("compare.noData") : show(v));
 const ROWS = [
   { label: "compare.total", value: (r) => r.scores.total, show: (v) => Math.round(v), better: "max" },
   { label: "detail.energy", value: (r) => r.scores.energy, show: (v) => Math.round(v), better: "max" },
   { label: "detail.communication", value: (r) => r.scores.communication, show: (v) => Math.round(v), better: "max" },
-  { label: "compare.terrain", value: (r) => r.scores.terrain ?? 0, show: (v) => Math.round(v), better: "max" },
-  { label: "compare.protection", value: (r) => r.scores.asteroid ?? null, show: (v) => (v == null ? t("compare.noData") : Math.round(v)), better: "max" },
-  { label: "compare.slope", value: (r) => r.topography?.slope_deg ?? 0, show: (v) => `${num(v, 1)}°`, better: "min" },
-  { label: "compare.elevation", value: (r) => r.topography?.elevation_m ?? 0, show: (v) => `${num(Math.round(v))} m` },
+  { label: "compare.terrain", value: (r) => r.scores.terrain ?? null, show: orNoData((v) => Math.round(v)), better: "max" },
+  { label: "compare.protection", value: (r) => r.scores.asteroid ?? null, show: orNoData((v) => Math.round(v)), better: "max" },
+  { label: "compare.slope", value: (r) => r.topography?.slope_deg ?? null, show: orNoData((v) => `${num(v, 1)}°`), better: "min" },
+  { label: "compare.elevation", value: (r) => r.topography?.elevation_m ?? null, show: orNoData((v) => `${num(Math.round(v))} m`) },
   { label: "compare.sunElevation", value: (r) => r.sun.elevation_deg, show: (v) => formatDegrees(v) },
   { label: "compare.lightUntilSet", value: (r) => (r.sun.visible ? r.sun.hours_until_set ?? Infinity : 0),
     show: untilSet, better: "max" },

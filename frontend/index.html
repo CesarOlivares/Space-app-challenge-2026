@@ -151,13 +151,14 @@
                 <div class="lola-bar"></div>
                 <div class="lola-ticks"><span>−9 km</span><span>0 km</span><span>+10 km</span></div>
               </div>
-              <div id="moon-layer-bar" class="buttons layer-grid" role="group" data-i18n-attr="aria-label: layer.group">
+              <!-- Capas de riesgo ocultas: la grilla de 5° no tiene datos medidos fuera del DEM polar -->
+              <div id="moon-layer-bar" class="buttons layer-grid" role="group" data-i18n-attr="aria-label: layer.group" hidden>
                 <button type="button" data-layer="surface" class="active" aria-pressed="true" data-i18n="layer.surface">Superficie real</button>
                 <button type="button" data-layer="risk-a" aria-pressed="false" data-i18n="layer.a">Riesgo A</button>
                 <button type="button" data-layer="risk-b" aria-pressed="false" data-i18n="layer.b">Riesgo B</button>
                 <button type="button" data-layer="safe-havens" aria-pressed="false" data-i18n="layer.safe">Refugios seguros</button>
               </div>
-              <div class="layer-legend caption">
+              <div class="layer-legend caption" hidden>
                 <p data-i18n="layers.note"></p>
                 <p><span class="swatch" style="--c:#10c891"></span><span class="swatch" style="--c:#f5a519"></span><span class="swatch" style="--c:#e12d37"></span> <span data-i18n="layers.a"></span></p>
                 <p><span class="swatch" style="--c:#0ea5e9"></span><span class="swatch" style="--c:#ea580c"></span> <span data-i18n="layers.b"></span></p>
