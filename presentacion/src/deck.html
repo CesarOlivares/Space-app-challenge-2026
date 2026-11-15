@@ -77,6 +77,8 @@ body{font-family:Archivo,system-ui,sans-serif;color:var(--ink)}
 .dchip{border:2px solid var(--line);background:var(--panel);padding:18px 26px;display:flex;flex-direction:column;gap:6px}
 .dchip b{font:700 32px JBM,monospace}
 .dchip span{font:500 22px JBM,monospace;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+.hub i{position:absolute;left:-60px;top:-60px;width:120px;height:120px;border-radius:50%;border:5px solid var(--acc);opacity:0}
+.links line{stroke:var(--acc);stroke-width:2;stroke-dasharray:6 8;opacity:.8}
 /* Ecuación (lámina 4) */
 .eq{display:flex;align-items:center;gap:30px}
 .eq .bx{border:2px solid var(--ink);padding:20px 34px;font:800 52px/1 Archivo;font-stretch:125%;text-transform:uppercase}
@@ -149,6 +151,8 @@ body{font-family:Archivo,system-ui,sans-serif;color:var(--ink)}
   <div class="abs dchip" style="left:420px;top:560px"><b>NASA SVS</b><span>Superficie</span></div>
   <div class="abs dchip" style="left:1080px;top:680px"><b>LROC</b><span>Sitios</span></div>
   <p class="abs lbl slow" style="left:var(--m);top:900px;color:var(--bad)">→ Decisiones críticas más lentas</p>
+  <svg class="abs links" width="1920" height="1080" viewBox="0 0 1920 1080" style="left:0;top:0;pointer-events:none"></svg>
+  <div class="abs hub" style="left:590px;top:335px;width:0;height:0"><i></i></div>
   <p class="abs sub z1" style="left:var(--m);top:150px;color:var(--muted)">Para esto nace</p>
   <h2 class="abs h zen" style="left:86px;top:240px;font-size:190px;letter-spacing:.03em"></h2>
   <p class="abs txt z2" style="left:var(--m);top:480px;font-weight:600">Dónde y cuándo aterrizar, en una <span class="acc">respuesta clara</span></p>
@@ -413,19 +417,31 @@ const ENTER = {
   },
   s4(s) {
     const tl = gsap.timeline({paused: true});
-    const chips = $('.dchip', s), T = 6.6;   // T: momento en que las fuentes convergen ("Para esto nace Zenith")
+    const chips = $('.dchip', s), CX = 590, CY = 335;
     tl.from($('.k1', s), {y: 24, opacity: 0, duration: .6, ease: E.power3}, 0)
       .from($('.z0', s), {y: 30, opacity: 0, duration: .7, ease: E.power3}, .15)
       .from(chips, {scale: .6, opacity: 0, duration: .6, ease: 'back.out(1.6)', stagger: .18}, .6)
-      .from($('.slow', s), {opacity: 0, x: -20, duration: .6}, 2.0)
-      // las fuentes se juntan en el centro del nombre
-      .to(chips, {x: (i, el) => 560 - el.offsetLeft - el.offsetWidth / 2, y: (i, el) => 330 - el.offsetTop - el.offsetHeight / 2, scale: .25, opacity: 0, duration: .9, ease: 'power3.in', stagger: .06}, T)
-      .to($('.z0, .slow', s), {opacity: 0, duration: .4}, T)
-      .from($('.moon4', s), {opacity: 0, x: 120, duration: 2, ease: 'power2.out'}, T + .6)
-      .from($('.z1', s), {y: 30, opacity: 0, duration: .6, ease: E.power3}, T + .7)
-      .from($('.zen .ch', s), {yPercent: 115, duration: .9, ease: 'power4.out', stagger: .07}, T + .9)
-      .from($('.z2', s), {y: 20, opacity: 0, duration: .7, ease: E.power3}, T + 1.7)
-      .from($('.eq .bx, .eq .op', s), {y: 30, opacity: 0, duration: .55, ease: E.power3, stagger: .2}, T + 2.2);
+      .from($('.slow', s), {opacity: 0, x: -20, duration: .6}, 2.0);
+    // ocultos hasta el segundo tiempo
+    gsap.set($('.z1, .z2, .moon4', s), {opacity: 0}); gsap.set($('.zen .ch', s), {yPercent: 115}); gsap.set($('.eq .bx, .eq .op', s), {opacity: 0, y: 30});
+    const svg = $('.links', s)[0]; svg.innerHTML = '';
+    s._steps = [() => {   // segundo clic: "Para esto nace Zenith"
+      const t2 = gsap.timeline({paused: true});
+      const lines = chips.map(el => { const x = el.offsetLeft + el.offsetWidth / 2, y = el.offsetTop + el.offsetHeight / 2, L = Math.hypot(CX - x, CY - y);
+        const ln = document.createElementNS('http://www.w3.org/2000/svg', 'line'); ln.setAttribute('x1', x); ln.setAttribute('y1', y); ln.setAttribute('x2', CX); ln.setAttribute('y2', CY);
+        ln.style.strokeDasharray = L; ln.style.strokeDashoffset = L; svg.appendChild(ln); return ln; });
+      t2.to(lines, {strokeDashoffset: 0, duration: .7, ease: 'power2.inOut', stagger: .06}, 0)
+        .to($('.z0, .slow', s), {opacity: 0, y: -10, duration: .4}, 0)
+        .to(chips, {x: (i, el) => CX - el.offsetLeft - el.offsetWidth / 2, y: (i, el) => CY - el.offsetTop - el.offsetHeight / 2, scale: .2, opacity: 0, duration: .8, ease: 'power3.in', stagger: .07}, .55)
+        .to(lines, {opacity: 0, duration: .4}, 1.25)
+        .fromTo($('.hub i', s), {scale: .2, opacity: 1}, {scale: 3.2, opacity: 0, duration: .9, ease: 'power2.out'}, 1.35)
+        .to($('.zen .ch', s), {yPercent: 0, duration: .9, ease: 'power4.out', stagger: .07}, 1.45)
+        .to($('.z1', s), {opacity: 1, duration: .5}, 1.5)
+        .to($('.moon4', s), {opacity: .5, duration: 1.6, ease: 'power2.out'}, 1.6)
+        .to($('.z2', s), {opacity: 1, duration: .6}, 2.3)
+        .to($('.eq .bx, .eq .op', s), {opacity: 1, y: 0, duration: .55, ease: E.power3, stagger: .18}, 2.6);
+      return t2;
+    }];
     return tl;
   },
   s5(s) {
@@ -467,7 +483,7 @@ if (!reduce) { gsap.to('#s4 .moon4', {rotation: 6, duration: 30, yoyo: true, rep
 /* ===== Navegación y transiciones ===== */
 const TYPE = {2: 'push', 4: 'push', 5: 'blinds'};  // índice (0-based) → tipo; por defecto iris
 const iris = document.getElementById('iris'), ring = iris.querySelector('.ring');
-const demos = new Map(); let cur = -1, tl = null, trans = null;
+const demos = new Map(); let cur = -1, tl = null, trans = null, steps = [], step = 0;
 function manageDemos(i) {
   for (const k of [...demos.keys()]) if (k !== i) { demos.get(k).destroy(); demos.delete(k); }
   if (i !== 0) stopPortada();
@@ -477,9 +493,9 @@ function manageDemos(i) {
 function enter(i, instant) {
   const s = slides[i]; restore(s);
   if (i === 0) stopPortada();
-  tl = ENTER[s.id](s); manageDemos(i);
+  s._steps = null; tl = ENTER[s.id](s); steps = s._steps || []; step = 0; manageDemos(i);
   location.hash = 'lamina-' + (i + 1);
-  instant || reduce ? tl.progress(1) : tl.play(0);
+  if (instant || reduce) { tl.progress(1); while (step < steps.length) { tl = steps[step++](); tl.progress(1); } } else tl.play(0);
 }
 function show(i, instant) { if (tl) tl.progress(1); slides.forEach((x, k) => x.classList.toggle('on', k === i)); cur = i; enter(i, instant); }
 function go(i) {
@@ -502,7 +518,8 @@ function go(i) {
   }
   trans.call(() => tl.play(0), null, type === 'push' ? .3 : .25);
 }
-function next() { if (trans && trans.isActive()) { trans.progress(1); return; } if (tl && tl.isActive()) { tl.progress(1); return; } go(cur + 1); }
+function next() { if (trans && trans.isActive()) { trans.progress(1); return; } if (tl && tl.isActive()) { tl.progress(1); return; }
+  if (step < steps.length) { tl = steps[step++](); tl.play(0); return; } go(cur + 1); }
 function prev() { if (trans && trans.isActive()) trans.progress(1); if (cur > 0) show(cur - 1, true); }
 addEventListener('keydown', e => {
   if (['ArrowRight', 'PageDown', ' ', 'Enter'].includes(e.key)) { e.preventDefault(); next(); }
@@ -513,7 +530,7 @@ addEventListener('keydown', e => {
 addEventListener('click', e => (e.clientX < innerWidth * .15 ? prev : next)());
 const mm = location.hash.match(/lamina-(\d+)/);
 document.fonts.ready.then(() => show(mm ? Math.min(+mm[1] - 1, slides.length - 1) : 0));
-window.__deck = { demos, get cur() { return cur; }, show };
+window.__deck = { demos, get cur() { return cur; }, show, next };
 })();
 </script>
 </body>

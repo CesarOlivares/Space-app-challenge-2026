@@ -5,7 +5,8 @@ import websockets
 OUT = sys.argv[1]; os.makedirs(OUT, exist_ok=True); B = shutil.which("brave-browser")
 ONLY = [int(x) for x in sys.argv[2].split(",")] if len(sys.argv) > 2 else [1, 2, 3, 4, 5, 6, 7]
 R = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-TIMES = {1: [7], 2: [7], 3: [6, 17], 4: [3.5, 7.2, 11], 5: [6, 13, 22], 6: [6, 14, 24], 7: [7]}
+CLICS = {4: [4.0]}  # clics del presentador dentro de una lámina (segundos)
+TIMES = {1: [7], 2: [7], 3: [6, 17], 4: [3.5, 5.0, 5.8, 9], 5: [6, 13, 22], 6: [6, 14, 24], 7: [7]}
 async def main():
     port, dbg = random.randint(20000, 29999), random.randint(30000, 39999)
     srv = subprocess.Popen([sys.executable, "-m", "http.server", str(port), "--directory", os.path.join(R, "dist")], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, start_new_session=True)
@@ -30,8 +31,10 @@ async def main():
     await send("Emulation.setDeviceMetricsOverride", width=1920, height=1080, deviceScaleFactor=0.5, mobile=False)
     for i in ONLY:
         await send("Page.navigate", url=(os.environ.get("BASE") or f"http://localhost:{port}/index.html") + f"?v={i}#lamina-{i}")
-        t0 = 0
+        t0 = 0; pend = list(CLICS.get(i, []))
         for k, tm in enumerate(TIMES[i]):
+            while pend and pend[0] <= tm:
+                await asyncio.sleep(pend[0] - t0); t0 = pend.pop(0); await send("Runtime.evaluate", expression="window.__deck.next()")
             await asyncio.sleep(tm - t0); t0 = tm
             for _try in range(4):
                 r = await send("Page.captureScreenshot", format="jpeg", quality=80)
