@@ -73,6 +73,10 @@ body{font-family:Archivo,system-ui,sans-serif;color:var(--ink)}
 .fct{display:flex;align-items:center;gap:26px;padding:22px 0 22px 24px;border-left:4px solid var(--line);font:800 38px/1.05 Archivo;font-stretch:125%;text-transform:uppercase;opacity:.5;transition:opacity .3s,border-color .3s}
 .fct .svg{width:88px;height:88px;flex:none}
 .fct.on{opacity:1;border-left-color:var(--acc)}
+/* Fuentes dispersas (lámina 4) */
+.dchip{border:2px solid var(--line);background:var(--panel);padding:18px 26px;display:flex;flex-direction:column;gap:6px}
+.dchip b{font:700 32px JBM,monospace}
+.dchip span{font:500 22px JBM,monospace;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
 /* Ecuación (lámina 4) */
 .eq{display:flex;align-items:center;gap:30px}
 .eq .bx{border:2px solid var(--ink);padding:20px 34px;font:800 52px/1 Archivo;font-stretch:125%;text-transform:uppercase}
@@ -104,7 +108,7 @@ body{font-family:Archivo,system-ui,sans-serif;color:var(--ink)}
 <section class="slide" id="s2">
   <div class="stars" data-stars="70"></div>
   <p class="kick k1">Contexto · 20 de julio de 1969</p>
-  <h2 class="title h t1" style="width:1650px">Aterrizar es decidir en segundos</h2>
+  <h2 class="title h t1" style="width:1650px">Armstrong aterrizó<br>a ojo</h2>
   <div class="abs n1" style="left:var(--m);top:440px"><p class="big" style="font-size:var(--t-big);color:var(--bad)"><span class="cnt" data-to="1202">1202</span></p><p class="lbl" style="margin-top:20px">Alarma · control manual</p></div>
   <div class="abs n2" style="left:840px;top:440px"><p class="big" style="font-size:var(--t-big);color:var(--sun)">~<span class="cnt" data-to="30">30</span><span style="font-size:110px"> s</span></p><p class="lbl" style="margin-top:20px">Combustible al tocar suelo</p></div>
   <div class="abs svg bdg" data-svg="elementos-2/hud_alert_hazard_badge" style="left:1470px;top:460px;width:354px;height:152px;color:var(--bad)"></div>
@@ -137,12 +141,19 @@ body{font-family:Archivo,system-ui,sans-serif;color:var(--ink)}
 <section class="slide" id="s4">
   <div class="stars" data-stars="120"></div>
   <img class="abs moon4" src="assets/luna.webp" alt="" style="left:1200px;top:-40px;width:1100px;height:1100px;opacity:.5;transform:scaleX(-1)">
-  <p class="kick k1">Solución</p>
-  <p class="abs sub z1" style="left:var(--m);top:150px;color:var(--muted)">Para resolverlo creamos</p>
+  <p class="kick k1">Contexto → solución</p>
+  <p class="abs sub z0" style="left:var(--m);top:150px;width:1300px">Los datos existen, pero están en <span class="acc">plataformas separadas</span></p>
+  <div class="abs dchip" style="left:110px;top:330px"><b>JPL DE440</b><span>Sol y Tierra</span></div>
+  <div class="abs dchip" style="left:820px;top:300px"><b>LRO · LOLA</b><span>Relieve</span></div>
+  <div class="abs dchip" style="left:1380px;top:430px"><b>NASA PGDA</b><span>Iluminación</span></div>
+  <div class="abs dchip" style="left:420px;top:560px"><b>NASA SVS</b><span>Superficie</span></div>
+  <div class="abs dchip" style="left:1080px;top:680px"><b>LROC</b><span>Sitios</span></div>
+  <p class="abs lbl slow" style="left:var(--m);top:900px;color:var(--bad)">→ Decisiones críticas más lentas</p>
+  <p class="abs sub z1" style="left:var(--m);top:150px;color:var(--muted)">Para esto nace</p>
   <h2 class="abs h zen" style="left:86px;top:240px;font-size:190px;letter-spacing:.03em"></h2>
-  <p class="abs lbl z2" style="left:var(--m);top:490px">Luna 3D · datos científicos reales de la NASA · en segundos</p>
+  <p class="abs txt z2" style="left:var(--m);top:480px;font-weight:600">Dónde y cuándo aterrizar, en una <span class="acc">respuesta clara</span></p>
   <div class="abs eq z3" style="left:var(--m);top:640px"><span class="bx">Sitio</span><span class="op">+</span><span class="bx">Fecha</span><span class="op">→</span><span class="bx last">¿Viable 14 días?</span></div>
-  <p class="src">Textura lunar: NASA SVS (dominio público)</p>
+  <p class="src">Efemérides JPL DE440 · relieve LRO/LOLA · iluminación NASA PGDA · textura NASA SVS (dominio público)</p>
   <span class="pg">04</span>
 </section>
 
@@ -169,12 +180,12 @@ body{font-family:Archivo,system-ui,sans-serif;color:var(--ink)}
 <section class="slide paper" id="s6">
   <div class="grid-bg"></div>
   <p class="kick k1">Ventajas</p>
-  <h2 class="title h t1" style="width:1700px">Lo mismo, sin ser especialista</h2>
+  <h2 class="title h t1" style="width:1700px">Reunimos lo que hoy está separado</h2>
   <div class="abs tools" style="left:var(--m);top:390px;width:740px">
     <p class="lbl" style="margin-bottom:18px">Hoy se consultan por separado</p>
-    <div class="tool">QuickMap<span>para especialistas</span></div>
-    <div class="tool">Moon Trek<span>para especialistas</span></div>
-    <div class="tool">JPL Horizons<span>para especialistas</span></div>
+    <div class="tool">QuickMap<span>datos excelentes</span></div>
+    <div class="tool">Moon Trek<span>datos excelentes</span></div>
+    <div class="tool">JPL Horizons<span>datos excelentes</span></div>
     <p class="h zz" style="font-size:80px;margin-top:36px">→ <span class="acc">Zenith</span></p>
     <p class="txt zz2" style="margin-top:10px">Todo junto · <b>compara escenarios</b></p>
   </div>
@@ -402,12 +413,19 @@ const ENTER = {
   },
   s4(s) {
     const tl = gsap.timeline({paused: true});
-    tl.from($('.moon4', s), {opacity: 0, x: 120, duration: 2, ease: 'power2.out'}, 0)
-      .from($('.k1', s), {y: 24, opacity: 0, duration: .6, ease: E.power3}, 0)
-      .from($('.z1', s), {y: 30, opacity: 0, duration: .7, ease: E.power3}, .2)
-      .from($('.zen .ch', s), {yPercent: 115, duration: .9, ease: 'power4.out', stagger: .07}, .6)
-      .from($('.z2', s), {opacity: 0, duration: .7}, 1.5)
-      .from($('.eq .bx, .eq .op', s), {y: 30, opacity: 0, duration: .55, ease: E.power3, stagger: .22}, 2.0);
+    const chips = $('.dchip', s), T = 6.6;   // T: momento en que las fuentes convergen ("Para esto nace Zenith")
+    tl.from($('.k1', s), {y: 24, opacity: 0, duration: .6, ease: E.power3}, 0)
+      .from($('.z0', s), {y: 30, opacity: 0, duration: .7, ease: E.power3}, .15)
+      .from(chips, {scale: .6, opacity: 0, duration: .6, ease: 'back.out(1.6)', stagger: .18}, .6)
+      .from($('.slow', s), {opacity: 0, x: -20, duration: .6}, 2.0)
+      // las fuentes se juntan en el centro del nombre
+      .to(chips, {x: (i, el) => 560 - el.offsetLeft - el.offsetWidth / 2, y: (i, el) => 330 - el.offsetTop - el.offsetHeight / 2, scale: .25, opacity: 0, duration: .9, ease: 'power3.in', stagger: .06}, T)
+      .to($('.z0, .slow', s), {opacity: 0, duration: .4}, T)
+      .from($('.moon4', s), {opacity: 0, x: 120, duration: 2, ease: 'power2.out'}, T + .6)
+      .from($('.z1', s), {y: 30, opacity: 0, duration: .6, ease: E.power3}, T + .7)
+      .from($('.zen .ch', s), {yPercent: 115, duration: .9, ease: 'power4.out', stagger: .07}, T + .9)
+      .from($('.z2', s), {y: 20, opacity: 0, duration: .7, ease: E.power3}, T + 1.7)
+      .from($('.eq .bx, .eq .op', s), {y: 30, opacity: 0, duration: .55, ease: E.power3, stagger: .2}, T + 2.2);
     return tl;
   },
   s5(s) {

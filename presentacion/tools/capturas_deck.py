@@ -5,7 +5,7 @@ import websockets
 OUT = sys.argv[1]; os.makedirs(OUT, exist_ok=True); B = shutil.which("brave-browser")
 ONLY = [int(x) for x in sys.argv[2].split(",")] if len(sys.argv) > 2 else [1, 2, 3, 4, 5, 6, 7]
 R = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-TIMES = {1: [7], 2: [7], 3: [6, 17], 4: [6], 5: [6, 13, 22], 6: [6, 14, 24], 7: [7]}
+TIMES = {1: [7], 2: [7], 3: [6, 17], 4: [3.5, 7.2, 11], 5: [6, 13, 22], 6: [6, 14, 24], 7: [7]}
 async def main():
     port, dbg = random.randint(20000, 29999), random.randint(30000, 39999)
     srv = subprocess.Popen([sys.executable, "-m", "http.server", str(port), "--directory", os.path.join(R, "dist")], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, start_new_session=True)
