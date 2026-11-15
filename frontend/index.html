@@ -80,26 +80,31 @@
         <div class="hud-top-left">
           <div id="datebar" class="glass">
             <div class="datebar-row datebar-row-top">
-              <button type="button" class="step" data-shift-days="-1" data-i18n-attr="aria-label: date.prev; title: date.prev">‹</button>
-              <label class="sr-only" for="date-input" data-i18n="controls.date">Fecha de aterrizaje (UTC)</label>
-              <input id="date-input" type="datetime-local" step="3600" />
-              <button type="button" class="step" data-shift-days="1" data-i18n-attr="aria-label: date.next; title: date.next">›</button>
+              <div class="datebar-nav">
+                <button type="button" class="step" data-shift-days="-1" data-i18n-attr="aria-label: date.prev; title: date.prev">‹</button>
+                <label class="sr-only" for="date-input" data-i18n="controls.date">Fecha de aterrizaje (UTC)</label>
+                <input id="date-input" type="datetime-local" step="3600" />
+                <button type="button" class="step" data-shift-days="1" data-i18n-attr="aria-label: date.next; title: date.next">›</button>
+              </div>
               <span class="datebar-sep" aria-hidden="true"></span>
               <p id="status" role="status">Conectando…</p>
             </div>
-            <div class="datebar-row datebar-row-controls" role="group" data-i18n-attr="aria-label: controls.shiftGroup">
-              <button type="button" data-shift-days="-7" data-i18n-attr="aria-label: date.prevWeek; title: date.prevWeek">−7 d</button>
-              <button type="button" id="date-now" data-i18n="controls.now">Ahora</button>
-              <button type="button" data-shift-days="7" data-i18n-attr="aria-label: date.nextWeek; title: date.nextWeek">+7 d</button>
-              <button type="button" id="play" aria-pressed="false" data-i18n="controls.play">▶ Animar</button>
-              <label class="inline"><span data-i18n="controls.step">Paso</span>
-                <select id="play-speed">
+            <div class="datebar-row datebar-row-controls">
+              <div class="datebar-steps" role="group" data-i18n-attr="aria-label: controls.shiftGroup">
+                <button type="button" data-shift-days="-7" data-i18n-attr="aria-label: date.prevWeek; title: date.prevWeek">−7 d</button>
+                <button type="button" id="date-now" data-i18n="controls.now">Ahora</button>
+                <button type="button" data-shift-days="7" data-i18n-attr="aria-label: date.nextWeek; title: date.nextWeek">+7 d</button>
+              </div>
+              <span class="datebar-sep" aria-hidden="true"></span>
+              <div class="datebar-play" role="group" data-i18n-attr="aria-label: controls.playGroup">
+                <button type="button" id="play" class="datebar-pill" aria-pressed="false" data-i18n="controls.play">▶ Animar</button>
+                <select id="play-speed" class="datebar-pill" data-i18n-attr="aria-label: controls.step; title: controls.step">
                   <option value="2">2 h</option>
                   <option value="6" selected>6 h</option>
                   <option value="12">12 h</option>
                   <option value="24" data-i18n="controls.oneDay">1 día</option>
                 </select>
-              </label>
+              </div>
             </div>
           </div>
 
