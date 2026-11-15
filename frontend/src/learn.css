@@ -102,3 +102,42 @@
   .learn-examples li { flex-direction: column; align-items: stretch; }
   .hero-purpose { margin-top: 0; font-size: 0.95rem; }
 }
+
+/* Miniaturas anotadas (views/learnFigures.js): esquemas con llamadas numeradas. */
+.lfig { margin: 0; display: grid; gap: var(--space-2); }
+.lfig svg { width: 100%; max-width: 420px; height: auto; border: 1px solid var(--line); border-radius: 8px; background: color-mix(in srgb, var(--bg) 70%, transparent); }
+.lfig-key { margin: 0; padding-left: 22px; display: grid; gap: 4px; color: var(--ink-muted); font-size: var(--fs-small); line-height: 1.45; }
+.lfig-key li::marker { color: var(--accent); font-weight: 700; }
+.lfig figcaption { color: var(--ink-muted); font-size: var(--fs-small); font-style: italic; }
+.lfig .fg-call circle { fill: var(--accent); }
+.lfig .fg-call text { fill: var(--accent-ink); font: 700 11px var(--font-text); }
+.lfig .fg-lbl { fill: var(--ink-muted); font: 11px var(--font-text); }
+.lfig .fg-num { fill: var(--ink); font: 700 13px var(--font-mono); }
+.lfig .fg-axis { stroke: var(--line-strong); stroke-width: 1.5; }
+.lfig .fg-thr { stroke: var(--ink); stroke-width: 2; }
+.lfig .fg-thr.dash { stroke-dasharray: 4 4; stroke: var(--ink-muted); }
+.lfig .fg-track { fill: none; stroke: var(--viable); stroke-opacity: 0.25; stroke-width: 6; }
+.lfig .fg-track.off { stroke: var(--off); stroke-opacity: 0.2; }
+.lfig .fg-arc { fill: none; stroke: var(--viable); stroke-width: 6; stroke-linecap: round; }
+.lfig .fg-dash { fill: none; stroke: var(--off); stroke-width: 4; stroke-dasharray: 5 6; }
+.lfig .fg-ring { fill: none; stroke: #fff; stroke-width: 2; }
+.lfig .fg-pt { fill: var(--viable); }
+.lfig .fg-pt.off { fill: var(--off); }
+.lfig .fg-ok { fill: var(--state-ok); }
+.lfig .fg-bad { fill: var(--state-bad); }
+.lfig .fg-mark { font: 700 14px var(--font-text); }
+.lfig .fg-mark.ok { fill: var(--state-ok); }
+.lfig .fg-mark.bad { fill: var(--state-bad); }
+.lfig .fg-terrain { fill: var(--line-strong); stroke: var(--ink-muted); stroke-width: 1; }
+.lfig .fg-line { stroke-width: 2.5; }
+.lfig .fg-line.sun { stroke: var(--data-sun); }
+.lfig .fg-line.earth { stroke: var(--data-earth-high); }
+.lfig .fg-hid { stroke: var(--data-sun); stroke-width: 2.5; stroke-dasharray: 2 4; opacity: 0.6; }
+.lfig .fg-sun { fill: var(--data-sun); }
+.lfig .fg-earth { fill: var(--data-earth-high); }
+.lfig .fg-gap { fill: none; stroke: var(--ink-muted); stroke-dasharray: 3 3; }
+.lfig .fg-tk.ok { fill: var(--state-ok); }
+.lfig .fg-tk.bad { fill: var(--ink-muted); opacity: 0.55; }
+.lfig .fg-bar.a { fill: var(--viable); }
+.lfig .fg-bar.b, .lfig .fg-bar.c { fill: var(--off); }
+.lfig .fg-scale { fill: color-mix(in srgb, var(--accent) 35%, var(--line)); }

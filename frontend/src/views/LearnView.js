@@ -7,6 +7,7 @@ import { escapeHtml } from "../format.js";
 import { getLang } from "../i18n.js";
 import { icon } from "../icons.js";
 import { DETAILS, LABELS } from "./learnContent.js";
+import { figureHtml } from "./learnFigures.js";
 
 const TXT = {
   es: {
@@ -288,7 +289,9 @@ export class LearnView {
     const L = LABELS[getLang()] ?? LABELS.es;
     const pick = (v) => escapeHtml(v?.[getLang()] ?? v?.es ?? "");
     const open = this.open.has(id);
+    const fig = figureHtml(id, getLang(), escapeHtml);
     const layers = d ? [
+      fig,
       d.read && `<div class="lcard-layer"><h4>${L.read}</h4><p>${pick(d.read)}</p></div>`,
       d.example && `<div class="lcard-layer"><h4>${L.example}</h4><p>${pick(d.example)}</p></div>`,
       d.where && `<div class="lcard-layer"><h4>${L.where}</h4><p>${pick(d.where)}</p></div>`,

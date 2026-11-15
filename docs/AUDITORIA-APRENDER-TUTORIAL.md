@@ -1,6 +1,6 @@
 # Auditoría y pipeline · Aprender y tutorial guiado
 
-> **Estado (15/11/2026):** P1 y P2 hechos (rama `ux/tutorial-principal`). P3 hecho en `aprender/desplegables`: tarjetas desplegables con «cómo leerlo · ejemplo real · dónde lo ves · pruébalo» para los hechos, indicadores y gráficos, índice de temas, «visto» y enlace directo `#aprender/<id>`. Pendiente de P3: los criterios NASA siguen como tabla (AP5) y las capas aún no tienen miniaturas (P4).
+> **Estado (15/11/2026):** P1 y P2 hechos (rama `ux/tutorial-principal`). P3 hecho en `aprender/desplegables`: tarjetas desplegables con «cómo leerlo · ejemplo real · dónde lo ves · pruébalo» para los hechos, indicadores y gráficos, índice de temas, «visto» y enlace directo `#aprender/<id>`. P4 hecho en `aprender/miniaturas`: esquema SVG anotado (llamadas ①②③ y leyenda) para los 6 gráficos y escala 0–100 para 4 indicadores (`views/learnFigures.js`). Pendiente: los criterios NASA siguen como tabla (AP5); los esquemas son ilustrativos, no datos reales.
 
 Fecha: 15/11/2026 · Recorrido: portada → Aprender (04) completo → vista general → ficha de Apollo 11 → detalle → comparación.
 
