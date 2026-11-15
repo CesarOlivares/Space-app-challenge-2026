@@ -5,6 +5,7 @@ import { HeightField } from "./heightField.js";
 
 const TEXTURES = "public/textures";
 const MARKER_LIFT = 0.004; // radios lunares que el marcador flota sobre el terreno
+const MARKER_SIZE = 0.034; // radio de la retícula (radios lunares) con la cámara a la distancia por defecto
 const SEGMENTS_FLAT = [192, 96]; // malla sin relieve
 const SEGMENTS_RELIEF = [512, 256]; // con relieve: más vértices para que el desplazamiento se vea suave
 const DEFAULT_DISTANCE = 3.7;
@@ -141,95 +142,69 @@ function buildLolaTexture(img) {
   return tex;
 }
 
-function glowTexture() {
-  const size = 64;
-  const canvas = document.createElement("canvas");
-  canvas.width = canvas.height = size;
-  const ctx = canvas.getContext("2d");
-  const gradient = ctx.createRadialGradient(size / 2, size / 2, 0, size / 2, size / 2, size / 2);
-  gradient.addColorStop(0, "rgba(255,255,255,1)");
-  gradient.addColorStop(0.25, "rgba(255,255,255,0.55)");
-  gradient.addColorStop(1, "rgba(255,255,255,0)");
-  ctx.fillStyle = gradient;
-  ctx.fillRect(0, 0, size, size);
-  return new THREE.CanvasTexture(canvas);
+// ---- Marcador de sitio: retícula de aterrizaje que siempre mira a la cámara ----
+// Geometría en el plano XZ (normal +Y); #updateMarkerScale la gira hacia la cámara (billboard). Radio exterior del anillo = 1; la escala
+// del grupo la fija #updateMarkerScale para que el tamaño en pantalla sea casi constante.
+const FACE_CAMERA = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1, 0, 0), Math.PI / 2);
+const RING_IN = 0.74;
+const RING_OUT = 1;
+
+function flat(geometry) {
+  geometry.rotateX(-Math.PI / 2);
+  return geometry;
 }
 
-/**
- * Computes a quaternion aligning local +X (East), +Y (Up), +Z (North)
- * to the lunar surface tangent plane at (lat, lon).
- * @param {number} lat - Latitude in degrees.
- * @param {number} lon - East longitude in degrees.
- * @returns {THREE.Quaternion}
- */
-function localTangentQuaternion(lat, lon) {
-  const up = latLonToVector(lat, lon, 1).normalize();
-  const lo = THREE.MathUtils.degToRad(lon);
-  const east = new THREE.Vector3(-Math.sin(lo), 0, -Math.cos(lo)).normalize();
-  const north = new THREE.Vector3().crossVectors(up, east).normalize();
-  const basis = new THREE.Matrix4().makeBasis(east, up, north);
-  return new THREE.Quaternion().setFromRotationMatrix(basis);
+// Arco del puntaje: crece en sentido horario desde el norte.
+function arcGeometry(fraction) {
+  const len = Math.max(0.0001, Math.min(1, fraction)) * Math.PI * 2;
+  return flat(new THREE.RingGeometry(RING_IN, RING_OUT, 64, 1, Math.PI / 2 - len, len));
 }
 
-/**
- * Builds a 36-azimuth 3D Mountain Shield Crown BufferGeometry around a site marker.
- * Local +Z = North (0 deg), +X = East (90 deg), +Y = Up (radial).
- * @param {number[]} [profile36] - 36 horizon elevation angles in degrees at 10 deg steps.
- * @returns {THREE.BufferGeometry}
- */
-function buildShieldCrownGeometry(profile36) {
-  const n = 36;
-  const radius = 1.42;
-  const baseH = 0.08;
-  const positions = [];
-  const colors = [];
-
-  const profile = Array.isArray(profile36) && profile36.length === n
-    ? profile36
-    : new Array(n).fill(0);
-
-  for (let i = 0; i < n; i++) {
-    const a0 = THREE.MathUtils.degToRad(i * 10);
-    const a1 = THREE.MathUtils.degToRad((i + 1) * 10);
-    const hVal = Math.max(0, Number(profile[i]) || 0);
-    const height = baseH + Math.min(25, hVal) * 0.055;
-
-    const x0 = radius * Math.sin(a0);
-    const z0 = radius * Math.cos(a0);
-    const x1 = radius * Math.sin(a1);
-    const z1 = radius * Math.cos(a1);
-
-    // Triangle 1 & 2 forming the extruded wall segment
-    positions.push(
-      x0, 0, z0,
-      x1, 0, z1,
-      x1, height, z1,
-      x0, 0, z0,
-      x1, height, z1,
-      x0, height, z0,
-    );
-
-    let r, g, b;
-    if (hVal > 2.0) {
-      const k = Math.min(1, hVal / 18.0);
-      r = 0.05 + 0.08 * k;
-      g = 0.65 + 0.30 * k;
-      b = 0.92 + 0.08 * k; // glowing cyan/blue shield
-    } else {
-      r = 0.94;
-      g = hVal > 0.5 ? 0.62 : 0.27;
-      b = 0.22; // exposed sector (amber/red)
-    }
-    for (let v = 0; v < 6; v++) {
-      colors.push(r, g, b);
-    }
+// Anillo punteado para los sitios no viables.
+function dashedRingGeometry(dashes = 12) {
+  const parts = [];
+  const step = (Math.PI * 2) / dashes;
+  for (let k = 0; k < dashes; k++) {
+    parts.push(new THREE.RingGeometry(RING_IN + 0.06, RING_OUT - 0.06, 6, 1, k * step, step * 0.55));
   }
+  return flat(mergeGeometries(parts));
+}
 
-  const geo = new THREE.BufferGeometry();
-  geo.setAttribute("position", new THREE.Float32BufferAttribute(positions, 3));
-  geo.setAttribute("color", new THREE.Float32BufferAttribute(colors, 3));
-  geo.computeVertexNormals();
-  return geo;
+// Cuatro marcas de mira por fuera del anillo (N, E, S, O).
+function ticksGeometry() {
+  const parts = [0, 1, 2, 3].map((k) => {
+    const g = new THREE.PlaneGeometry(0.09, 0.32);
+    g.translate(0, RING_OUT + 0.26, 0);
+    g.rotateZ((k * Math.PI) / 2);
+    return g;
+  });
+  return flat(mergeGeometries(parts));
+}
+
+// Une geometrías no indexadas o indexadas en una sola (solo posición).
+function mergeGeometries(parts) {
+  const positions = [];
+  for (const g of parts) {
+    const geo = g.index ? g.toNonIndexed() : g;
+    positions.push(...geo.attributes.position.array);
+    g.dispose();
+  }
+  const merged = new THREE.BufferGeometry();
+  merged.setAttribute("position", new THREE.Float32BufferAttribute(positions, 3));
+  return merged;
+}
+
+function markerMaterial(opacity = 1) {
+  return new THREE.MeshBasicMaterial({
+    color: 0xffffff,
+    side: THREE.DoubleSide,
+    transparent: true,
+    opacity,
+    depthWrite: false,
+    // Sobre el relieve exagerado un disco plano quedaría cortado por las lomas: se dibuja
+    // encima siempre y los marcadores de la cara oculta se apagan en #updateMarkerScale.
+    depthTest: false,
+  });
 }
 
 /**
@@ -473,7 +448,7 @@ export class GlobeView {
     this.onSelect = onSelect;
     this.onPlacePoint = onPlacePoint;
     this.placeMode = false;
-    this.markers = new Map(); // id → { group, core, outline, glow, radius }
+    this.markers = new Map(); // id → { group, reticle, arc, outline, hit, … }
     this.hoveredId = null;
     this.selectedId = null;
     this.transition = null;
@@ -509,11 +484,11 @@ export class GlobeView {
     this.controls.rotateSpeed = 0.5;
     this.controls.zoomSpeed = 0.8;
 
+    this.#buildStars();
     this.#buildMoon();
     this.sun = new THREE.DirectionalLight(0xffffff, 3.2);
     // Luz ambiente mínima, como la luz cenicienta: deja ver la cara nocturna sin confundirla con el día.
     this.scene.add(this.sun, new THREE.AmbientLight(0xffffff, 0.1));
-    this.glowMap = glowTexture();
     this.markerGroup = new THREE.Group();
     this.scene.add(this.markerGroup);
 
@@ -526,6 +501,52 @@ export class GlobeView {
     this.active = true;
     canvas.dataset.active = "true";
     this.renderer.setAnimationLoop((time) => this.#frame(time));
+  }
+
+  // Campo de estrellas de fondo: puntos fijos en una esfera grande que acompaña a la cámara.
+  // Posiciones y brillos salen de un generador con semilla, así el cielo es el mismo en cada carga.
+  #buildStars(count = 6000) {
+    let seed = 20260;
+    const rand = () => {
+      seed = (seed * 1664525 + 1013904223) >>> 0;
+      return seed / 4294967296;
+    };
+    const positions = new Float32Array(count * 3);
+    const colors = new Float32Array(count * 3);
+    const sizes = new Float32Array(count);
+    const tints = [[1, 1, 1], [0.78, 0.86, 1], [1, 0.9, 0.78]]; // blanca, azulada, cálida
+    for (let i = 0; i < count; i++) {
+      // Dirección uniforme sobre la esfera.
+      const z = rand() * 2 - 1;
+      const a = rand() * Math.PI * 2;
+      const r = Math.sqrt(1 - z * z);
+      positions.set([r * Math.cos(a) * 60, z * 60, r * Math.sin(a) * 60], i * 3);
+      // Pocas estrellas brillantes y muchas tenues.
+      const bright = rand() ** 3;
+      const tint = tints[Math.floor(rand() * rand() * 3)];
+      const level = 0.45 + 0.55 * bright;
+      colors.set([tint[0] * level, tint[1] * level, tint[2] * level], i * 3);
+      sizes[i] = 1.4 + bright * 2.6;
+    }
+    const geometry = new THREE.BufferGeometry();
+    geometry.setAttribute("position", new THREE.BufferAttribute(positions, 3));
+    geometry.setAttribute("color", new THREE.BufferAttribute(colors, 3));
+    geometry.setAttribute("size", new THREE.BufferAttribute(sizes, 1));
+    const material = new THREE.ShaderMaterial({
+      uniforms: { pixelRatio: { value: Math.min(window.devicePixelRatio, 2) } },
+      vertexShader: `
+        attribute float size; attribute vec3 color; varying vec3 vColor; uniform float pixelRatio;
+        void main() { vColor = color; gl_PointSize = size * pixelRatio; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`,
+      fragmentShader: `
+        varying vec3 vColor;
+        void main() { float d = length(gl_PointCoord - 0.5) * 2.0; if (d > 1.0) discard; gl_FragColor = vec4(vColor * (1.0 - d * d), 1.0); }`,
+      depthTest: false,
+      depthWrite: false,
+    });
+    this.stars = new THREE.Points(geometry, material);
+    this.stars.renderOrder = -1; // se dibuja primero; la Luna queda por encima
+    this.stars.frustumCulled = false;
+    this.scene.add(this.stars);
   }
 
   /**
@@ -813,106 +834,55 @@ export class GlobeView {
       const group = new THREE.Group();
       group.position.copy(latLonToVector(site.lat, site.lon, this.#markerRadius(site)));
 
-      const core = new THREE.Mesh(
-        new THREE.SphereGeometry(1, 20, 14),
-        new THREE.MeshBasicMaterial({ color: 0xffffff }),
-      );
-      core.userData.siteId = site.id;
+      // De frente a la cámara, como una mira de HUD: se lee igual en el centro y en el borde.
+      const reticle = new THREE.Group();
 
-      const outline = new THREE.Mesh(
-        new THREE.SphereGeometry(1, 20, 14),
-        new THREE.MeshBasicMaterial({ color: 0xffffff, side: THREE.BackSide }),
-      );
-      outline.scale.setScalar(1.45);
+      // Fondo oscuro: da contraste sobre los mares claros y las tierras altas brillantes.
+      const backing = new THREE.Mesh(flat(new THREE.CircleGeometry(1.22, 32)), markerMaterial(0.45));
+      backing.material.color.set(0x05060a);
+      const track = new THREE.Mesh(flat(new THREE.RingGeometry(RING_IN, RING_OUT, 64)), markerMaterial(0.28));
+      const arc = new THREE.Mesh(arcGeometry(0), markerMaterial(1));
+      const dashed = new THREE.Mesh(dashedRingGeometry(), markerMaterial(0.9));
+      const ticks = new THREE.Mesh(ticksGeometry(), markerMaterial(0.9));
+      const dot = new THREE.Mesh(flat(new THREE.CircleGeometry(0.17, 20)), markerMaterial(1));
+      const outline = new THREE.Mesh(flat(new THREE.RingGeometry(1.62, 1.76, 64)), markerMaterial(1));
       outline.visible = false;
+      dashed.visible = false;
+      // Disco invisible para que el clic acierte en todo el marcador, no solo en el trazo.
+      const hit = new THREE.Mesh(flat(new THREE.CircleGeometry(1.7, 24)), markerMaterial(0));
+      hit.userData.siteId = site.id;
+      hit.material.visible = false; // no se dibuja, pero el raycaster lo sigue encontrando
 
-      const glow = new THREE.Sprite(
-        new THREE.SpriteMaterial({
-          map: this.glowMap,
-          blending: THREE.AdditiveBlending,
-          depthWrite: false,
-          transparent: true,
-        }),
-      );
-
-      // Local tangent-aligned tactical group for Evaluation A (pad ring) & B (shield crown)
-      const tacticalGroup = new THREE.Group();
-      tacticalGroup.quaternion.copy(localTangentQuaternion(site.lat, site.lon));
-
-      const padGeo = new THREE.RingGeometry(0.55, 0.98, 32);
-      padGeo.rotateX(-Math.PI / 2);
-      const padRing = new THREE.Mesh(
-        padGeo,
-        new THREE.MeshBasicMaterial({
-          color: 0x22c55e,
-          side: THREE.DoubleSide,
-          transparent: true,
-          opacity: 0.9,
-        }),
-      );
-      padRing.userData.siteId = site.id;
-
-      const shieldCrown = new THREE.Mesh(
-        buildShieldCrownGeometry(null),
-        new THREE.MeshBasicMaterial({
-          vertexColors: true,
-          side: THREE.DoubleSide,
-          transparent: true,
-          opacity: 0.88,
-        }),
-      );
-
-      tacticalGroup.add(padRing, shieldCrown);
-      group.add(glow, outline, core, tacticalGroup);
+      // Capas en orden fijo (fondo → anillo → arco → …) por encima de la Luna.
+      [backing, track, arc, dashed, ticks, dot, outline, hit].forEach((part, k) => { part.renderOrder = 10 + k; });
+      reticle.add(backing, track, arc, dashed, ticks, dot, outline, hit);
+      group.add(reticle);
       this.markerGroup.add(group);
       this.markers.set(site.id, {
-        site,
-        group,
-        core,
-        outline,
-        glow,
-        tacticalGroup,
-        padRing,
-        shieldCrown,
-        radius: 0.01,
+        site, group, reticle, track, arc, dashed, ticks, dot, outline, hit, size: MARKER_SIZE,
       });
     }
   }
 
   /**
-   * Updates 3D surface marker radius, glow intensity, viability color,
-   * Evaluation A touchdown pad ring, and Evaluation B 3D Mountain Shield Crown.
+   * Actualiza cada retícula: el arco se llena según el puntaje global y el color dice si el
+   * sitio es viable (gris punteado si no lo es).
    * @param {Array<Object>} scores - Site score payloads from /api/scores or /api/sites/{id}/sky.
    */
   setScores(scores) {
     for (const score of scores) {
       const marker = this.markers.get(score.site_id);
       if (!marker) continue;
-      const { radius, glow, color } = encode(score);
-      marker.radius = radius;
-      marker.core.material.color.set(color);
-      marker.glow.material.color.set(color);
-      marker.glow.material.opacity = glow;
-      marker.glowScale = 3 + 5 * glow;
-
-      // Update Evaluation A inner touchdown pad ring
-      const topo = score.topography ?? {};
-      const ease = score.scores?.landing_ease ?? topo.landing_ease_score;
-      const slopeOk = topo.slope_ok !== false;
-      marker.padRing.visible = ease != null;
-      if (!slopeOk) {
-        marker.padRing.material.color.setHex(0xef4444); // Red: exceeds max_slope_deg
-      } else if (ease >= 70) {
-        marker.padRing.material.color.setHex(0x22c55e); // Emerald: flat & safe
-      } else {
-        marker.padRing.material.color.setHex(0xf59e0b); // Amber: moderate
+      const { fraction, color, viable } = encode(score);
+      marker.arc.geometry.dispose();
+      marker.arc.geometry = arcGeometry(fraction);
+      marker.arc.visible = viable;
+      marker.track.visible = viable;
+      marker.dashed.visible = !viable;
+      for (const part of [marker.arc, marker.track, marker.dashed, marker.ticks, marker.dot]) {
+        part.material.color.set(color);
       }
-
-      // Update Evaluation B outer 3D Mountain Shield Crown
-      if (Array.isArray(topo.horizon_shield_profile_deg) && topo.horizon_shield_profile_deg.length === 36) {
-        marker.shieldCrown.geometry.dispose();
-        marker.shieldCrown.geometry = buildShieldCrownGeometry(topo.horizon_shield_profile_deg);
-      }
+      marker.ticks.material.opacity = viable ? 0.9 : 0.5;
     }
   }
 
@@ -1051,18 +1021,20 @@ export class GlobeView {
     this.markerGroup.visible = this.markerFade > 0.01;
     if (!this.markerGroup.visible) return;
     const zoom = THREE.MathUtils.clamp((this.camera.position.length() - 1) / (DEFAULT_DISTANCE - 1), 0.04, 1.6);
+    // Orientación de cámara + giro de 90° en X: la normal (+Y) de la retícula queda hacia el usuario.
+    const facing = this.camera.quaternion.clone().multiply(FACE_CAMERA);
     for (const marker of this.markers.values()) {
-      const r = marker.radius * zoom * this.markerFade * (marker.site.id === this.hoveredId ? 1.3 : 1);
-      marker.core.scale.setScalar(r);
-      marker.outline.scale.setScalar(r * 1.45);
-      marker.glow.scale.setScalar(r * (marker.glowScale ?? 4));
-      if (marker.tacticalGroup) {
-        marker.tacticalGroup.scale.setScalar(r * 1.25);
-      }
+      const r = marker.size * zoom * this.markerFade * (marker.site.id === this.hoveredId ? 1.3 : 1);
+      marker.reticle.scale.setScalar(r);
+      marker.reticle.quaternion.copy(facing);
+      // Sin prueba de profundidad, los de la cara oculta se esconden a mano.
+      const pos = marker.group.position;
+      marker.group.visible = pos.dot(this.camera.position) - pos.lengthSq() > 0;
     }
   }
 
   #frame(time) {
+    this.stars.position.copy(this.camera.position); // las estrellas están "en el infinito": no hay paralaje
     this.#updateTransition(time);
     this.controls.update();
     this.#updateMarkerScale();
@@ -1104,8 +1076,7 @@ export class GlobeView {
 
     const pickables = [];
     for (const m of this.markers.values()) {
-      pickables.push(m.core);
-      if (m.padRing) pickables.push(m.padRing);
+      pickables.push(m.hit);
     }
     const [markerHit] = this.raycaster.intersectObjects(pickables, false);
     const [sphereHit] = this.raycaster.intersectObjects([this.pickSphere], false);

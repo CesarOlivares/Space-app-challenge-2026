@@ -9,6 +9,9 @@ import { t } from "./i18n.js";
 
 export const SECTIONS = ["intro", "explorar", "comparar", "aprender"];
 
+// El hash puede llevar un subdestino: #aprender/kpi-comms abre esa tarjeta en la sección Aprender.
+export const sectionOf = (hash) => hash.replace(/^#/, "").split("/")[0];
+
 // Parámetros que describen un escenario. Un enlace con alguno abre directo en la vista general:
 // así siguen funcionando los enlaces del ciclo 1, que no traían hash.
 const SCENARIO_PARAMS = ["date", "site", "sel", "cmp", "custom", "we", "win", "sm", "em", "panel"];
@@ -16,7 +19,7 @@ const SCENARIO_PARAMS = ["date", "site", "sel", "cmp", "custom", "we", "win", "s
 // `fallback` es la sección cuando la dirección no dice nada (la intro la primera vez; la vista
 // general si el visitante ya la vio). `?intro` fuerza la intro, p. ej. para volver a ver el gancho.
 export function sectionFromUrl(location = window.location, fallback = "intro") {
-  const fromHash = location.hash.slice(1);
+  const fromHash = sectionOf(location.hash);
   if (SECTIONS.includes(fromHash)) return fromHash;
   const params = new URLSearchParams(location.search);
   if (params.has("intro")) return "intro";
@@ -45,7 +48,7 @@ export function createRouter({ onChange = () => {}, defaultSection = () => "intr
   }
 
   function fromHash() {
-    const name = window.location.hash.slice(1);
+    const name = sectionOf(window.location.hash);
     if (SECTIONS.includes(name)) show(name, { focus: true });
   }
 
@@ -55,7 +58,7 @@ export function createRouter({ onChange = () => {}, defaultSection = () => "intr
 
   // Estado inicial: sin hash válido se deduce de la URL y se escribe sin crear una entrada nueva.
   const initial = sectionFromUrl(window.location, defaultSection());
-  if (window.location.hash.slice(1) !== initial) {
+  if (sectionOf(window.location.hash) !== initial) {
     window.history.replaceState(null, "", `${window.location.pathname}${window.location.search}#${initial}`);
   }
   show(initial);

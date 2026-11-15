@@ -12,6 +12,7 @@
     <link rel="stylesheet" href="src/minimal.css" />
     <link rel="stylesheet" href="src/story.css" />
     <link rel="stylesheet" href="src/learn.css" />
+    <link rel="stylesheet" href="src/tour.css" />
     <script type="importmap">
       {
         "imports": {
@@ -40,6 +41,9 @@
         <button type="button" data-lang="es" aria-pressed="true" lang="es">ES</button>
         <button type="button" data-lang="en" aria-pressed="false" lang="en">EN</button>
       </div>
+      <button type="button" id="tour-btn" class="nav-tour" data-i18n-attr="aria-label: tour.btn; title: tour.btn">
+        <span class="icon" data-icon="tutorial"></span><span data-i18n="tour.btn">Tutorial</span>
+      </button>
       <button type="button" id="gear" class="nav-gear" aria-expanded="false" aria-controls="drawer" data-i18n-attr="aria-label: gear.label; title: gear.label">
         <span class="icon" data-icon="gear"></span>
       </button>
@@ -83,10 +87,9 @@
 
         <!-- Cómo leer los puntos, siempre a la vista (el "?" abre el detalle). -->
         <ul id="legend-mini" class="glass" data-i18n-attr="aria-label: legend.title">
-          <li data-i18n="legmini.size">Tamaño: puntaje</li>
-          <li data-i18n="legmini.glow">Brillo: energía</li>
-          <li><span class="swatch" style="--c: var(--comm-high)"></span><span class="swatch" style="--c: var(--comm-mid)"></span><span class="swatch" style="--c: var(--comm-low)"></span><span data-i18n="legmini.color">Color: comunicación</span></li>
-          <li><span class="swatch" style="--c: var(--off)"></span><span data-i18n="legmini.off">Gris: no viable</span></li>
+          <li><svg class="reticle-key" viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="7" fill="none" stroke="var(--viable)" stroke-opacity=".3" stroke-width="2.6"/><circle cx="10" cy="10" r="7" fill="none" stroke="var(--viable)" stroke-width="2.6" stroke-dasharray="28.6 43.98" transform="rotate(-90 10 10)"/><circle cx="10" cy="10" r="1.6" fill="var(--viable)"/></svg><span data-i18n="legmini.arc">Arco: puntaje</span></li>
+          <li><svg class="reticle-key" viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="7" fill="none" stroke="var(--viable)" stroke-opacity=".3" stroke-width="2.6"/><circle cx="10" cy="10" r="7" fill="none" stroke="var(--viable)" stroke-width="2.6" stroke-dasharray="44.0 43.98" transform="rotate(-90 10 10)"/><circle cx="10" cy="10" r="1.6" fill="var(--viable)"/></svg><span data-i18n="legmini.viable">Celeste: viable</span></li>
+          <li><svg class="reticle-key" viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="6" fill="none" stroke="var(--off)" stroke-width="2.4" stroke-dasharray="2.2 2.4"/><circle cx="10" cy="10" r="1.6" fill="var(--off)"/></svg><span data-i18n="legmini.off">Gris punteado: no viable</span></li>
         </ul>
 
         <!-- Panel del engranaje: todo lo configurable. -->
@@ -189,7 +192,7 @@
                 </label>
                 <output id="max-slope-output" class="caption"></output>
                 <div class="slope-presets" role="group" data-i18n-attr="aria-label: settings.profiles">
-                  <button type="button" data-slope-preset="5" data-i18n="settings.presetHls">HLS</button>
+                  <button type="button" data-slope-preset="8" data-i18n="settings.presetHls">HLS</button>
                   <button type="button" data-slope-preset="10" data-i18n="settings.presetClps">CLPS</button>
                   <button type="button" data-slope-preset="20" data-i18n="settings.presetRover">Rover</button>
                 </div>
@@ -202,7 +205,7 @@
                 </label>
                 <div class="fields">
                   <label><span data-i18n="settings.window">Ventana (días)</span><input name="window" type="number" min="1" max="30" step="1" /></label>
-                  <span></span>
+                  <label><span data-i18n="settings.stay">Estancia con luz (días)</span><input name="stay" type="number" min="0.5" max="30" step="0.5" /></label>
                   <label><span data-i18n="settings.sunMargin">Sol mínimo (°)</span><input name="sun-margin" type="number" min="0" max="20" step="0.5" /></label>
                   <label><span data-i18n="settings.earthMargin">Tierra mínima (°)</span><input name="earth-margin" type="number" min="0" max="20" step="0.5" /></label>
                 </div>
@@ -253,6 +256,7 @@
         <section id="detail" class="panel" hidden aria-labelledby="detail-title">
           <div class="detail-header">
             <h2 class="detail-title" id="detail-title" aria-live="polite"></h2>
+            <button type="button" id="detail-tour" class="btn detail-howread" data-i18n="tour.how">¿Cómo leer esto?</button>
             <button type="button" class="detail-close" data-i18n-attr="aria-label: detail.close">✕</button>
           </div>
           <div class="detail-body"></div>
@@ -274,18 +278,14 @@
         <section id="legend-card" class="glass legend" hidden data-i18n-attr="aria-label: legend.title">
           <h2 data-i18n="legend.title">Cómo leer los puntos</h2>
           <dl>
-            <dt><span class="legend-size"><i></i><i></i><i></i></span></dt>
-            <dd data-i18n="legend.size"></dd>
-            <dt><span class="legend-glow"></span></dt>
-            <dd id="legend-glow" data-i18n="legend.glow" data-i18n-params='{"days": 14}'></dd>
-            <dt><span class="swatch" style="--c: var(--comm-high)"></span></dt>
-            <dd data-i18n="legend.high"></dd>
-            <dt><span class="swatch" style="--c: var(--comm-mid)"></span></dt>
-            <dd data-i18n="legend.mid"></dd>
-            <dt><span class="swatch" style="--c: var(--comm-low)"></span></dt>
-            <dd data-i18n="legend.low"></dd>
-            <dt><span class="swatch" style="--c: var(--off)"></span></dt>
+            <dt><svg class="reticle-key" viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="7" fill="none" stroke="var(--viable)" stroke-opacity=".3" stroke-width="2.6"/><circle cx="10" cy="10" r="7" fill="none" stroke="var(--viable)" stroke-width="2.6" stroke-dasharray="13.2 43.98" transform="rotate(-90 10 10)"/><circle cx="10" cy="10" r="1.6" fill="var(--viable)"/></svg><svg class="reticle-key" viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="7" fill="none" stroke="var(--viable)" stroke-opacity=".3" stroke-width="2.6"/><circle cx="10" cy="10" r="7" fill="none" stroke="var(--viable)" stroke-width="2.6" stroke-dasharray="37.4 43.98" transform="rotate(-90 10 10)"/><circle cx="10" cy="10" r="1.6" fill="var(--viable)"/></svg></dt>
+            <dd data-i18n="legend.arc"></dd>
+            <dt><svg class="reticle-key" viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="7" fill="none" stroke="var(--viable)" stroke-opacity=".3" stroke-width="2.6"/><circle cx="10" cy="10" r="7" fill="none" stroke="var(--viable)" stroke-width="2.6" stroke-dasharray="44.0 43.98" transform="rotate(-90 10 10)"/><circle cx="10" cy="10" r="1.6" fill="var(--viable)"/></svg></dt>
+            <dd data-i18n="legend.viable"></dd>
+            <dt><svg class="reticle-key" viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="6" fill="none" stroke="var(--off)" stroke-width="2.4" stroke-dasharray="2.2 2.4"/><circle cx="10" cy="10" r="1.6" fill="var(--off)"/></svg></dt>
             <dd data-i18n="legend.off"></dd>
+            <dt><svg class="reticle-key" viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="7" fill="none" stroke="var(--viable)" stroke-opacity=".3" stroke-width="2.6"/><circle cx="10" cy="10" r="7" fill="none" stroke="var(--viable)" stroke-width="2.6" stroke-dasharray="30.8 43.98" transform="rotate(-90 10 10)"/><circle cx="10" cy="10" r="1.6" fill="var(--viable)"/><circle cx="10" cy="10" r="9.3" fill="none" stroke="var(--text)" stroke-width="1"/></svg></dt>
+            <dd data-i18n="legend.selected"></dd>
           </dl>
         </section>
 

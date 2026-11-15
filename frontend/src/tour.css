@@ -1,0 +1,103 @@
+/* Tutorial guiado. Ver src/tour/Tour.js. Sin CDN; el marco usa las esquinas del kit (cyberpunk_corner_brackets). */
+
+.tour { position: fixed; inset: 0; z-index: 200; }
+.tour-shield { position: absolute; inset: 0; background: transparent; cursor: default; }
+.tour--free .tour-shield { background: rgba(3, 5, 10, 0.72); }
+
+/* El recorte: una caja con sombra gigante que oscurece todo menos el elemento. */
+.tour-hole {
+  position: absolute;
+  border-radius: 10px;
+  box-shadow: 0 0 0 9999px rgba(3, 5, 10, 0.72);
+  pointer-events: none;
+  transition: left 0.28s ease, top 0.28s ease, width 0.28s ease, height 0.28s ease;
+}
+.tour-hole i { position: absolute; width: 16px; height: 16px; border: 2px solid var(--accent); }
+.tour-hole i:nth-child(1) { top: -3px; left: -3px; border-right: 0; border-bottom: 0; border-top-left-radius: 8px; }
+.tour-hole i:nth-child(2) { top: -3px; right: -3px; border-left: 0; border-bottom: 0; border-top-right-radius: 8px; }
+.tour-hole i:nth-child(3) { bottom: -3px; left: -3px; border-right: 0; border-top: 0; border-bottom-left-radius: 8px; }
+.tour-hole i:nth-child(4) { bottom: -3px; right: -3px; border-left: 0; border-top: 0; border-bottom-right-radius: 8px; }
+
+.tour-card {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: min(380px, calc(100vw - 16px));
+  max-height: calc(100vh - 16px);
+  overflow-y: auto;
+  padding: var(--space-4);
+  display: grid;
+  gap: var(--space-2);
+  border: 1px solid var(--line-strong);
+  border-left: 3px solid var(--accent);
+  border-radius: 12px;
+  background: var(--surface-solid);
+  color: var(--ink);
+  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.55);
+  outline: none;
+}
+.tour-card--placed { transform: none; }
+.tour-card.loading { opacity: 0.6; }
+.tour-count { margin: 0; color: var(--accent); font-size: var(--fs-small); letter-spacing: 0.12em; text-transform: uppercase; font-family: var(--font-mono); }
+.tour-title { margin: 0; font-size: 1.1rem; line-height: 1.25; }
+.tour-body { margin: 0; color: var(--ink-muted); line-height: 1.5; font-size: var(--fs-body); }
+.tour-read { padding: var(--space-3); border-radius: 8px; background: color-mix(in srgb, var(--accent) 12%, transparent); }
+.tour-read b { display: block; margin-bottom: 2px; font-size: var(--fs-small); letter-spacing: 0.08em; text-transform: uppercase; color: var(--accent); }
+.tour-read p { margin: 0; line-height: 1.45; font-size: var(--fs-body); }
+.tour-bar { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); margin-top: var(--space-2); }
+.tour-dots { display: flex; gap: 4px; margin-right: auto; }
+.tour-dots span { width: 6px; height: 6px; border-radius: 50%; background: var(--line-strong); }
+.tour-dots span.on { background: var(--accent); }
+.tour-exit { order: 1; }
+.tour-prev { order: 2; }
+.tour-next { order: 3; }
+.tour-bar .btn { padding: 6px 12px; }
+
+/* Teléfono: el texto va en una hoja inferior (o superior si lo resaltado está abajo). */
+@media (max-width: 599px) {
+  .tour-card, .tour-card--placed {
+    left: 8px; right: 8px; top: auto; bottom: 8px;
+    width: auto;
+    max-height: 52vh;
+    transform: none;
+  }
+  .tour-card--top { top: calc(var(--nav-h) + 8px); bottom: auto; }
+  .tour--free .tour-card { top: 50%; bottom: auto; transform: translateY(-50%); }
+}
+
+/* Botón de la barra superior. */
+.nav-tour {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 34px;
+  padding: 0 12px;
+  border-radius: 17px;
+  background: transparent;
+  border: 1px solid var(--line-strong);
+  color: var(--ink);
+  font-size: var(--fs-small);
+  letter-spacing: 0.06em;
+  cursor: pointer;
+}
+.nav-tour:hover { border-color: var(--accent); color: var(--accent); }
+.nav-tour .icon { width: 18px; height: 18px; }
+@media (max-width: 800px) { .nav-tour span:not(.icon) { display: none; } .nav-tour { width: 34px; padding: 0; justify-content: center; } }
+
+/* Invitación en Aprender y en la portada. */
+.tour-invite { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-4); padding: var(--space-4); border: 1px solid var(--line); border-left: 3px solid var(--accent); border-radius: 0 12px 12px 0; background: var(--surface); }
+.tour-invite .icon { width: 40px; height: 40px; color: var(--accent); }
+.tour-invite p { margin: 0; flex: 1 1 240px; color: var(--ink-muted); line-height: 1.45; }
+.tour-invite b { display: block; color: var(--ink); }
+
+@media (prefers-reduced-motion: reduce) { .tour-hole { transition: none; } }
+
+/* Botones «¿Cómo leer esto?» del detalle y de la comparación. */
+.detail-header .detail-howread { width: auto; height: 28px; padding: 0 10px; margin-left: auto; font-size: var(--fs-small); white-space: nowrap; }
+.story-howread { justify-self: start; }
+
+/* Paso sin elemento resaltado y sin oscurecer (p. ej. el globo): el texto va abajo, centrado. */
+.tour--clear .tour-card { top: auto; bottom: 24px; transform: translateX(-50%); }
+@media (max-width: 599px) { .tour--clear .tour-card { left: 8px; right: 8px; bottom: 8px; transform: none; } }

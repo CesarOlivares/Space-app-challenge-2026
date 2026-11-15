@@ -48,6 +48,14 @@ from app.models.windows import (
 
 PANELS = ("tiempo", "horizontal", "vertical")
 EARTH_MARGIN_DEG = 2.0
+# Estancia en superficie que debe cubrir la luz continua: la NASA pide Sol durante toda la estancia
+# del HLS y las 13 regiones de 2022 tienen sitios con ~6,5 días de luz continua (NASA, 19-08-2022).
+STAY_DAYS = 6.5
+# Pendiente máxima: 8° es el filtro de terreno de Wueller et al. (DEM de 20 m) y coincide con el umbral
+# de orientación del HLS (HLS-R-0071), que es del vehículo y no una pendiente del terreno. Nuestra pendiente sale del DEM de 120 m (base ~360 m), más suave
+# que a escala del módulo: con el mismo umbral, el veredicto es optimista.
+MAX_SLOPE_DEG = 8.0
+CRITERIA = ("energy", "communication", "terrain", "protection")
 
 
 @dataclass(frozen=True)
@@ -63,6 +71,7 @@ class ScoringConfig:
         weight_communication: Relative weight for the Communication score (C).
         weight_terrain: Relative weight for the Terrain & Landing Safety score (T).
         max_slope_deg: Critical lander tip-over slope limit in degrees.
+        stay_days: Surface stay that continuous sunlight must cover for the site to be viable.
         panel: Solar panel orientation mode ("tiempo", "horizontal", or "vertical").
     """
 
@@ -74,7 +83,8 @@ class ScoringConfig:
     weight_communication: float = 0.5
     weight_terrain: float = 0.0
     weight_protection: float = 0.0
-    max_slope_deg: float = 15.0
+    max_slope_deg: float = MAX_SLOPE_DEG
+    stay_days: float = STAY_DAYS
     panel: str = "tiempo"
 
     def __post_init__(self) -> None:
@@ -82,6 +92,8 @@ class ScoringConfig:
             raise ValueError(f"unknown panel orientation: {self.panel}; options: {', '.join(PANELS)}")
         if self.window_days <= 0 or self.step_hours <= 0:
             raise ValueError("window_days and step_hours must be positive")
+        if self.stay_days <= 0:
+            raise ValueError("stay_days must be positive")
         if self.max_slope_deg <= 2.0:
             raise ValueError("max_slope_deg must be greater than 2.0 degrees")
         if (
@@ -97,6 +109,14 @@ class ScoringConfig:
     @property
     def window_hours(self) -> float:
         return self.window_days * 24.0
+
+    @property
+    def stay_hours(self) -> float:
+        # La estancia no puede superar la ventana que se evalúa.
+        return min(self.stay_days, self.window_days) * 24.0
+
+    def weight(self, criterion: str) -> float:
+        return float(getattr(self, f"weight_{criterion}"))
 
 
 @dataclass(frozen=True)
@@ -144,6 +164,11 @@ class SiteEvaluation:
     sky_view_factor: float = 1.0
     solid_angle_shielded_pct: float | None = None
     horizon_shield_profile_deg: tuple[float, ...] = ()
+    # ¿Hay Sol continuo durante toda la estancia (config.stay_days) desde el aterrizaje?
+    sun_through_stay: bool = False
+    # Criterios con peso > 0 que no tienen dato en este sitio: el total se calculó sin ellos y no
+    # es comparable con el de un sitio que sí los tiene.
+    missing_criteria: tuple[str, ...] = ()
 
 
 def energy_score(solar_use: float, continuous_hours: float, window_hours: float) -> float:
@@ -432,7 +457,12 @@ def evaluate(
         terrain_score=t_score,
         protection_score=a_score,
     )
-    viable = bool(sun.visible and earth.visible and slope_ok is not False)
+    # Viable: Sol y Tierra a la vista al aterrizar, luz continua durante toda la estancia y
+    # pendiente bajo el límite (si hay dato de pendiente).
+    sun_through_stay = bool(continuous_hours(sun, window_h) >= config.stay_hours)
+    viable = bool(sun.visible and earth.visible and sun_through_stay and slope_ok is not False)
+    available = {"energy": True, "communication": True, "terrain": t_score is not None, "protection": a_score is not None}
+    missing = tuple(c for c in CRITERIA if config.weight(c) > 0 and not available[c])
 
     return SiteEvaluation(
         site=site,
@@ -457,6 +487,8 @@ def evaluate(
         sky_view_factor=svf,
         solid_angle_shielded_pct=shielded_pct,
         horizon_shield_profile_deg=profile_36,
+        sun_through_stay=sun_through_stay,
+        missing_criteria=missing,
     )
 
 
@@ -487,3 +519,34 @@ def best_dates(ephemeris: Ephemeris, site: Site, start: datetime, days: float, s
     ]
     ranked = sorted(candidates, key=lambda r: (not r.viable, -round(r.total, 1), r.landing))
     return count, ranked[:limit]
+
+
+def failing_requirements(result: SiteEvaluation) -> tuple[str, ...]:
+    """Requisitos duros que no cumple una evaluación: "sun", "earth" y/o "slope".
+
+    "sun": el Sol no está a la vista al aterrizar o no dura toda la estancia.
+    "earth": la Tierra no está a la vista al aterrizar.
+    "slope": la pendiente medida supera el límite (sin dato de pendiente no falla).
+    """
+    failing = []
+    if not result.sun.visible or not result.sun_through_stay:
+        failing.append("sun")
+    if not result.earth.visible:
+        failing.append("earth")
+    if result.slope_ok is False:
+        failing.append("slope")
+    return tuple(failing)
+
+
+def availability(ephemeris: Ephemeris, site: Site, start: datetime, days: float, step_hours: float,
+                 config: ScoringConfig = ScoringConfig()) -> list[SiteEvaluation]:
+    """Evalúa una fecha de aterrizaje cada `step_hours` durante `days`, en orden cronológico.
+
+    Responde "¿cuántas de las fechas posibles cumplen todos los requisitos?": la disponibilidad de
+    misión (solo la parte de superficie; lanzamiento y órbita quedan fuera).
+    """
+    count = int(days * 24 / step_hours) + 1
+    if count > MAX_CANDIDATES:
+        raise ValueError(f"demasiadas fechas a evaluar ({count}); máximo {MAX_CANDIDATES}: "
+                         "reduce 'days' o aumenta 'step_hours'")
+    return [evaluate(ephemeris, site, start + timedelta(hours=i * step_hours), config) for i in range(count)]

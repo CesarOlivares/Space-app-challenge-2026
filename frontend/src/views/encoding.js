@@ -1,42 +1,28 @@
-// Codificación visual de los puntajes. La comparten el globo y la leyenda,
+// Codificación visual de los sitios. La comparten el globo, la lista y la leyenda,
 // así lo que explica la leyenda es exactamente lo que dibuja el globo.
 //
-//   tamaño → puntaje global     brillo → energía     color → comunicación
+//   arco de la retícula → puntaje global     color → viable (celeste) / no viable (gris punteado)
 //
-// Paleta Okabe-Ito (apta para daltonismo); el color nunca va solo: la lista
-// muestra siempre los valores numéricos (RNF-06).
+// Una sola regla por canal: antes tamaño, brillo y color decían tres cosas a la vez y no se leía.
+// Paleta Okabe-Ito (apta para daltonismo); el color nunca va solo: el no viable además va punteado
+// y la lista muestra siempre los valores numéricos (RNF-06).
 
 import { num } from "../format.js";
 import { t } from "../i18n.js";
 
-// Tres categorías en vez de un degradado: los tonos intermedios de un degradado
-// naranja–celeste salen grisáceos y se confunden con el gris de "no viable".
-export const COMMUNICATION_LEVELS = [
-  { min: 95, color: "#56B4E9" }, // celeste: Tierra visible casi siempre
-  { min: 50, color: "#E69F00" }, // naranja: parte del tiempo
-  { min: 0, color: "#D55E00" }, // bermellón: menos de la mitad
-];
-
+export const VIABLE_COLOR = "#56B4E9";
 export const NOT_VIABLE_COLOR = "#8A9099";
 
-const MIN_RADIUS = 0.007;
-const MAX_RADIUS = 0.02;
-
-export function communicationColor(communication) {
-  return COMMUNICATION_LEVELS.find((level) => communication >= level.min).color;
-}
-
 /**
- * Computes visual encoding (radius, glow intensity, and color) for a 3D globe marker.
+ * Codificación de un marcador del globo.
  * @param {Object} score - Site score payload from /api/scores or /api/sites/{id}/sky.
- * @returns {{ radius: number, glow: number, color: string }}
+ * @returns {{ fraction: number, color: string, viable: boolean }}
  */
 export function encode(score) {
-  const { total, energy, communication } = score.scores;
   return {
-    radius: MIN_RADIUS + (MAX_RADIUS - MIN_RADIUS) * (total / 100),
-    glow: score.viable ? 0.15 + 0.85 * (energy / 100) : 0.08,
-    color: score.viable ? communicationColor(communication) : NOT_VIABLE_COLOR,
+    fraction: Math.max(0, Math.min(1, score.scores.total / 100)),
+    color: score.viable ? VIABLE_COLOR : NOT_VIABLE_COLOR,
+    viable: Boolean(score.viable),
   };
 }
 
@@ -50,6 +36,10 @@ export function notViableReason(score) {
   // Above 0 deg but not visible: occluded by local terrain or below configured margin.
   if (!score.sun.visible) {
     reasons.push(t(score.sun.elevation_deg > 0 ? "reason.sunBlocked" : "reason.sunBelow"));
+  } else if (score.sun_through_stay === false) {
+    // /api/scores no repite la config en cada sitio: sin ella, la frase va sin el número de días.
+    const stay = score.config?.stay_days;
+    reasons.push(t(stay ? "reason.sunShort" : "reason.sunShortNoDays", { days: stay ? num(stay, 1) : "" }));
   }
   if (!score.earth.visible) {
     reasons.push(t(score.earth.elevation_deg > 0 ? "reason.earthBlocked" : "reason.earthBelow"));

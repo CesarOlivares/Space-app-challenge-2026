@@ -131,6 +131,9 @@ def evaluation_json(result: SiteEvaluation, detailed: bool) -> dict:
         "site_id": result.site.id,
         "date": iso(result.landing),
         "viable": result.viable,
+        "sun_through_stay": result.sun_through_stay,
+        # Criterios con peso que no tienen dato aquí: el total no es comparable con sitios que sí los tienen.
+        "missing_criteria": list(result.missing_criteria),
         "scores": {
             "energy": round(result.energy, 1),
             "communication": round(result.communication, 1),

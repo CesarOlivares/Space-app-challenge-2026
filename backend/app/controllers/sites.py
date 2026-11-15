@@ -9,7 +9,7 @@ from app.controllers.deps import coarse_config, fine_config, get_catalog, get_ep
 from app.controllers.serializers import at_offset, cutout_json, evaluation_json, interval_json, iso, site_json
 from app.models.ephemeris import BODIES, Ephemeris
 from app.models.horizon import get_dem, horizon_for
-from app.models.scoring import EARTH_MARGIN_DEG, ScoringConfig, best_dates, evaluate
+from app.models.scoring import EARTH_MARGIN_DEG, ScoringConfig, availability, best_dates, evaluate, failing_requirements
 from app.models.site import Site
 from app.models.terrain import evaluate_terrain_patch
 from app.models.windows import visibility_intervals
@@ -121,6 +121,42 @@ def best_landing_dates(
         "step_hours": step_hours,
         "evaluated": evaluated,
         "results": [evaluation_json(r, detailed=False) for r in results],
+    }
+
+
+@router.get("/{site_ref}/availability")
+def landing_availability(
+    site_ref: str,
+    date: datetime = Depends(landing_date),
+    days: float = Query(365.0, gt=0, le=400, description="Cuántos días recorrer desde `date`"),
+    step_hours: float = Query(24.0, ge=6, le=48, description="Separación entre fechas de aterrizaje"),
+    config: ScoringConfig = Depends(coarse_config),
+    ephemeris: Ephemeris = Depends(get_ephemeris),
+    catalog: dict[str, Site] = Depends(get_catalog),
+) -> dict:
+    """Disponibilidad: qué fechas de aterrizaje cumplen todos los requisitos y cuál falla en las demás.
+
+    Es la parte de superficie de la disponibilidad de misión que usa la NASA (CASSA): lanzamiento,
+    trayectoria y órbita no se modelan.
+    """
+    site = resolve_site(site_ref, catalog)
+    results = availability(ephemeris, site, date, days, step_hours, config)
+    rows = [(r, failing_requirements(r)) for r in results]
+    ok = sum(1 for _, failing in rows if not failing)
+    return {
+        "site_id": site.id,
+        "start": iso(date),
+        "days": days,
+        "step_hours": step_hours,
+        "config": {"window_days": config.window_days, "stay_days": config.stay_days,
+                   "max_slope_deg": config.max_slope_deg, "earth_margin_deg": config.earth_margin_deg},
+        "evaluated": len(rows),
+        "available": ok,
+        "available_fraction": round(ok / len(rows), 4),
+        # En cuántas fechas falla cada requisito (una fecha puede fallar varios a la vez).
+        "failing_counts": {key: sum(1 for _, failing in rows if key in failing) for key in ("sun", "earth", "slope")},
+        "dates": [{"date": iso(r.landing), "available": not failing, "failing": list(failing),
+                   "total": round(r.total, 1)} for r, failing in rows],
     }
 
 

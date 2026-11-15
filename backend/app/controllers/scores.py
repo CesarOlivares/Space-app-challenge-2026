@@ -17,6 +17,7 @@ from app.controllers.deps import (
 from app.controllers.serializers import config_json, evaluation_json, iso
 from app.models.ephemeris import Ephemeris, as_utc
 from app.models.scoring import (
+    MAX_SLOPE_DEG,
     ScoringConfig,
     compute_landing_ease_score,
     evaluate,
@@ -160,7 +161,7 @@ def scores_matrix(
 
 
 @lru_cache(maxsize=1)
-def _build_risk_grid(max_slope_deg: float = 15.0) -> dict:
+def _build_risk_grid(max_slope_deg: float = MAX_SLOPE_DEG) -> dict:
     """Builds and caches a 72x36 global grid for the on-globe heatmap overlays.
 
     Slope and Landing Ease are measured: cells without polar DEM coverage carry None.
@@ -261,7 +262,7 @@ def _build_risk_grid(max_slope_deg: float = 15.0) -> dict:
 
 @router.get("/risk-grid")
 def risk_grid(
-    max_slope_deg: float = Query(15.0, gt=2.0, le=45.0, description="Max safe slope threshold in degrees"),
+    max_slope_deg: float = Query(MAX_SLOPE_DEG, gt=2.0, le=45.0, description="Max safe slope threshold in degrees"),
 ) -> dict:
     """Returns a cached 72x36 grid: measured slope and Landing Ease (null outside the polar DEM) plus
     coarse geometric estimates of solar exposure, Earth signal and suitability."""

@@ -111,6 +111,19 @@ export function fetchTerrainPatch(ref, size = 25, date = null, windowDays = 14) 
   return request(`/api/sites/${encodeURIComponent(ref)}/patch`, { params });
 }
 
+/**
+ * Disponibilidad de un sitio: qué fechas de aterrizaje de un año cumplen todos los requisitos.
+ * @param {string} ref - Site id or "lat,lon" coordinates.
+ * @param {Date} date - Primera fecha de aterrizaje (UTC).
+ * @param {import("./views/SettingsPanel.js").DEFAULT_CONFIG} config - Scoring configuration.
+ * @returns {Promise<Object>}
+ */
+export function fetchAvailability(ref, date, config, { days = 365, stepHours = 24 } = {}) {
+  return request(`/api/sites/${encodeURIComponent(ref)}/availability`, {
+    params: { date: isoUtc(date), days, step_hours: stepHours, ...configParams(config) },
+  });
+}
+
 export function fetchBestDates(ref, date, config, { days, stepHours }) {
   return request(`/api/sites/${encodeURIComponent(ref)}/best-dates`, {
     params: { date: isoUtc(date), days, step_hours: stepHours, limit: 5, ...configParams(config) },
@@ -152,9 +165,9 @@ export function fetchScoresMatrix(startDate, { days = 30, stepHours = 12, sites 
 
 /**
  * Fetches the global 72x36 lunar surface risk grid for on-globe heatmap overlays.
- * @param {number} [maxSlopeDeg=15.0] - Critical lander tip-over slope threshold in degrees.
+ * @param {number} [maxSlopeDeg=8.0] - Critical lander tip-over slope threshold in degrees.
  * @returns {Promise<Object>}
  */
-export function fetchRiskGrid(maxSlopeDeg = 15.0) {
+export function fetchRiskGrid(maxSlopeDeg = 8.0) {
   return request("/api/risk-grid", { params: { max_slope_deg: maxSlopeDeg } });
 }
