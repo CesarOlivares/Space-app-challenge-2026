@@ -464,6 +464,8 @@ export class GlobeView {
     this.riskGrid = null;
     this.maxSlopeDeg = 15;
     this.riskTextures = new Map();
+    this.emptyOverlayTexture = null;
+    this.overlayUniforms = null;
     this.lolaTexture = null;
     this.relief = { enabled: true, exaggeration: 3, meta: null, field: null, status: "loading" };
     this.quality = "auto"; // auto | standard | high
@@ -569,27 +571,66 @@ export class GlobeView {
 
   // ---- Moon: progressive texture (4K -> 8K) and real LOLA relief ----
 
+  #setupOverlayShader(material) {
+    material.customProgramCacheKey = () => "moon_surface_with_overlay";
+    material.onBeforeCompile = (shader) => {
+      shader.uniforms.uOverlayMap = this.overlayUniforms.uOverlayMap;
+      shader.uniforms.uOverlayOpacity = this.overlayUniforms.uOverlayOpacity;
+      shader.uniforms.uHasOverlay = this.overlayUniforms.uHasOverlay;
+
+      shader.fragmentShader = shader.fragmentShader.replace(
+        "#include <map_pars_fragment>",
+        `#include <map_pars_fragment>
+        uniform sampler2D uOverlayMap;
+        uniform float uOverlayOpacity;
+        uniform float uHasOverlay;
+        vec4 vCustomOverlay = vec4(0.0);`
+      );
+
+      shader.fragmentShader = shader.fragmentShader.replace(
+        "#include <map_fragment>",
+        `#include <map_fragment>
+        if (uHasOverlay > 0.5) {
+          vCustomOverlay = texture2D(uOverlayMap, vMapUv);
+          float overlayAlpha = vCustomOverlay.a * uOverlayOpacity;
+          diffuseColor.rgb = mix(diffuseColor.rgb, vCustomOverlay.rgb, overlayAlpha);
+        }`
+      );
+
+      shader.fragmentShader = shader.fragmentShader.replace(
+        "#include <emissivemap_fragment>",
+        `#include <emissivemap_fragment>
+        if (uHasOverlay > 0.5) {
+          totalEmissiveRadiance += vCustomOverlay.rgb * (vCustomOverlay.a * uOverlayOpacity * 0.35);
+        }`
+      );
+
+      material.userData.shader = shader;
+    };
+  }
+
   #buildMoon() {
     this.loader = new THREE.TextureLoader();
     const color = this.#loadColor("moon_color_4k.jpg");
     this.colors.standard = color;
+
+    const emptyTex = new THREE.DataTexture(new Uint8Array([0, 0, 0, 0]), 1, 1);
+    emptyTex.needsUpdate = true;
+    this.emptyOverlayTexture = emptyTex;
+    this.overlayUniforms = {
+      uOverlayMap: { value: emptyTex },
+      uOverlayOpacity: { value: 0.0 },
+      uHasOverlay: { value: 0.0 },
+    };
+
+    const material = new THREE.MeshStandardMaterial({ map: color, roughness: 1, metalness: 0 });
+    this.#setupOverlayShader(material);
+
     this.moon = new THREE.Mesh(
       new THREE.SphereGeometry(1, ...SEGMENTS_FLAT),
-      new THREE.MeshStandardMaterial({ map: color, roughness: 1, metalness: 0 }),
+      material,
     );
     this.scene.add(this.moon);
-    this.riskOverlay = new THREE.Mesh(
-      new THREE.SphereGeometry(1.0025, 192, 96),
-      new THREE.MeshStandardMaterial({
-        transparent: true,
-        opacity: 0.82,
-        roughness: 0.95,
-        metalness: 0,
-        depthWrite: false,
-      }),
-    );
-    this.riskOverlay.visible = false;
-    this.scene.add(this.riskOverlay);
     // Use a lightweight sphere for pointer raycasting instead of the 131k-vertex relief mesh.
     this.pickSphere = new THREE.Mesh(new THREE.SphereGeometry(1, 48, 24));
     this.#loadRelief();
@@ -616,10 +657,6 @@ export class GlobeView {
       material.displacementMap = height;
       material.normalMap = normal;
       material.needsUpdate = true;
-      if (this.riskOverlay) {
-        this.riskOverlay.material.displacementMap = height;
-        this.riskOverlay.material.needsUpdate = true;
-      }
       this.relief.meta = meta;
       this.relief.field = new HeightField(height.image, meta);
       this.lolaTexture = buildLolaTexture(height.image);
@@ -656,10 +693,6 @@ export class GlobeView {
     material.displacementBias = (meta.min_m / radius) * on;
     // El mapa guarda las pendientes multiplicadas por normal_gain: se compensa aquí.
     material.normalScale.setScalar((on / meta.normal_gain) || 0);
-    if (this.riskOverlay) {
-      this.riskOverlay.material.displacementScale = material.displacementScale;
-      this.riskOverlay.material.displacementBias = material.displacementBias;
-    }
     this.#placeMarkers();
   }
 
@@ -799,23 +832,39 @@ export class GlobeView {
 
   /**
    * Switches the on-globe surface visualization layer.
+   * Directly blends the suitability/risk heatmap onto the 3D lunar terrain mesh.
    * @param {"surface"|"risk-a"|"risk-b"|"solar"|"comm"|"suitability"|"safe-havens"} mode - Active lunar layer mode.
    */
   setLayerMode(mode) {
     this.layerMode = mode;
-    if (!this.riskOverlay) return;
     if (mode === "surface" || !this.riskGrid) {
-      this.riskOverlay.visible = false;
+      this.overlayUniforms.uHasOverlay.value = 0.0;
+      this.overlayUniforms.uOverlayOpacity.value = 0.0;
+      this.overlayUniforms.uOverlayMap.value = this.emptyOverlayTexture;
+      if (this.moon?.material?.userData?.shader) {
+        const s = this.moon.material.userData.shader;
+        s.uniforms.uHasOverlay.value = 0.0;
+        s.uniforms.uOverlayOpacity.value = 0.0;
+        s.uniforms.uOverlayMap.value = this.emptyOverlayTexture;
+      }
       return;
     }
+
     let tex = this.riskTextures.get(mode);
     if (!tex) {
       tex = buildRiskOverlayTexture(this.riskGrid, mode, this.relief?.field, this.maxSlopeDeg ?? 15);
       this.riskTextures.set(mode, tex);
     }
-    this.riskOverlay.material.map = tex;
-    this.riskOverlay.material.needsUpdate = true;
-    this.riskOverlay.visible = true;
+
+    this.overlayUniforms.uOverlayMap.value = tex;
+    this.overlayUniforms.uOverlayOpacity.value = 0.82;
+    this.overlayUniforms.uHasOverlay.value = 1.0;
+    if (this.moon?.material?.userData?.shader) {
+      const s = this.moon.material.userData.shader;
+      s.uniforms.uOverlayMap.value = tex;
+      s.uniforms.uOverlayOpacity.value = 0.82;
+      s.uniforms.uHasOverlay.value = 1.0;
+    }
   }
 
   removeSite(id) {
