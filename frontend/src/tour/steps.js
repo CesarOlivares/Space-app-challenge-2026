@@ -29,8 +29,8 @@ export function mainTour(ctx) {
       before: () => ctx.drawer(false),
       title: T("La fecha de aterrizaje", "The landing date"),
       body: T(
-        "Todo lo que ves corresponde a aterrizar en esta fecha (hora UTC). Cambia el día con ‹ › o escribe una fecha.",
-        "Everything you see assumes landing on this date (UTC). Change the day with ‹ › or type a date.",
+        "Todo lo que ves corresponde a aterrizar en esta fecha (hora UTC). Cambia ±1 día o ±7 días, vuelve a «Ahora», escribe una fecha o usa ▶ Animar.",
+        "Everything you see assumes landing on this date (UTC). Step ±1 or ±7 days, jump to “Now”, type a date, or press ▶ Animate.",
       ),
       read: T("Mueve la fecha y mira cómo cambian los sitios viables: la Luna gira y el Sol cambia de ángulo.", "Move the date and watch the viable sites change: the Moon turns and the Sun changes angle."),
     },
@@ -99,34 +99,40 @@ export function mainTour(ctx) {
       before: () => { ctx.drawer(false); },
       title: T("Configuración", "Settings"),
       body: T(
-        "El engranaje guarda todo lo que se puede ajustar: animar el tiempo, cambiar capas del globo, ver la lista de sitios, agregar coordenadas propias y copiar el enlace del escenario.",
-        "The gear holds everything adjustable: animating time, changing globe layers, the site list, adding your own coordinates and copying the scenario link.",
+        "El engranaje abre la configuración: modo Simple o Técnico, lista y colocación de pines, capas del globo 3D, ponderador de criterios y enlace del escenario.",
+        "The gear opens settings: Simple or Technical mode, site list and pin placement, 3D globe layers, scoring weights and a shareable scenario link.",
       ),
       read: T("El enlace copiado reproduce esta misma vista (fecha, sitios y ajustes) para compartirla.", "The copied link reproduces this exact view (date, sites and settings) so you can share it."),
     },
     {
       id: "mode",
       target: "#drawer .segmented.wide",
-      before: () => ctx.drawer(true),
+      before: () => {
+        ctx.drawer(true);
+        ctx.drawerTab?.("sites");
+      },
       title: T("Simple o Técnico", "Simple or Technical"),
       body: T(
-        "Simple muestra lo esencial. Técnico agrega los ajustes del puntaje: pesos de cada criterio, pendiente máxima, ventana y estancia.",
-        "Simple shows the essentials. Technical adds scoring settings: weight of each criterion, maximum slope, window and stay.",
+        "Simple muestra tarjetas limpias con lo esencial. Técnico agrega la pestaña «Ponderador» (pesos, pendiente límite, ventana y estancia), coordenadas y sub-puntajes E/C/T en la lista, y controles avanzados de relieve 3D.",
+        "Simple shows clean cards with the essentials. Technical adds the “Scoring” tab (weights, slope limit, window and stay), coordinates and E/C/T sub-scores in the list, and advanced 3D relief controls.",
       ),
       read: T("Cambiar los pesos puede cambiar el ganador; la comparación te avisa si eso pasa.", "Changing the weights can change the winner; the comparison tells you when it does."),
     },
     {
       id: "layers",
       target: "#moon-layer-bar",
-      before: () => ctx.drawer(true),
+      before: () => {
+        ctx.drawer(true);
+        ctx.drawerTab?.("layers");
+      },
       title: T("Capas del globo", "Globe layers"),
       body: T(
         "Pinta la Luna con un mapa de color: Pendiente, Mapa solar, Señal de la Tierra o Aptitud global. «Superficie real» vuelve a la foto.",
         "Paints the Moon with a colour map: Slope, Solar map, Earth signal or Overall suitability. “True surface” returns to the photo.",
       ),
       read: T(
-        "La pendiente solo se mide con relieve real al sur de 80° S; el Sol, la señal y la aptitud son una estimación geométrica gruesa. Cada capa trae su leyenda de colores debajo.",
-        "Slope is only measured from real terrain south of 80° S; Sun, signal and suitability are a coarse geometric estimate. Each layer has its colour key below.",
+        "Al sur de 75° S la pendiente usa el DEM polar LOLA; en el resto se estima a partir del mapa de altura global. El Sol, la señal y la aptitud son una estimación geométrica, con leyenda de colores debajo.",
+        "South of 75° S, slope uses the LOLA polar DEM; elsewhere it is estimated from the global heightmap. Sun, signal and suitability are geometric estimates, with the colour key below.",
       ),
     },
     {

@@ -215,12 +215,14 @@ const globe = new GlobeView(document.getElementById("globe"), {
 });
 
 const placePinToggle = document.getElementById("place-pin-toggle");
+const placePinHint = document.getElementById("place-pin-hint");
 if (placePinToggle) {
   placePinToggle.addEventListener("click", () => {
     const next = !globe.placeMode;
     globe.setPlaceMode(next);
     placePinToggle.classList.toggle("active", next);
     placePinToggle.setAttribute("aria-pressed", String(next));
+    if (placePinHint) placePinHint.hidden = !next;
   });
 }
 
@@ -296,6 +298,8 @@ const settings = new SettingsPanel(document.getElementById("settings"), {
   onChange: (config) => {
     state.config = config;
     loadDate(state.date);
+    if (globe.layerMode !== "surface") ensureRiskGrid();
+    renderActiveLayerLegend();
   },
 });
 
@@ -341,6 +345,96 @@ async function enterExplore() {
   entering = false;
 }
 
+// --- Panel del engranaje y leyenda ---------------------------------------------------
+
+const drawerTabButtons = [...document.querySelectorAll("[data-drawer-tab]")];
+const drawerTabPanels = {
+  sites: document.getElementById("tab-sites"),
+  layers: document.getElementById("tab-layers"),
+  model: document.getElementById("tab-model"),
+};
+const layersInfoWrap = document.getElementById("layers-info-wrap");
+const layersInfoBtn = document.getElementById("layers-info-btn");
+const layersInfoPopover = document.getElementById("layers-info-popover");
+let activeDrawerTab = "sites";
+
+function setLayersInfo(open) {
+  if (!layersInfoBtn || !layersInfoPopover) return;
+  layersInfoPopover.hidden = !open;
+  layersInfoBtn.setAttribute("aria-expanded", String(open));
+}
+
+function visibleDrawerTabButtons() {
+  return drawerTabButtons.filter((b) => !(state.mode === "simple" && b.classList.contains("tech-only")));
+}
+
+function setDrawerTab(tab, { focus = false } = {}) {
+  let next = tab in drawerTabPanels ? tab : "sites";
+  if (state.mode !== "tecnico" && next === "model") next = "sites";
+  activeDrawerTab = next;
+  for (const btn of drawerTabButtons) {
+    const selected = btn.dataset.drawerTab === next;
+    btn.setAttribute("aria-selected", String(selected));
+    btn.tabIndex = selected ? 0 : -1;
+    if (selected && focus) btn.focus();
+  }
+  for (const [name, panel] of Object.entries(drawerTabPanels)) {
+    if (panel) panel.hidden = name !== next;
+  }
+  if (next !== "layers") setLayersInfo(false);
+  const body = drawer?.querySelector(".drawer-body");
+  if (body) body.scrollTop = 0;
+}
+
+const drawerTabList = document.querySelector(".drawer-tabs[role='tablist']");
+if (drawerTabList) {
+  drawerTabList.addEventListener("click", (e) => {
+    const btn = e.target.closest("[data-drawer-tab]");
+    if (btn) setDrawerTab(btn.dataset.drawerTab);
+  });
+  drawerTabList.addEventListener("keydown", (e) => {
+    if (!["ArrowLeft", "ArrowRight", "Home", "End"].includes(e.key)) return;
+    const tabs = visibleDrawerTabButtons();
+    const idx = tabs.indexOf(document.activeElement);
+    if (idx < 0 || !tabs.length) return;
+    e.preventDefault();
+    let nextIdx = idx;
+    if (e.key === "ArrowRight") nextIdx = (idx + 1) % tabs.length;
+    else if (e.key === "ArrowLeft") nextIdx = (idx - 1 + tabs.length) % tabs.length;
+    else if (e.key === "Home") nextIdx = 0;
+    else if (e.key === "End") nextIdx = tabs.length - 1;
+    setDrawerTab(tabs[nextIdx].dataset.drawerTab, { focus: true });
+  });
+}
+
+layersInfoBtn?.addEventListener("click", (e) => {
+  e.stopPropagation();
+  setLayersInfo(layersInfoPopover.hidden);
+});
+document.addEventListener("click", (e) => {
+  if (layersInfoPopover && !layersInfoPopover.hidden && layersInfoWrap && !layersInfoWrap.contains(e.target)) {
+    setLayersInfo(false);
+  }
+});
+
+function setDrawer(open) {
+  drawer.hidden = !open;
+  gear.setAttribute("aria-expanded", open);
+  document.body.classList.toggle("drawer-open", open);
+  if (!open) setLayersInfo(false);
+}
+
+function setLegend(open) {
+  legendCard.hidden = !open;
+  legendToggle.setAttribute("aria-expanded", open);
+}
+
+gear.addEventListener("click", () => setDrawer(drawer.hidden));
+document.getElementById("drawer-close").addEventListener("click", () => {
+  setDrawer(false);
+  gear.focus();
+});
+
 // Tres partes: portada, vista general y comparación. En la comparación se pausa el globo.
 const router = createRouter({
   // Quien ya vio la portada abre directo en la vista general; "Inicio" (#intro) siempre la muestra.
@@ -368,26 +462,69 @@ const router = createRouter({
   },
 });
 
-// --- Panel del engranaje y leyenda ---------------------------------------------------
+// Moon Layer Switcher pill bar (Surface / Slope / Solar / Earth Signal / Suitability)
+const activeLayerLegend = document.getElementById("active-layer-legend");
 
-function setDrawer(open) {
-  drawer.hidden = !open;
-  gear.setAttribute("aria-expanded", open);
-  document.body.classList.toggle("drawer-open", open);
+function legendItemsForLayer(layer, maxSlopeDeg) {
+  const slope = Number(maxSlopeDeg ?? 8);
+  const maxSlope = Number.isInteger(slope) ? String(slope) : num(slope, 1);
+  switch (layer) {
+    case "risk-a":
+      return [
+        ["#10c891", t("layers.legFlat")],
+        ["#f5c518", t("layers.legMod", { max: maxSlope })],
+        ["#e12d37", t("layers.legSteep", { max: maxSlope })],
+      ];
+    case "solar":
+      return [
+        ["#facc15", t("layers.legSunHigh")],
+        ["#f97316", t("layers.legSunMed")],
+        ["#3b82f6", t("layers.legSunLow")],
+        ["#0f172a", t("layers.legSunCold")],
+      ];
+    case "comm":
+      return [
+        ["#22c55e", t("layers.legCommDirect")],
+        ["#eab308", t("layers.legCommInterm")],
+        ["#0f172a", t("layers.legCommNone")],
+      ];
+    case "suitability":
+      return [
+        ["#34d399", t("layers.legSuitOpt")],
+        ["#0ea5e9", t("layers.legSuitGood")],
+        ["#ea8a18", t("layers.legSuitLim")],
+        ["#dc2626", t("layers.legSuitSteep")],
+        ["#0f172a", t("layers.legSuitBlocked")],
+      ];
+    default:
+      return null;
+  }
 }
 
-function setLegend(open) {
-  legendCard.hidden = !open;
-  legendToggle.setAttribute("aria-expanded", open);
+function renderActiveLayerLegend() {
+  if (!activeLayerLegend) return;
+  const layer = globe.layerMode ?? "surface";
+  const surface = globe.surfaceMode ?? "lroc";
+  activeLayerLegend.dataset.layer = layer;
+  const items = legendItemsForLayer(layer, state.config.maxSlopeDeg);
+  if (!items) {
+    const msg = document.createElement("span");
+    msg.textContent = t(surface === "lola" ? "layers.legendSurfaceLola" : "layers.legendSurfaceLroc");
+    activeLayerLegend.replaceChildren(msg);
+    return;
+  }
+  activeLayerLegend.replaceChildren(...items.map(([color, label]) => {
+    const wrap = document.createElement("span");
+    wrap.className = "leg-item";
+    const swatch = document.createElement("span");
+    swatch.className = "swatch";
+    swatch.style.setProperty("--c", color);
+    swatch.setAttribute("aria-hidden", "true");
+    wrap.append(swatch, document.createTextNode(label));
+    return wrap;
+  }));
 }
 
-gear.addEventListener("click", () => setDrawer(drawer.hidden));
-document.getElementById("drawer-close").addEventListener("click", () => {
-  setDrawer(false);
-  gear.focus();
-});
-
-// Moon Layer Switcher pill bar (Surface / Risk A / Risk B / Safe Havens)
 let riskGridLoadedForSlope = null;
 async function ensureRiskGrid() {
   const slope = state.config.maxSlopeDeg ?? 8;
@@ -406,17 +543,26 @@ if (layerBar) {
   layerBar.addEventListener("click", async (e) => {
     const btn = e.target.closest("button[data-layer]");
     if (!btn) return;
+    setDrawerTab("layers");
     const layer = btn.dataset.layer;
     for (const b of layerBar.querySelectorAll("button[data-layer]")) {
-      b.setAttribute("aria-pressed", String(b === btn));
+      const active = b === btn;
+      b.classList.toggle("active", active);
+      b.setAttribute("aria-pressed", String(active));
     }
     if (layer !== "surface") await ensureRiskGrid();
     globe.setLayerMode(layer);
+    renderActiveLayerLegend();
   });
 }
 legendToggle.addEventListener("click", () => setLegend(legendCard.hidden));
 document.addEventListener("keydown", (event) => {
   if (event.key !== "Escape") return;
+  if (layersInfoPopover && !layersInfoPopover.hidden) {
+    setLayersInfo(false);
+    layersInfoBtn?.focus();
+    return;
+  }
   if (!drawer.hidden) setDrawer(false);
   if (!legendCard.hidden) setLegend(false);
 });
@@ -434,6 +580,7 @@ function startTour(build = mainTour, { restore = true } = {}) {
     section: router.current,
     selected: [...state.selected],
     drawerOpen: !drawer.hidden,
+    drawerTab: activeDrawerTab,
     legendOpen: !legendCard.hidden,
     detailOpen: state.detailOpen,
   };
@@ -446,6 +593,7 @@ function startTour(build = mainTour, { restore = true } = {}) {
       applySelection();
     },
     drawer: (open) => setDrawer(open),
+    drawerTab: (tab) => setDrawerTab(tab),
     // Abre el detalle del sitio elegido (si no hay ninguno, elige Apollo 11) y espera a que cargue.
     detail: async () => {
       if (!state.selectedId && state.sites.has("apollo-11")) ctx.select(["apollo-11"]);
@@ -466,6 +614,7 @@ function startTour(build = mainTour, { restore = true } = {}) {
         if (fold) fold.open = false;
       }
       if (!restore) return;
+      setDrawerTab(before.drawerTab);
       setDrawer(before.drawerOpen);
       setLegend(before.legendOpen);
       if (!before.detailOpen && state.detailOpen) closeDetail();
@@ -487,6 +636,7 @@ function applyMode(mode) {
   for (const button of document.querySelectorAll("[data-mode]")) {
     button.setAttribute("aria-pressed", button.dataset.mode === state.mode);
   }
+  if (state.mode === "simple" && activeDrawerTab === "model") setDrawerTab("sites");
   stored.set("mode", state.mode);
 }
 
@@ -510,6 +660,7 @@ onLangChange(() => {
   renderSelection();
   compareStory.refresh();
   learnView.render();
+  renderActiveLayerLegend();
   if (state.selectedId) loadActive();
 });
 
@@ -666,13 +817,14 @@ async function findBestDates(id) {
   }
 }
 
-// --- 3D Relief Exaggeration, LOLA Surface Layer & Demo Presets --------------
+// --- 3D Relief Exaggeration & LOLA Surface Layer ---------------------------
 
 const surfaceButtons = [...document.querySelectorAll("[data-surface]")];
 const lolaColorbar = document.getElementById("lola-colorbar");
 for (const button of surfaceButtons) {
   button.addEventListener("click", () => {
     const mode = button.dataset.surface;
+    setDrawerTab("layers");
     globe.setSurfaceMode(mode);
     if (lolaColorbar) lolaColorbar.hidden = mode !== "lola";
     for (const b of surfaceButtons) {
@@ -680,19 +832,7 @@ for (const button of surfaceButtons) {
       b.classList.toggle("active", active);
       b.setAttribute("aria-pressed", String(active));
     }
-  });
-}
-
-const reliefButtons = [...document.querySelectorAll("[data-relief]")];
-for (const button of reliefButtons) {
-  button.addEventListener("click", () => {
-    const factor = Number(button.dataset.relief);
-    globe.setReliefExaggeration(factor);
-    for (const b of reliefButtons) {
-      const active = b === button;
-      b.classList.toggle("active", active);
-      b.setAttribute("aria-pressed", String(active));
-    }
+    renderActiveLayerLegend();
   });
 }
 
@@ -946,6 +1086,8 @@ async function start() {
   applyMode(fromUrl.mode ?? stored.get("mode") ?? "simple");
   state.config = { ...DEFAULT_CONFIG, ...fromUrl.config };
   settings.setConfig(state.config);
+  setDrawerTab("sites");
+  renderActiveLayerLegend();
   if (fromUrl.date) controls.setDate(fromUrl.date);
 
   try {
