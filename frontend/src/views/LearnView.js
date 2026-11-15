@@ -10,6 +10,9 @@ import { icon } from "../icons.js";
 const TXT = {
   es: {
     title: "Aprender",
+    tourTitle: "¿Primera vez aquí?",
+    tourText: "Haz el recorrido guiado: resalta cada control de la herramienta, dice para qué sirve y cómo leerlo. Dura unos 2 minutos.",
+    tourBtn: "Empezar el tutorial",
     lead: "Lo necesario para leer los resultados sin ser experto: qué hace difícil aterrizar en la Luna, cómo decide la NASA, qué mide cada indicador y qué puedes probar ahora mismo.",
     whyTitle: "¿Por qué es difícil elegir dónde aterrizar?",
     w1t: "Sin atmósfera",
@@ -95,6 +98,9 @@ const TXT = {
   },
   en: {
     title: "Learn",
+    tourTitle: "First time here?",
+    tourText: "Take the guided tour: it highlights each control of the tool, says what it is for and how to read it. It takes about 2 minutes.",
+    tourBtn: "Start the tutorial",
     lead: "What you need to read the results without being an expert: what makes landing on the Moon hard, how NASA decides, what each indicator measures and what you can try right now.",
     whyTitle: "Why is choosing a landing site so hard?",
     w1t: "No atmosphere",
@@ -210,12 +216,13 @@ const CHARTS = [["g1t", "g1x"], ["g2t", "g2x"], ["g3t", "g3x"], ["g4t", "g4x"], 
 
 export class LearnView {
   // onExample({ ids, date, pole, compare }): abre la herramienta con ese ejemplo.
-  constructor(root, { onExample, onGoExplore }) {
+  constructor(root, { onExample, onGoExplore, onTour = () => {} }) {
     this.root = root;
     root.addEventListener("click", (e) => {
       const card = e.target.closest("[data-example]");
       if (card) onExample(EXAMPLES[Number(card.dataset.example)]);
       if (e.target.closest("[data-learn-explore]")) onGoExplore();
+      if (e.target.closest("[data-learn-tour]")) onTour();
     });
     this.render();
   }
@@ -242,6 +249,9 @@ export class LearnView {
           <span class="section-head__rule"></span>
         </div>
         <p class="learn-lead">${escapeHtml(tr("lead"))}</p>
+
+        <div class="tour-invite">${ic("tutorial")}<p><b>${escapeHtml(tr("tourTitle"))}</b>${escapeHtml(tr("tourText"))}</p>
+          <button type="button" class="btn btn--primary" data-learn-tour>${escapeHtml(tr("tourBtn"))}</button></div>
 
         <section aria-labelledby="learn-why"><h2 id="learn-why">${escapeHtml(tr("whyTitle"))}</h2><ul class="learn-cards">${why}</ul></section>
 

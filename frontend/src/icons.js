@@ -23,6 +23,7 @@ export const ICONS = {
   brackets: "hud-viewfinder-brackets",
   rocket: "staroviel-rocket-arrow",
   time: "glyph-concentric-gyro",
+  tutorial: "astronaut_helmet_visor",
   gear: "hud-gear", // dibujado para el rediseño minimalista (el kit original no trae engranaje)
   loading: "hud-sensor-waveform",
   // Indicadores de la comparación (UX elements/elementos-2 y elementos-3)

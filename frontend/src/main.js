@@ -36,6 +36,8 @@ import { SiteCard } from "./views/SiteCard.js";
 import { SiteList } from "./views/SiteList.js";
 import { notViableReason } from "./views/encoding.js";
 import { registerTerrain } from "./views/terrain/index.js";
+import { Tour } from "./tour/Tour.js";
+import { mainTour } from "./tour/steps.js";
 
 hydrateIcons();
 
@@ -264,6 +266,7 @@ const compareStory = new CompareStory(document.getElementById("story-root"), {
 const learnView = new LearnView(document.getElementById("learn-root"), {
   onGoExplore: () => router.go("explorar"),
   onExample: (example) => runExample(example),
+  onTour: () => startTour(),
 });
 let comparePromise = null;
 let comparing = false; // el zoom hacia los sitios está en curso
@@ -416,6 +419,37 @@ document.addEventListener("keydown", (event) => {
   if (!drawer.hidden) setDrawer(false);
   if (!legendCard.hidden) setLegend(false);
 });
+
+// --- Tutorial guiado -----------------------------------------------------------------------
+// Resalta los controles reales (ver tour/Tour.js y tour/steps.js). El recorrido cambia la sección,
+// la selección y el panel para mostrar cada cosa; al terminar se deja todo como estaba.
+
+const tour = new Tour({ lang: getLang });
+
+function startTour() {
+  if (tour.active) return;
+  const before = { section: router.current, selected: [...state.selected], drawerOpen: !drawer.hidden, legendOpen: !legendCard.hidden };
+  setLegend(false);
+  const ctx = {
+    explore: async () => { if (router.current !== "explorar") { router.go("explorar"); await sleep(reducedMotion.matches ? 50 : 400); } },
+    select: (ids) => {
+      state.selected = ids.filter((id) => state.sites.has(id));
+      applySelection();
+    },
+    drawer: (open) => setDrawer(open),
+  };
+  tour.start(mainTour(ctx), {
+    onEnd: async () => {
+      setDrawer(before.drawerOpen);
+      setLegend(before.legendOpen);
+      state.selected = before.selected.filter((id) => state.sites.has(id));
+      applySelection();
+      // Quien lo lanzó desde la portada se queda en la vista general; los demás vuelven a su sección.
+      if (before.section && before.section !== "intro" && router.current !== before.section) router.go(before.section);
+    },
+  });
+}
+document.getElementById("tour-btn").addEventListener("click", () => startTour());
 
 // --- Modo e idioma --------------------------------------------------------------
 
