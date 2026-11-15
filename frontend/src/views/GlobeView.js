@@ -310,6 +310,7 @@ export class GlobeView {
     this.controls.rotateSpeed = 0.5;
     this.controls.zoomSpeed = 0.8;
 
+    this.#buildStars();
     this.#buildMoon();
     this.sun = new THREE.DirectionalLight(0xffffff, 3.2);
     // Luz ambiente mínima, como la luz cenicienta: deja ver la cara nocturna sin confundirla con el día.
@@ -326,6 +327,52 @@ export class GlobeView {
     this.active = true;
     canvas.dataset.active = "true";
     this.renderer.setAnimationLoop((time) => this.#frame(time));
+  }
+
+  // Campo de estrellas de fondo: puntos fijos en una esfera grande que acompaña a la cámara.
+  // Posiciones y brillos salen de un generador con semilla, así el cielo es el mismo en cada carga.
+  #buildStars(count = 6000) {
+    let seed = 20260;
+    const rand = () => {
+      seed = (seed * 1664525 + 1013904223) >>> 0;
+      return seed / 4294967296;
+    };
+    const positions = new Float32Array(count * 3);
+    const colors = new Float32Array(count * 3);
+    const sizes = new Float32Array(count);
+    const tints = [[1, 1, 1], [0.78, 0.86, 1], [1, 0.9, 0.78]]; // blanca, azulada, cálida
+    for (let i = 0; i < count; i++) {
+      // Dirección uniforme sobre la esfera.
+      const z = rand() * 2 - 1;
+      const a = rand() * Math.PI * 2;
+      const r = Math.sqrt(1 - z * z);
+      positions.set([r * Math.cos(a) * 60, z * 60, r * Math.sin(a) * 60], i * 3);
+      // Pocas estrellas brillantes y muchas tenues.
+      const bright = rand() ** 3;
+      const tint = tints[Math.floor(rand() * rand() * 3)];
+      const level = 0.45 + 0.55 * bright;
+      colors.set([tint[0] * level, tint[1] * level, tint[2] * level], i * 3);
+      sizes[i] = 1.4 + bright * 2.6;
+    }
+    const geometry = new THREE.BufferGeometry();
+    geometry.setAttribute("position", new THREE.BufferAttribute(positions, 3));
+    geometry.setAttribute("color", new THREE.BufferAttribute(colors, 3));
+    geometry.setAttribute("size", new THREE.BufferAttribute(sizes, 1));
+    const material = new THREE.ShaderMaterial({
+      uniforms: { pixelRatio: { value: Math.min(window.devicePixelRatio, 2) } },
+      vertexShader: `
+        attribute float size; attribute vec3 color; varying vec3 vColor; uniform float pixelRatio;
+        void main() { vColor = color; gl_PointSize = size * pixelRatio; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`,
+      fragmentShader: `
+        varying vec3 vColor;
+        void main() { float d = length(gl_PointCoord - 0.5) * 2.0; if (d > 1.0) discard; gl_FragColor = vec4(vColor * (1.0 - d * d), 1.0); }`,
+      depthTest: false,
+      depthWrite: false,
+    });
+    this.stars = new THREE.Points(geometry, material);
+    this.stars.renderOrder = -1; // se dibuja primero; la Luna queda por encima
+    this.stars.frustumCulled = false;
+    this.scene.add(this.stars);
   }
 
   /**
@@ -806,6 +853,7 @@ export class GlobeView {
   }
 
   #frame(time) {
+    this.stars.position.copy(this.camera.position); // las estrellas están "en el infinito": no hay paralaje
     this.#updateTransition(time);
     this.controls.update();
     this.#updateMarkerScale();
