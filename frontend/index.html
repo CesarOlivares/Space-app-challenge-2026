@@ -83,10 +83,9 @@
 
         <!-- Cómo leer los puntos, siempre a la vista (el "?" abre el detalle). -->
         <ul id="legend-mini" class="glass" data-i18n-attr="aria-label: legend.title">
-          <li data-i18n="legmini.size">Tamaño: puntaje</li>
-          <li data-i18n="legmini.glow">Brillo: energía</li>
-          <li><span class="swatch" style="--c: var(--comm-high)"></span><span class="swatch" style="--c: var(--comm-mid)"></span><span class="swatch" style="--c: var(--comm-low)"></span><span data-i18n="legmini.color">Color: comunicación</span></li>
-          <li><span class="swatch" style="--c: var(--off)"></span><span data-i18n="legmini.off">Gris: no viable</span></li>
+          <li><svg class="reticle-key" viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="7" fill="none" stroke="var(--viable)" stroke-opacity=".3" stroke-width="2.6"/><circle cx="10" cy="10" r="7" fill="none" stroke="var(--viable)" stroke-width="2.6" stroke-dasharray="28.6 43.98" transform="rotate(-90 10 10)"/><circle cx="10" cy="10" r="1.6" fill="var(--viable)"/></svg><span data-i18n="legmini.arc">Arco: puntaje</span></li>
+          <li><svg class="reticle-key" viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="7" fill="none" stroke="var(--viable)" stroke-opacity=".3" stroke-width="2.6"/><circle cx="10" cy="10" r="7" fill="none" stroke="var(--viable)" stroke-width="2.6" stroke-dasharray="44.0 43.98" transform="rotate(-90 10 10)"/><circle cx="10" cy="10" r="1.6" fill="var(--viable)"/></svg><span data-i18n="legmini.viable">Celeste: viable</span></li>
+          <li><svg class="reticle-key" viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="6" fill="none" stroke="var(--off)" stroke-width="2.4" stroke-dasharray="2.2 2.4"/><circle cx="10" cy="10" r="1.6" fill="var(--off)"/></svg><span data-i18n="legmini.off">Gris punteado: no viable</span></li>
         </ul>
 
         <!-- Panel del engranaje: todo lo configurable. -->
@@ -274,18 +273,14 @@
         <section id="legend-card" class="glass legend" hidden data-i18n-attr="aria-label: legend.title">
           <h2 data-i18n="legend.title">Cómo leer los puntos</h2>
           <dl>
-            <dt><span class="legend-size"><i></i><i></i><i></i></span></dt>
-            <dd data-i18n="legend.size"></dd>
-            <dt><span class="legend-glow"></span></dt>
-            <dd id="legend-glow" data-i18n="legend.glow" data-i18n-params='{"days": 14}'></dd>
-            <dt><span class="swatch" style="--c: var(--comm-high)"></span></dt>
-            <dd data-i18n="legend.high"></dd>
-            <dt><span class="swatch" style="--c: var(--comm-mid)"></span></dt>
-            <dd data-i18n="legend.mid"></dd>
-            <dt><span class="swatch" style="--c: var(--comm-low)"></span></dt>
-            <dd data-i18n="legend.low"></dd>
-            <dt><span class="swatch" style="--c: var(--off)"></span></dt>
+            <dt><svg class="reticle-key" viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="7" fill="none" stroke="var(--viable)" stroke-opacity=".3" stroke-width="2.6"/><circle cx="10" cy="10" r="7" fill="none" stroke="var(--viable)" stroke-width="2.6" stroke-dasharray="13.2 43.98" transform="rotate(-90 10 10)"/><circle cx="10" cy="10" r="1.6" fill="var(--viable)"/></svg><svg class="reticle-key" viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="7" fill="none" stroke="var(--viable)" stroke-opacity=".3" stroke-width="2.6"/><circle cx="10" cy="10" r="7" fill="none" stroke="var(--viable)" stroke-width="2.6" stroke-dasharray="37.4 43.98" transform="rotate(-90 10 10)"/><circle cx="10" cy="10" r="1.6" fill="var(--viable)"/></svg></dt>
+            <dd data-i18n="legend.arc"></dd>
+            <dt><svg class="reticle-key" viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="7" fill="none" stroke="var(--viable)" stroke-opacity=".3" stroke-width="2.6"/><circle cx="10" cy="10" r="7" fill="none" stroke="var(--viable)" stroke-width="2.6" stroke-dasharray="44.0 43.98" transform="rotate(-90 10 10)"/><circle cx="10" cy="10" r="1.6" fill="var(--viable)"/></svg></dt>
+            <dd data-i18n="legend.viable"></dd>
+            <dt><svg class="reticle-key" viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="6" fill="none" stroke="var(--off)" stroke-width="2.4" stroke-dasharray="2.2 2.4"/><circle cx="10" cy="10" r="1.6" fill="var(--off)"/></svg></dt>
             <dd data-i18n="legend.off"></dd>
+            <dt><svg class="reticle-key" viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="7" fill="none" stroke="var(--viable)" stroke-opacity=".3" stroke-width="2.6"/><circle cx="10" cy="10" r="7" fill="none" stroke="var(--viable)" stroke-width="2.6" stroke-dasharray="30.8 43.98" transform="rotate(-90 10 10)"/><circle cx="10" cy="10" r="1.6" fill="var(--viable)"/><circle cx="10" cy="10" r="9.3" fill="none" stroke="var(--text)" stroke-width="1"/></svg></dt>
+            <dd data-i18n="legend.selected"></dd>
           </dl>
         </section>
 

@@ -16,6 +16,7 @@
   --comm-mid: var(--data-earth-mid);
   --comm-low: var(--data-earth-low);
   --off: var(--data-off);
+  --viable: #56b4e9; /* = VIABLE_COLOR en views/encoding.js */
   --sun: var(--data-sun);
 }
 
@@ -566,27 +567,11 @@ select {
   font-weight: 600;
 }
 
-.legend-size {
-  display: flex;
-  align-items: center;
-  gap: 3px;
-}
-
-.legend-size i {
-  display: block;
-  border-radius: 50%;
-  background: var(--text);
-}
-
-.legend-size i:nth-child(1) { width: 5px; height: 5px; }
-.legend-size i:nth-child(2) { width: 9px; height: 9px; }
-.legend-size i:nth-child(3) { width: 13px; height: 13px; }
-
-.legend-glow {
-  width: 22px;
-  height: 22px;
-  border-radius: 50%;
-  background: radial-gradient(circle, #fff 0 22%, rgba(255, 255, 255, 0.45) 35%, transparent 70%);
+.reticle-key {
+  width: 20px;
+  height: 20px;
+  flex: none;
+  vertical-align: middle;
 }
 
 .swatch {

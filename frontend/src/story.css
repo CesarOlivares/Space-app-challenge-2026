@@ -121,7 +121,7 @@ body.compare-zoom #legend-toggle {
 
 .b-row {
   display: grid;
-  grid-template-columns: 170px minmax(0, 1fr);
+  grid-template-columns: 210px minmax(0, 1fr);
   gap: var(--space-4);
   align-items: center;
   padding: var(--space-4);
@@ -147,10 +147,10 @@ body.compare-zoom #legend-toggle {
 /* Celda: barra + cifra + diferencia + lectura física. */
 .cell {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto auto;
-  grid-template-areas: "meter num delta" "sub sub sub";
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-areas: "top" "meter" "sub";
   align-items: center;
-  gap: 4px var(--space-2);
+  gap: 6px;
   --fill: color-mix(in srgb, var(--accent) 70%, var(--bg));
 }
 
@@ -166,13 +166,27 @@ body.compare-zoom #legend-toggle {
 .go .cell .meter i { width: var(--w); }
 .b-row.main .cell .meter { height: 14px; }
 
-.cell b { grid-area: num; font-family: var(--font-mono); font-size: 1.15rem; font-variant-numeric: tabular-nums; min-width: 2ch; text-align: right; }
-.cell em { grid-area: delta; font-style: normal; font-family: var(--font-mono); font-size: 0.75rem; color: var(--ink-muted); min-width: 3ch; }
-.cell small { grid-area: sub; font-size: 0.75rem; color: var(--ink-muted); }
+.cell .c-top { grid-area: top; display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 8px; min-width: 0; }
+.cell b { font-family: var(--font-mono); font-size: 1.15rem; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.cell .c-unit { font-size: 0.8rem; color: var(--ink-muted); }
+.cell em {
+  margin-left: auto;
+  padding: 1px 7px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  font-style: normal;
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  color: var(--ink-muted);
+  white-space: nowrap;
+}
+.cell small { grid-area: sub; font-size: 0.72rem; color: var(--ink-muted); opacity: 0.8; }
+.b-label > span { display: grid; gap: 2px; }
+.b-label > span small { font-size: 0.72rem; font-weight: 400; line-height: 1.3; color: var(--ink-muted); }
 
 .cell.best { --fill: var(--state-ok); }
 .cell.best b { color: var(--state-ok); }
-.cell.best em { color: var(--state-ok); }
+.cell.best em { color: var(--state-ok); border-color: color-mix(in srgb, var(--state-ok) 45%, transparent); }
 .cell.off { --fill: var(--data-off); }
 .cell.off b { color: var(--ink-muted); }
 

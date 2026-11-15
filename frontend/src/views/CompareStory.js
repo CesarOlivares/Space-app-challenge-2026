@@ -37,7 +37,7 @@ const TXT = {
     sg3t: "Aterrizajes recientes",
     sg3x: "Chandrayaan-3, Luna 24 y Blue Ghost M1",
     error: "No se pudo comparar: {message}",
-    better: "{win} ofrece una mejora {level} frente a {ref}: {delta} puntos más de puntaje global ({a} frente a {b}).",
+    better: "{win} ofrece una mejora {level} frente a {ref}: {delta} más de puntaje global ({a} frente a {b}).",
     levelBig: "significativa",
     levelMid: "moderada",
     levelSmall: "leve",
@@ -56,6 +56,24 @@ const TXT = {
     reasonEnergy: "Tiene {a} de luz continua desde el aterrizaje (frente a {b}): menos riesgo en la noche lunar.",
     reasonTerrain: "Pendiente local de {a}° frente a {b}°: menos riesgo de vuelco al aterrizar.",
     reasonAsteroid: "El relieve cercano cubre el {a} % del cielo frente al {b} %: más resguardo ante impactos.",
+    qTotal: "Resumen de los cuatro criterios (más es mejor)",
+    qCommunication: "¿Cuántos días hay enlace directo con la Tierra?",
+    qEnergy: "¿Cuánto Sol seguido tendrá desde que aterriza?",
+    qTerrain: "¿Qué tan inclinado es el suelo? (menos es mejor)",
+    qAsteroid: "¿Cuánto lo resguarda el relieve de impactos?",
+    uTotal: "/ 100",
+    uCommunication: "de {n} días",
+    uEnergy: "de luz continua",
+    uEnergyAll: "de luz (toda la ventana)",
+    uTerrain: "de pendiente",
+    uAsteroid: "del cielo tapado por relieve",
+    dPoint: "{v} punto",
+    dPoints: "{v} puntos",
+    dFlatter: "{v}° más plano",
+    dSteeper: "{v}° más inclinado",
+    dSky: "{v} % de cielo",
+    subScore: "Puntaje {v}/100",
+    subTerrainScore: "Puntaje {v}/100 · fuente: {src}",
     mTotal: "Puntaje global",
     mCommunication: "Comunicaciones",
     mEnergy: "Energía",
@@ -70,7 +88,7 @@ const TXT = {
     subEnergy: "Luz continua: {v}",
     subTerrain: "Pendiente {v}° · {src}",
     subAsteroid: "Relieve cubre {v} % del cielo",
-    subTotal: "de 100",
+    subTotal: "Índice ponderado, no una medida física",
     refOnly: "no viable · referencial",
     noSet: "toda la ventana",
     srcCatalog: "catálogo",
@@ -104,7 +122,7 @@ const TXT = {
     sg3t: "Recent landings",
     sg3x: "Chandrayaan-3, Luna 24 and Blue Ghost M1",
     error: "Could not compare: {message}",
-    better: "{win} offers a {level} improvement over {ref}: {delta} more points of overall score ({a} vs {b}).",
+    better: "{win} offers a {level} improvement over {ref}: {delta} more of overall score ({a} vs {b}).",
     levelBig: "significant",
     levelMid: "moderate",
     levelSmall: "slight",
@@ -123,6 +141,24 @@ const TXT = {
     reasonEnergy: "It has {a} of continuous light from landing (vs {b}): less risk through the lunar night.",
     reasonTerrain: "Local slope {a}° vs {b}°: lower risk of tipping over at touchdown.",
     reasonAsteroid: "Nearby terrain covers {a} % of the sky vs {b} %: more shelter from impacts.",
+    qTotal: "Summary of the four criteria (higher is better)",
+    qCommunication: "How many days with a direct link to Earth?",
+    qEnergy: "How much unbroken sunlight after landing?",
+    qTerrain: "How steep is the ground? (lower is better)",
+    qAsteroid: "How much does the terrain shelter it from impacts?",
+    uTotal: "/ 100",
+    uCommunication: "of {n} days",
+    uEnergy: "of continuous light",
+    uEnergyAll: "of light (whole window)",
+    uTerrain: "slope",
+    uAsteroid: "of the sky blocked by terrain",
+    dPoint: "{v} point",
+    dPoints: "{v} points",
+    dFlatter: "{v}° flatter",
+    dSteeper: "{v}° steeper",
+    dSky: "{v} % of sky",
+    subScore: "Score {v}/100",
+    subTerrainScore: "Score {v}/100 · source: {src}",
     mTotal: "Overall score",
     mCommunication: "Communications",
     mEnergy: "Energy",
@@ -137,7 +173,7 @@ const TXT = {
     subEnergy: "Continuous light: {v}",
     subTerrain: "Slope {v}° · {src}",
     subAsteroid: "Terrain covers {v} % of the sky",
-    subTotal: "out of 100",
+    subTotal: "Weighted index, not a physical measure",
     refOnly: "not viable · reference only",
     noSet: "the whole window",
     srcCatalog: "catalog",
@@ -177,48 +213,86 @@ function shortName(site) {
 // ---------------------------------------------------------------------------------------------
 
 const pct = (v) => Math.round((v ?? 0) * 100);
+const windowHours = (r) => r.config.window_days * 24;
+// Horas de Sol seguido desde el aterrizaje (si no se pone en la ventana, la ventana entera).
+const sunHours = (r) => {
+  if (!r.sun.visible) return 0;
+  return r.sun.hours_until_set == null ? windowHours(r) : Math.min(r.sun.hours_until_set, windowHours(r));
+};
 const untilSet = (r) => {
   if (!r.sun.visible) return formatDuration(0);
   return r.sun.hours_until_set == null ? tr("noSet") : formatDuration(r.sun.hours_until_set);
 };
-const earthShare = (r) => pct(r.earth.visible_fraction ?? r.scores.communication / 100);
+const earthFraction = (r) => r.earth.visible_fraction ?? r.scores.communication / 100;
+const earthShare = (r) => pct(earthFraction(r));
+const earthDays = (r) => earthFraction(r) * r.config.window_days;
+const days = (d) => num(d, Math.abs(d - Math.round(d)) < 0.05 ? 0 : 1);
+const slope = (r) => r.topography?.slope_deg ?? 0;
+const shielded = (r) => r.topography?.solid_angle_shielded_pct ?? 0;
+const signed = (text, better) => `${better ? "+" : "−"}${text}`;
 
+// Cada fila responde una pregunta concreta. `show` da la cifra en unidades reales (lo que lee el
+// usuario primero); `value` es el puntaje 0-100 que decide la barra y quién gana; `delta` dice la
+// diferencia con el mejor también en unidades reales.
 const METRICS = [
   {
-    key: "total", label: "mTotal", goal: "gTotal", icon: "kpiTotal", main: true,
+    key: "total", label: "mTotal", goal: "gTotal", ask: "qTotal", icon: "kpiTotal", main: true,
     value: (r) => r.scores.total,
+    show: (r) => ({ big: String(Math.round(r.scores.total)), unit: tr("uTotal") }),
+    delta: (best, other, isBest) => {
+      const d = Math.round(best.scores.total - other.scores.total);
+      return d ? signed(tr(d === 1 ? "dPoint" : "dPoints", { v: d }), isBest) : "";
+    },
     sub: (r) => (r.viable ? tr("subTotal") : tr("refOnly")),
   },
   {
-    key: "communication", label: "mCommunication", goal: "gCommunication", icon: "kpiComms",
+    key: "communication", label: "mCommunication", goal: "gCommunication", ask: "qCommunication", icon: "kpiComms",
     value: (r) => r.scores.communication,
+    show: (r) => ({ big: days(earthDays(r)), unit: tr("uCommunication", { n: r.config.window_days }) }),
+    delta: (best, other, isBest) => {
+      const h = (earthDays(best) - earthDays(other)) * 24;
+      return h >= 1 ? signed(formatDuration(h), isBest) : "";
+    },
     sub: (r) => tr("subCommunication", { v: earthShare(r) }),
     reason: (w, o) => tr("reasonCommunication", { a: earthShare(w), b: earthShare(o) }),
   },
   {
-    key: "energy", label: "mEnergy", goal: "gEnergy", icon: "kpiEnergy",
+    key: "energy", label: "mEnergy", goal: "gEnergy", ask: "qEnergy", icon: "kpiEnergy",
     value: (r) => r.scores.energy,
-    sub: (r) => tr("subEnergy", { v: untilSet(r) }),
+    show: (r) => ({ big: formatDuration(sunHours(r)), unit: r.sun.visible && r.sun.hours_until_set == null ? tr("uEnergyAll") : tr("uEnergy") }),
+    delta: (best, other, isBest) => {
+      const h = sunHours(best) - sunHours(other);
+      return Math.abs(h) >= 1 / 60 ? signed(formatDuration(Math.abs(h)), h > 0 === isBest) : "";
+    },
+    sub: (r) => tr("subScore", { v: Math.round(r.scores.energy) }),
     reason: (w, o) => tr("reasonEnergy", { a: untilSet(w), b: untilSet(o) }),
   },
   {
-    key: "terrain", label: "mTerrain", goal: "gTerrain", icon: "kpiTerrain",
+    key: "terrain", label: "mTerrain", goal: "gTerrain", ask: "qTerrain", icon: "kpiTerrain",
     value: (r) => r.scores.terrain ?? null, // null: sin pendiente medida (fuera del DEM polar)
-    sub: (r) => (r.scores.terrain == null ? tr("noData") : tr("subTerrain", {
-      v: num(r.topography?.slope_deg ?? 0, 1),
+    show: (r) => ({ big: `${num(slope(r), 1)}°`, unit: tr("uTerrain") }),
+    delta: (best, other, isBest) => {
+      const d = Math.abs(slope(best) - slope(other));
+      if (d < 0.05) return "";
+      const flatter = isBest ? slope(best) <= slope(other) : slope(other) <= slope(best);
+      return tr(flatter ? "dFlatter" : "dSteeper", { v: num(d, 1) });
+    },
+    sub: (r) => tr("subTerrainScore", {
+      v: Math.round(r.scores.terrain),
       src: tr(r.topography?.source === "lola_dem" ? "srcLola" : "srcCatalog"),
-    })),
-    reason: (w, o) => tr("reasonTerrain", {
-      a: num(w.topography?.slope_deg ?? 0, 1), b: num(o.topography?.slope_deg ?? 0, 1),
     }),
+    reason: (w, o) => tr("reasonTerrain", { a: num(slope(w), 1), b: num(slope(o), 1) }),
   },
   {
-    key: "asteroid", label: "mAsteroid", goal: "gAsteroid", icon: "kpiShield",
+    key: "asteroid", label: "mAsteroid", goal: "gAsteroid", ask: "qAsteroid", icon: "kpiShield",
     value: (r) => r.scores.asteroid ?? null, // null: sin relieve real alrededor
-    sub: (r) => (r.scores.asteroid == null ? tr("noData") : tr("subAsteroid", { v: Math.round(r.topography?.solid_angle_shielded_pct ?? 0) })),
-    reason: (w, o) => tr("reasonAsteroid", {
-      a: Math.round(w.topography?.solid_angle_shielded_pct ?? 0), b: Math.round(o.topography?.solid_angle_shielded_pct ?? 0),
-    }),
+    show: (r) => ({ big: `${Math.round(shielded(r))} %`, unit: tr("uAsteroid") }),
+    delta: (best, other, isBest) => {
+      const d = Math.round(shielded(best) - shielded(other));
+      return d ? signed(tr("dSky", { v: Math.abs(d) }), d > 0 === isBest) : "";
+    },
+    sub: (r) => tr("subScore", { v: Math.round(r.scores.asteroid) }),
+    reason: (w, o) => tr("reasonAsteroid", { a: Math.round(shielded(w)), b: Math.round(shielded(o)) }),
   },
 ];
 
@@ -255,7 +329,8 @@ function buildExplanation(results) {
     headline = delta < 1
       ? tr("tie", { a: name(first), b: name(second), delta: num(delta, 1) })
       : tr("better", {
-        win: name(first), ref: name(second), level: level(delta), delta: Math.round(delta),
+        win: name(first), ref: name(second), level: level(delta),
+        delta: tr(Math.round(delta) === 1 ? "dPoint" : "dPoints", { v: Math.round(delta) }),
         a: Math.round(first.r.scores.total), b: Math.round(second.r.scores.total),
       });
   }
@@ -355,29 +430,36 @@ export class CompareStory {
       const low = Math.min(...rankedValues);
       const competing = ranked.length >= 2 && top !== low; // sin ganador si hay uno solo o empatan
       const runnerUp = rankedValues.filter((x) => x < top).sort((a, b) => b - a)[0];
+      const bestIdx = competing ? ranked.find((i) => values[i] === top) : -1;
+      const runnerIdx = competing ? ranked.find((i) => values[i] === runnerUp) : -1;
 
       const cells = results.map((r, i) => {
         const v = values[i];
         if (v == null) {
-          return `<div class="cell nodata" title="${escapeHtml(tr("noDataWhy"))}"><span class="meter"><i></i></span><b>${tr("noData")}</b></div>`;
+          return `<div class="cell nodata" title="${escapeHtml(tr("noDataWhy"))}"><div class="c-top"><b>${tr("noData")}</b></div><span class="meter"><i></i></span></div>`;
         }
         const isBest = competing && ranked.includes(i) && v === top;
         const state = !exp.eligible.has(i) ? "off" : isBest ? "best" : "";
+        // Diferencia en unidades reales: el mejor frente al segundo; el resto frente al mejor.
         const delta = competing && ranked.includes(i)
-          ? (isBest ? `+${Math.round(top - runnerUp)}` : `−${Math.round(top - v)}`)
+          ? (isBest ? metric.delta(r, results[runnerIdx], true) : metric.delta(results[bestIdx], r, false))
           : "";
+        const { big, unit } = metric.show(r);
         return `
           <div class="cell ${state}">
+            <div class="c-top">
+              <b>${escapeHtml(big)}${isBest ? `<span class="star" aria-hidden="true"> ★</span><span class="sr-only"> (${tr("best")})</span>` : ""}</b>
+              <span class="c-unit">${escapeHtml(unit)}</span>
+              ${delta ? `<em>${escapeHtml(delta)}</em>` : ""}
+            </div>
             <span class="meter"><i style="--w:${Math.max(2, v)}%;--d:${i * 70}ms"></i></span>
-            <b>${Math.round(v)}${isBest ? `<span class="star" aria-hidden="true"> ★</span><span class="sr-only"> (${tr("best")})</span>` : ""}</b>
-            ${delta ? `<em>${delta}</em>` : ""}
             <small>${escapeHtml(metric.sub(r))}</small>
           </div>`;
       }).join("");
 
       return `
         <div class="b-row${metric.main ? " main" : ""}">
-          <div class="b-label" title="${escapeHtml(tr(metric.goal))}">${iconHtml(metric.icon)}<span>${escapeHtml(tr(metric.label))}</span></div>
+          <div class="b-label" title="${escapeHtml(tr(metric.goal))}">${iconHtml(metric.icon)}<span>${escapeHtml(tr(metric.label))}<small>${escapeHtml(tr(metric.ask))}</small></span></div>
           <div class="b-cells" style="--n:${n}">${cells}</div>
         </div>`;
     }).join("");

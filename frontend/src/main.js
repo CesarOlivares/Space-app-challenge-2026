@@ -286,7 +286,6 @@ const controls = new Controls(explore, {
 const settings = new SettingsPanel(document.getElementById("settings"), {
   onChange: (config) => {
     state.config = config;
-    updateLegendDays();
     loadDate(state.date);
   },
 });
@@ -413,12 +412,6 @@ document.addEventListener("keydown", (event) => {
   if (!legendCard.hidden) setLegend(false);
 });
 
-function updateLegendDays() {
-  const legend = document.getElementById("legend-glow");
-  legend.dataset.i18nParams = JSON.stringify({ days: state.config.windowDays });
-  legend.innerHTML = t("legend.glow", { days: state.config.windowDays });
-}
-
 // --- Modo e idioma --------------------------------------------------------------
 
 function applyMode(mode) {
@@ -445,7 +438,6 @@ onLangChange(() => {
   }
   router.refreshTitle();
   setStatus(state.status.key, state.status.params, state.status.kind);
-  updateLegendDays();
   hero.render();
   list.refresh();
   renderSelection();
@@ -887,7 +879,6 @@ async function start() {
   applyMode(fromUrl.mode ?? stored.get("mode") ?? "simple");
   state.config = { ...DEFAULT_CONFIG, ...fromUrl.config };
   settings.setConfig(state.config);
-  updateLegendDays();
   if (fromUrl.date) controls.setDate(fromUrl.date);
 
   try {
