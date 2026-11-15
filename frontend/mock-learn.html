@@ -1,0 +1,772 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Mock · Aprender · Zenith</title>
+    <link rel="preload" href="./fonts/archivo-var.woff2" as="font" type="font/woff2" crossorigin />
+    <link rel="stylesheet" href="./src/design-system.css" />
+    <link rel="stylesheet" href="./src/styles.css" />
+    <link rel="stylesheet" href="./src/minimal.css" />
+    <link rel="stylesheet" href="./src/learn.css" />
+    <style>
+      body { overflow-y: auto; background: var(--bg); }
+      .page--learn-mock {
+        position: relative;
+        inset: auto;
+        min-height: 100vh;
+        padding: calc(var(--nav-h, 56px) + var(--space-5)) var(--space-4) var(--space-6);
+      }
+
+      /* Módulos didácticos: sin cajas dentro de cajas, respiración generosa */
+      .learn-modules { display: grid; gap: 24px; }
+      .learn-card {
+        display: grid;
+        grid-template-columns: minmax(290px, 1.02fr) minmax(320px, 1fr);
+        gap: 32px;
+        padding: 28px 32px;
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 16px;
+        background: var(--surface);
+      }
+      @media (max-width: 840px) {
+        .learn-card { grid-template-columns: 1fr; padding: 22px 20px; gap: 22px; }
+      }
+
+      /* Columna izquierda: foto NASA limpia + simulador suave */
+      .lmod-visual { display: grid; gap: 8px; align-content: start; }
+      .lmod-photo { margin: 0; }
+      .lmod-photo-frame {
+        border-radius: 12px;
+        overflow: hidden;
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        background: var(--surface-solid);
+      }
+      .lmod-photo-frame img {
+        display: block;
+        width: 100%;
+        height: 185px;
+        object-fit: cover;
+      }
+      .lmod-photo figcaption {
+        padding: 6px 2px 12px;
+        font-size: 12.5px;
+        color: var(--ink-muted);
+        display: flex;
+        justify-content: space-between;
+        align-items: baseline;
+        gap: 10px;
+      }
+      .lmod-photo figcaption code {
+        font-family: var(--font-mono);
+        color: rgba(255, 255, 255, 0.55);
+        font-size: 11.5px;
+        white-space: nowrap;
+      }
+
+      .lmod-sim {
+        background: rgba(255, 255, 255, 0.025);
+        border: 1px solid rgba(255, 255, 255, 0.06);
+        border-radius: 12px;
+        padding: 16px;
+        display: grid;
+        gap: 10px;
+      }
+      .lmod-sim svg { width: 100%; height: auto; display: block; }
+      .sim-ctrl {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-size: 13px;
+        color: var(--ink-muted);
+      }
+      .sim-ctrl input[type="range"] { flex: 1; accent-color: var(--accent); }
+      .sim-val {
+        font-family: var(--font-mono);
+        color: var(--ink);
+        font-size: 13px;
+        min-width: 52px;
+        text-align: right;
+      }
+      .sim-pill {
+        font-family: var(--font-mono);
+        font-size: 11.5px;
+        font-weight: 700;
+        padding: 3px 9px;
+        border-radius: 999px;
+        border: 1px solid var(--line-strong);
+        white-space: nowrap;
+      }
+      .sim-pill.ok { color: var(--state-ok); border-color: color-mix(in srgb, var(--state-ok) 45%, transparent); background: color-mix(in srgb, var(--state-ok) 12%, transparent); }
+      .sim-pill.warn { color: var(--state-warn); border-color: color-mix(in srgb, var(--state-warn) 45%, transparent); background: color-mix(in srgb, var(--state-warn) 12%, transparent); }
+      .sim-pill.bad { color: var(--state-bad); border-color: color-mix(in srgb, var(--state-bad) 45%, transparent); background: color-mix(in srgb, var(--state-bad) 12%, transparent); }
+
+      /* Columna derecha: jerarquía tipográfica editorial y ritmo vertical */
+      .lmod-copy {
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        gap: 14px;
+      }
+      .lmod-eyebrow {
+        display: inline-flex;
+        align-items: center;
+        gap: 7px;
+        margin-bottom: 10px;
+        padding: 4px 10px;
+        border-radius: 999px;
+        border: 1px solid rgba(167, 139, 250, 0.3);
+        background: rgba(167, 139, 250, 0.08);
+        font-family: var(--font-mono);
+        font-size: 11.5px;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        color: var(--accent);
+      }
+      .lmod-eyebrow svg { width: 14px; height: 14px; stroke: currentColor; fill: none; stroke-width: 2; }
+      .lmod-title {
+        font-family: var(--font-display);
+        font-size: 23px;
+        font-weight: 600;
+        letter-spacing: -0.02em;
+        line-height: 1.25;
+        color: var(--ink);
+        margin: 0 0 12px 0;
+        text-transform: none;
+      }
+      .lmod-desc {
+        font-size: 15.5px;
+        line-height: 1.65;
+        color: rgba(255, 255, 255, 0.88);
+        margin: 0 0 16px 0;
+      }
+
+      .lmod-highlights { display: grid; gap: 10px; margin-bottom: 6px; }
+      .lmod-callout {
+        font-size: 14.5px;
+        line-height: 1.55;
+        color: rgba(255, 255, 255, 0.82);
+        background: rgba(255, 255, 255, 0.03);
+        border-left: 2px solid var(--accent);
+        padding: 10px 14px;
+        border-radius: 0 8px 8px 0;
+      }
+      .lmod-callout strong { color: var(--ink); font-weight: 600; }
+
+      /* Desplegable técnico por tarjeta */
+      .tech-more {
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 10px;
+        background: rgba(255, 255, 255, 0.02);
+      }
+      .tech-more summary {
+        cursor: pointer;
+        list-style: none;
+        padding: 12px 16px;
+        font-family: var(--font-mono);
+        font-size: 13.5px;
+        color: var(--accent);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+      }
+      .tech-more summary::after { content: "+"; font-weight: 700; font-size: 16px; line-height: 1; }
+      .tech-more[open] summary::after { content: "−"; }
+      .tech-more-body {
+        padding: 12px 16px 14px;
+        border-top: 1px solid rgba(255, 255, 255, 0.06);
+        font-size: 13.5px;
+        line-height: 1.55;
+        color: var(--ink-muted);
+        display: grid;
+        gap: 8px;
+      }
+      .formula-box {
+        font-family: var(--font-mono);
+        font-size: 12.5px;
+        color: var(--ink);
+        background: var(--bg);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 6px;
+        padding: 8px 10px;
+        overflow-x: auto;
+      }
+
+      /* Botón CTA proporcionado y elegante (sin barra gigante) */
+      .cta-zenith {
+        align-self: flex-start;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        width: auto;
+        padding: 10px 20px;
+        border-radius: 10px;
+        font-family: var(--font-text);
+        font-size: 13.5px;
+        font-weight: 600;
+        margin-top: 8px;
+        cursor: pointer;
+        color: var(--ink);
+        background: rgba(167, 139, 250, 0.14);
+        border: 1px solid rgba(167, 139, 250, 0.45);
+        box-shadow: 0 0 18px rgba(167, 139, 250, 0.12);
+        transition: background 0.15s, border-color 0.15s, transform 0.1s;
+      }
+      .cta-zenith:hover {
+        background: rgba(167, 139, 250, 0.24);
+        border-color: var(--accent);
+        transform: translateY(-1px);
+      }
+
+      /* Flujo CASSA de 5 pasos */
+      .cassa-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(175px, 1fr));
+        gap: 14px;
+      }
+      .cassa-step {
+        padding: 16px;
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 12px;
+        background: var(--surface);
+        display: grid;
+        gap: 6px;
+        align-content: start;
+      }
+      .cassa-step.is-zenith {
+        border-color: rgba(167, 139, 250, 0.48);
+        background: rgba(167, 139, 250, 0.06);
+      }
+      .cassa-num { font-family: var(--font-mono); font-size: 11.5px; color: var(--accent); }
+      .cassa-step h3 { margin: 0; font-size: 15px; font-weight: 600; }
+      .cassa-step p { font-size: 13.5px; color: var(--ink-muted); line-height: 1.5; }
+      .cassa-badge {
+        justify-self: start;
+        font-family: var(--font-mono);
+        font-size: 11px;
+        padding: 2px 7px;
+        border-radius: 4px;
+        background: rgba(167, 139, 250, 0.18);
+        color: var(--accent);
+      }
+
+      /* Escenarios con fotos reales NASA */
+      .sc-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+        gap: 16px;
+      }
+      .sc-card {
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 14px;
+        background: var(--surface);
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+      }
+      .sc-card img { width: 100%; height: 136px; object-fit: cover; display: block; border-bottom: 1px solid rgba(255, 255, 255, 0.06); }
+      .sc-body { padding: 16px 18px 8px; display: grid; gap: 6px; flex: 1; align-content: start; }
+      .sc-meta { font-family: var(--font-mono); font-size: 11px; color: var(--accent); }
+      .sc-body h3 { margin: 0; font-size: 17px; font-weight: 600; }
+      .sc-body p { font-size: 13.5px; color: var(--ink-muted); line-height: 1.5; }
+      .sc-foot { padding: 8px 18px 18px; display: flex; }
+
+      .mock-toast {
+        position: fixed;
+        bottom: 20px;
+        right: 20px;
+        z-index: 60;
+        max-width: 420px;
+        padding: 12px 16px;
+        border-radius: 12px;
+        border: 1px solid var(--accent);
+        display: none;
+        font-size: 13px;
+      }
+      .mock-toast.show { display: block; }
+      .mock-toast code { font-family: var(--font-mono); color: var(--accent); font-size: 12px; }
+    </style>
+  </head>
+  <body class="mode-simple" data-section="aprender">
+    <nav id="topnav">
+      <a class="brand" href="#intro">
+        <span class="icon" data-icon="globe"></span>
+        <span class="brand-name">Zenith</span>
+      </a>
+      <ul class="nav-links">
+        <li><a href="#intro"><span class="nav-num">01</span><span>Inicio</span></a></li>
+        <li><a href="#explorar"><span class="nav-num">02</span><span>Explorar</span></a></li>
+        <li><a href="#comparar"><span class="nav-num">03</span><span>Comparar</span></a></li>
+        <li><a href="#aprender" aria-current="page"><span class="nav-num">04</span><span>Aprender</span></a></li>
+      </ul>
+      <div class="segmented" role="group" aria-label="Idioma">
+        <button type="button" data-lang="es" aria-pressed="true">ES</button>
+        <button type="button" data-lang="en" aria-pressed="false">EN</button>
+      </div>
+    </nav>
+
+    <main class="page--learn-mock">
+      <div class="page-inner learn">
+        <div class="section-head">
+          <span class="section-head__num">04</span>
+          <h1 class="section-head__title" tabindex="-1">Aprender</h1>
+          <span class="section-head__rule"></span>
+        </div>
+
+        <p class="learn-lead">
+          Qué hace difícil alunizar en la Luna, cómo se ve en las misiones reales de la NASA y cómo puedes probar cada fenómeno directamente en el globo 3D de Zenith.
+        </p>
+
+        <div class="tour-invite">
+          <span class="icon" data-icon="tutorial"></span>
+          <p><b>¿Primera vez en Zenith?</b> Haz el recorrido guiado de 2 minutos: resalta cada control real y explica cómo leerlo.</p>
+          <button type="button" class="cta-zenith" id="btn-tour" style="margin-top:0;">Empezar el tutorial →</button>
+        </div>
+
+        <nav class="learn-index" aria-label="Temas">
+          <button type="button" data-jump="sec-luz">1. Luz y sombras</button>
+          <button type="button" data-jump="sec-dte">2. Enlace Tierra</button>
+          <button type="button" data-jump="sec-slope">3. Pendiente</button>
+          <button type="button" data-jump="sec-shield">4. Escudo natural</button>
+          <button type="button" data-jump="sec-nasa">Cómo decide la NASA</button>
+          <button type="button" data-jump="sec-ex">Ejemplos reales</button>
+        </nav>
+
+        <!-- BLOQUE PRINCIPAL: 4 TARJETAS DIDÁCTICAS PULIDAS -->
+        <section class="learn-modules" aria-label="Fundamentos físicos">
+          <!-- 1. ILUMINACIÓN Y SOMBRAS -->
+          <article class="learn-card" id="sec-luz">
+            <div class="lmod-visual">
+              <figure class="lmod-photo">
+                <div class="lmod-photo-frame">
+                  <img src="./assets/learn/south-pole-lro.jpg" alt="Cráter Shackleton y polo sur lunar fotografiados por LRO" loading="lazy" />
+                </div>
+                <figcaption>
+                  <span>Polo sur lunar y cráter Shackleton</span>
+                  <code>NASA/LRO · PIA13523</code>
+                </figcaption>
+              </figure>
+              <div class="lmod-sim">
+                <svg viewBox="0 0 360 116" aria-label="Simulador de elevación solar">
+                  <polygon points="0,100 95,100 130,58 165,100 360,100 360,116 0,116" fill="#1e293b" stroke="#475569" stroke-width="1.2"/>
+                  <circle cx="255" cy="100" r="4" fill="var(--data-earth-high)"/>
+                  <text x="255" y="112" text-anchor="middle" fill="var(--ink-muted)" font-size="9" font-family="var(--font-mono)">Sitio</text>
+                  <text x="130" y="50" text-anchor="middle" fill="var(--ink-muted)" font-size="9" font-family="var(--font-mono)">Borde 4.5°</text>
+                  <line id="sun-ray" x1="25" y1="52" x2="255" y2="100" stroke="var(--data-sun)" stroke-width="2" stroke-dasharray="4 3"/>
+                  <circle id="sun-disc" cx="25" cy="52" r="8" fill="var(--data-sun)"/>
+                  <rect id="shadow-zone" x="130" y="96" width="140" height="5" fill="rgba(255,154,138,0.45)" rx="2"/>
+                </svg>
+                <div class="sim-ctrl">
+                  <label for="sl-sun">Sol:</label>
+                  <input id="sl-sun" type="range" min="0" max="10" step="0.5" value="2.5" />
+                  <span class="sim-val" id="out-sun">2.5°</span>
+                  <span class="sim-pill bad" id="st-sun">BLOQUEADO</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="lmod-copy">
+              <div>
+                <span class="lmod-eyebrow">
+                  <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v3m0 14v3M4.9 4.9l2.1 2.1m10 10 2.1 2.1M2 12h3m14 0h3M4.9 19.1 7 17m10-10 2.1-2.1"/></svg>
+                  Energía · Iluminación
+                </span>
+                <h3 class="lmod-title">Luz y sombras en el polo sur</h3>
+                <p class="lmod-desc">
+                  La Luna carece de atmósfera para dispersar la luz y su día dura 29,5 días terrestres. En el polo sur el Sol llega casi horizontal (menos de 1,5° sobre el plano): una montaña lejana deja kilómetros enteros en sombra permanente.
+                </p>
+                <div class="lmod-highlights">
+                  <div class="lmod-callout"><strong>Meta de misión:</strong> ≥ 6,5 días continuos de Sol desde el aterrizaje.</div>
+                  <div class="lmod-callout"><strong>Ejemplo real:</strong> En IM-2 (15 dic 2026), el Sol está a +2,2° pero el relieve lo tapa.</div>
+                </div>
+              </div>
+              <details class="tech-more">
+                <summary>+ Más información técnica (LOLA y DE440)</summary>
+                <div class="tech-more-body">
+                  <span>Zenith compara en cada hora la elevación solar de efemérides JPL DE440 contra el perfil topográfico de 360° de LRO/LOLA:</span>
+                  <div class="formula-box">sol_visible(t) = elev_DE440(t) &gt; max(horizonte_LOLA(az), margen_sol)</div>
+                  <span>Índice Energía (0–100): 50 % fracción de horas iluminadas + 50 % continuidad ininterrumpida desde el alunizaje.</span>
+                </div>
+              </details>
+              <button type="button" class="cta-zenith" data-sim="mons-mouton">Explorar en el Globo 3D →</button>
+            </div>
+          </article>
+
+          <!-- 2. COMUNICACIÓN CON LA TIERRA (DTE) -->
+          <article class="learn-card" id="sec-dte">
+            <div class="lmod-visual">
+              <figure class="lmod-photo">
+                <div class="lmod-photo-frame">
+                  <img src="./assets/learn/earth-horizon.jpg" alt="La Tierra asomándose sobre el horizonte lunar desde Orion" loading="lazy" />
+                </div>
+                <figcaption>
+                  <span>La Tierra baja sobre el horizonte lunar</span>
+                  <code>NASA · art002e021278</code>
+                </figcaption>
+              </figure>
+              <div class="lmod-sim">
+                <svg viewBox="0 0 360 116" aria-label="Simulador de enlace directo Tierra">
+                  <line x1="16" y1="88" x2="344" y2="88" stroke="var(--line)" stroke-dasharray="3 3"/>
+                  <path d="M16 88 L90 88 L135 62 L180 78 L230 56 L275 88 L344 88 L344 116 L16 116 Z" fill="#1e293b" stroke="#475569"/>
+                  <circle cx="60" cy="88" r="4" fill="var(--data-earth-high)"/>
+                  <text x="60" y="104" text-anchor="middle" fill="var(--ink-muted)" font-size="9" font-family="var(--font-mono)">Antena</text>
+                  <line id="earth-ray" x1="60" y1="88" x2="310" y2="74" stroke="var(--data-earth-high)" stroke-width="2"/>
+                  <circle id="earth-disc" cx="310" cy="74" r="8" fill="var(--data-earth-high)" stroke="#fff" stroke-width="1.5"/>
+                </svg>
+                <div class="sim-ctrl">
+                  <label for="sl-earth">Libración:</label>
+                  <input id="sl-earth" type="range" min="-7" max="7" step="0.5" value="1.5" />
+                  <span class="sim-val" id="out-earth">+1.5°</span>
+                  <span class="sim-pill bad" id="st-earth">SIN ENLACE</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="lmod-copy">
+              <div>
+                <span class="lmod-eyebrow">
+                  <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5a10 10 0 0 1 14 0"/><path d="M8.5 16a5 5 0 0 1 7 0"/><circle cx="12" cy="19" r="1.5"/></svg>
+                  Comunicaciones · DTE
+                </span>
+                <h3 class="lmod-title">Comunicación directa con la Tierra</h3>
+                <p class="lmod-desc">
+                  Sin satélites de relevo, la antena debe ver directamente a la Tierra. En los polos, nuestro planeta permanece pegado al horizonte y oscila ±7° cada ~27 días por la libración lunar.
+                </p>
+                <div class="lmod-highlights">
+                  <div class="lmod-callout"><strong>Cara oculta:</strong> Enlace directo = 0 % (requiere satélite relay en órbita).</div>
+                  <div class="lmod-callout"><strong>Ejemplo real:</strong> Shackleton Ridge ve la Tierra solo el 35 % de una ventana polar.</div>
+                </div>
+              </div>
+              <details class="tech-more">
+                <summary>+ Más información técnica (Libración y margen)</summary>
+                <div class="tech-more-body">
+                  <span>Para evitar pérdidas por difracción cerca del horizonte, se exige que el centro de la Tierra supere el relieve por al menos 2° por defecto:</span>
+                  <div class="formula-box">DTE(t) = elev_tierra(t) &gt; horizonte_LOLA(az) + 2.0°</div>
+                  <span>En el globo: Celeste ≥ 95 % · Naranja 50–94 % · Bermellón &lt; 50 %.</span>
+                </div>
+              </details>
+              <button type="button" class="cta-zenith" data-sim="apollo-11">Explorar en el Globo 3D →</button>
+            </div>
+          </article>
+
+          <!-- 3. TOPOGRAFÍA Y PENDIENTE DE ALUNIZAJE -->
+          <article class="learn-card" id="sec-slope">
+            <div class="lmod-visual">
+              <figure class="lmod-photo">
+                <div class="lmod-photo-frame">
+                  <img src="./assets/learn/apollo15-slope.jpg" alt="Astronauta David Scott en la pendiente de Hadley Delta en Apollo 15" loading="lazy" />
+                </div>
+                <figcaption>
+                  <span>Operaciones sobre pendiente en Hadley Delta (Apollo 15)</span>
+                  <code>NASA · as15-85-11514</code>
+                </figcaption>
+              </figure>
+              <div class="lmod-sim">
+                <svg viewBox="0 0 360 116" aria-label="Simulador de pendiente de aterrizaje">
+                  <line x1="40" y1="94" x2="320" y2="94" stroke="var(--line)" stroke-dasharray="4 4"/>
+                  <g id="slope-group" transform="rotate(-6 180 94)">
+                    <line x1="50" y1="94" x2="310" y2="94" stroke="#64748b" stroke-width="2.5"/>
+                    <rect x="164" y="64" width="32" height="20" rx="3" fill="rgba(167,139,250,0.22)" stroke="var(--accent)" stroke-width="1.8"/>
+                    <line x1="168" y1="84" x2="158" y2="94" stroke="var(--accent)" stroke-width="1.8"/>
+                    <line x1="192" y1="84" x2="202" y2="94" stroke="var(--accent)" stroke-width="1.8"/>
+                  </g>
+                  <text x="16" y="18" fill="var(--ink-muted)" font-size="9.5" font-family="var(--font-mono)">HLS ≤ 8° (meta 5°) · CLPS ≤ 10° · Rover ≤ 20°</text>
+                </svg>
+                <div class="sim-ctrl">
+                  <label for="sl-slope">Pendiente:</label>
+                  <input id="sl-slope" type="range" min="0" max="22" step="0.5" value="6" />
+                  <span class="sim-val" id="out-slope">6.0°</span>
+                  <span class="sim-pill ok" id="st-slope">APTO HLS</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="lmod-copy">
+              <div>
+                <span class="lmod-eyebrow">
+                  <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m3 19 6-10 4 6 3-4 5 8H3z"/></svg>
+                  Terreno · Estabilidad
+                </span>
+                <h3 class="lmod-title">Topografía y pendiente de alunizaje</h3>
+                <p class="lmod-desc">
+                  Un módulo con centro de gravedad alto puede volcar si toca suelo muy inclinado. Por eso los aterrizadores tripulados (HLS) filtran terreno con pendiente ≤ 8° (meta ideal 5°).
+                </p>
+                <div class="lmod-highlights">
+                  <div class="lmod-callout"><strong>Caso real IM-1 (Odysseus):</strong> Posado sobre ~11,8° de pendiente LOLA; se inclinó al aterrizar.</div>
+                  <div class="lmod-callout"><strong>Cobertura LOLA:</strong> Relieve medido (120 m/celda) disponible al sur de 80° S.</div>
+                </div>
+              </div>
+              <details class="tech-more">
+                <summary>+ Más información técnica (Gradiente de Horn y rugosidad)</summary>
+                <div class="tech-more-body">
+                  <span>La pendiente local se calcula con el operador 3×3 de Horn sobre la altimetría LOLA, junto a la rugosidad RMS y el despeje de aproximación EDL de 18°:</span>
+                  <div class="formula-box">slope = atan(√((dz/dx)² + (dz/dy)²)) · NO-GO si slope &gt; max_slope</div>
+                  <span>Score Terreno: 65 % pendiente + 25 % rugosidad + 10 % horizontes bajos (peso 0 por defecto).</span>
+                </div>
+              </details>
+              <button type="button" class="cta-zenith" data-sim="im-1">Ver IM-1 en el Globo 3D →</button>
+            </div>
+          </article>
+
+          <!-- 4. ESCUDO NATURAL CONTRA IMPACTOS -->
+          <article class="learn-card" id="sec-shield">
+            <div class="lmod-visual">
+              <figure class="lmod-photo">
+                <div class="lmod-photo-frame">
+                  <img src="./assets/learn/crater-ejecta-lroc.jpg" alt="Cráter lunar reciente con rayos de eyección y rocas (LROC)" loading="lazy" />
+                </div>
+                <figcaption>
+                  <span>Cráter reciente con eyecciones y bloques (LROC NAC)</span>
+                  <code>NASA/LROC · PIA12893</code>
+                </figcaption>
+              </figure>
+              <div class="lmod-sim">
+                <svg viewBox="0 0 360 116" aria-label="Simulador de escudo natural SVF">
+                  <path id="shield-walls" d="M20 100 L85 56 L125 100 L235 100 L275 56 L340 100 L340 116 L20 116 Z" fill="#1e293b" stroke="#475569"/>
+                  <circle cx="180" cy="100" r="4" fill="var(--data-earth-high)"/>
+                  <polygon id="sky-cone" points="180,100 95,12 265,12" fill="rgba(167,139,250,0.12)"/>
+                  <line x1="30" y1="40" x2="105" y2="72" stroke="var(--state-bad)" stroke-width="1.8" stroke-dasharray="4 3"/>
+                  <circle cx="105" cy="72" r="3" fill="var(--state-bad)"/>
+                </svg>
+                <div class="sim-ctrl">
+                  <label for="sl-shield">Muros:</label>
+                  <input id="sl-shield" type="range" min="0" max="30" step="2" value="14" />
+                  <span class="sim-val" id="out-shield">14°</span>
+                  <span class="sim-pill warn" id="st-shield">SVF 0.76</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="lmod-copy">
+              <div>
+                <span class="lmod-eyebrow">
+                  <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 4 7v5c0 5 3.5 8.5 8 10 4.5-1.5 8-5 8-10V7l-8-4z"/></svg>
+                  Protección · Experimental
+                </span>
+                <h3 class="lmod-title">Escudo natural contra impactos</h3>
+                <p class="lmod-desc">
+                  Sin atmósfera, los micrometeoritos y eyecciones secundarias impactan a kilómetros por segundo. Estar resguardado por paredes de cráter bloquea trayectorias rasantes, aunque compite con la luz solar.
+                </p>
+                <div class="lmod-highlights">
+                  <div class="lmod-callout"><strong>Balance clave:</strong> Más protección = menos cielo abierto = menos Sol y Tierra.</div>
+                  <div class="lmod-callout"><strong>Uso en Zenith:</strong> Métrica exploratoria del equipo (peso 0 por defecto).</div>
+                </div>
+              </div>
+              <details class="tech-more">
+                <summary>+ Más información técnica (Sky View Factor · SVF)</summary>
+                <div class="tech-more-body">
+                  <span>Se integra el ángulo sólido del cielo obstruido por el perfil de horizonte LOLA en los 360° de azimut:</span>
+                  <div class="formula-box">shield_pct = (1 - SVF) × 100 · SVF = ∫ cos²(h(az)) d(az) / 2π</div>
+                  <span>Activando su peso en Configuración → Ajustes del puntaje puedes explorar el equilibrio entre energía y resguardo.</span>
+                </div>
+              </details>
+              <button type="button" class="cta-zenith" data-sim="compare">Comparar sitios en 3D →</button>
+            </div>
+          </article>
+        </section>
+
+        <!-- PROCESO NASA CASSA -->
+        <section id="sec-nasa">
+          <h2>Cómo decide la NASA (Proceso CASSA)</h2>
+          <p class="learn-sub">La NASA no usa un puntaje único: filtra por seguridad y compara regiones por disponibilidad anual. Zenith automatiza los pasos 3 y 4 en superficie.</p>
+          <div class="cassa-grid">
+            <div class="cassa-step"><span class="cassa-num">PASO 01</span><h3>Objetivos</h3><p>Uso de recursos (hielo en PSR), ciencia e infraestructura.</p></div>
+            <div class="cassa-step"><span class="cassa-num">PASO 02</span><h3>Capacidades</h3><p>Límites del módulo HLS, trajes, rovers y CLPS.</p></div>
+            <div class="cassa-step is-zenith"><span class="cassa-num">PASO 03</span><h3>Pendiente segura</h3><p>Filtrar terreno ≤ 5°–8° dentro de la elipse.</p><span class="cassa-badge">Cubierto por Zenith</span></div>
+            <div class="cassa-step is-zenith"><span class="cassa-num">PASO 04</span><h3>Análisis geoespacial</h3><p>Iluminación continua y visibilidad DTE.</p><span class="cassa-badge">Cubierto por Zenith</span></div>
+            <div class="cassa-step"><span class="cassa-num">PASO 05</span><h3>Disponibilidad</h3><p>Balance final con trayectoria y órbita NRHO.</p></div>
+          </div>
+          <details class="tech-more" style="margin-top: 14px;">
+            <summary>+ Más información: Umbrales publicados de NASA y fuentes primarias</summary>
+            <div class="tech-more-body">
+              <span><strong>Luz continua:</strong> ≈ 6–6,5 días · <strong>Pendiente HLS:</strong> 0–8° (meta 5°) · <strong>Tierra DTE:</strong> ≥ 50 % en estudios preliminares.</span>
+              <span>Fuentes: Lawrence &amp; George 2025 (Artemis IV LSSW), George et al. 2026 (LPSC 1901), NASA Lunar Site Selection White Paper 2024.</span>
+            </div>
+          </details>
+        </section>
+
+        <!-- EJEMPLOS GUIADOS CON FOTOS REALES -->
+        <section id="sec-ex">
+          <h2>Ejemplos guiados: Pruébalo en el Globo</h2>
+          <p class="learn-sub">Cada escenario abre la herramienta configurada con fecha, coordenadas y capa de análisis.</p>
+          <div class="sc-grid">
+            <article class="sc-card">
+              <img src="./assets/learn/south-pole-lro.jpg" alt="Polo sur lunar LRO" loading="lazy" />
+              <div class="sc-body">
+                <span class="sc-meta">MONS MOUTON · 15 DIC 2026</span>
+                <h3>Candidato Artemis III</h3>
+                <p>Observa cómo el relieve polar bloquea parcialmente al Sol y recorta la visibilidad de la Tierra.</p>
+              </div>
+              <div class="sc-foot">
+                <button type="button" class="cta-zenith" data-sim="mons-mouton" style="margin-top:0;">Probar en el Globo →</button>
+              </div>
+            </article>
+
+            <article class="sc-card">
+              <img src="./assets/learn/crater-rim-lroc.jpg" alt="Paredes de cráter LRO" loading="lazy" />
+              <div class="sc-body">
+                <span class="sc-meta">IM-1 MALAPERT A · 11,8°</span>
+                <h3>Pendiente al límite</h3>
+                <p>Tiene luz y Tierra, pero supera el límite de 8° en LOLA y queda marcado como NO-GO.</p>
+              </div>
+              <div class="sc-foot">
+                <button type="button" class="cta-zenith" data-sim="im-1" style="margin-top:0;">Probar en el Globo →</button>
+              </div>
+            </article>
+
+            <article class="sc-card">
+              <img src="./assets/learn/apollo11-surface.jpg" alt="Superficie lunar Apollo 11" loading="lazy" />
+              <div class="sc-body">
+                <span class="sc-meta">APOLLO 11 · MAR DE LA TRANQUILIDAD</span>
+                <h3>Planicie ecuatorial segura</h3>
+                <p>Tierra siempre visible y luz para toda la estancia. Terreno marca «sin datos» fuera del polo.</p>
+              </div>
+              <div class="sc-foot">
+                <button type="button" class="cta-zenith" data-sim="apollo-11" style="margin-top:0;">Probar en el Globo →</button>
+              </div>
+            </article>
+
+            <article class="sc-card">
+              <img src="./assets/learn/earth-horizon.jpg" alt="Tierra sobre el horizonte lunar" loading="lazy" />
+              <div class="sc-body">
+                <span class="sc-meta">COMPARACIÓN · 2 SITIOS</span>
+                <h3>Histórico vs. Artemis</h3>
+                <p>Compara Apollo 11 con Mons Mouton y comprueba si cambia el ganador al mover los pesos.</p>
+              </div>
+              <div class="sc-foot">
+                <button type="button" class="cta-zenith" data-sim="compare" style="margin-top:0;">Abrir comparación →</button>
+              </div>
+            </article>
+          </div>
+        </section>
+      </div>
+    </main>
+
+    <div class="glass mock-toast" id="toast" role="status"></div>
+
+    <script type="module">
+      import { hydrateIcons } from "./src/icons.js";
+      hydrateIcons(document);
+
+      document.querySelectorAll("[data-jump]").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          document.getElementById(btn.dataset.jump)?.scrollIntoView({ behavior: "smooth", block: "start" });
+        });
+      });
+
+      // Simulador 1: Sol vs Borde (4.5°)
+      const slSun = document.getElementById("sl-sun");
+      const outSun = document.getElementById("out-sun");
+      const stSun = document.getElementById("st-sun");
+      const sunRay = document.getElementById("sun-ray");
+      const sunDisc = document.getElementById("sun-disc");
+      const shadowZone = document.getElementById("shadow-zone");
+      function updateSun() {
+        const deg = Number(slSun.value);
+        outSun.textContent = `${deg.toFixed(1)}°`;
+        const y = 100 - deg * 7.0;
+        sunDisc.setAttribute("cy", y);
+        sunRay.setAttribute("y1", y);
+        const blocked = deg <= 4.5;
+        sunRay.setAttribute("stroke", blocked ? "var(--state-bad)" : "var(--state-ok)");
+        shadowZone.style.display = blocked ? "block" : "none";
+        stSun.textContent = blocked ? "BLOQUEADO" : "ILUMINADO";
+        stSun.className = `sim-pill ${blocked ? "bad" : "ok"}`;
+      }
+      slSun.addEventListener("input", updateSun);
+      updateSun();
+
+      // Simulador 2: Tierra DTE vs Horizonte (~2.0°)
+      const slEarth = document.getElementById("sl-earth");
+      const outEarth = document.getElementById("out-earth");
+      const stEarth = document.getElementById("st-earth");
+      const earthRay = document.getElementById("earth-ray");
+      const earthDisc = document.getElementById("earth-disc");
+      function updateEarth() {
+        const deg = Number(slEarth.value);
+        outEarth.textContent = `${deg >= 0 ? "+" : ""}${deg.toFixed(1)}°`;
+        const y = 78 - deg * 5.6;
+        earthDisc.setAttribute("cy", y);
+        earthRay.setAttribute("y2", y);
+        const ok = deg >= 2.0;
+        earthRay.setAttribute("stroke", ok ? "var(--data-earth-high)" : "var(--state-bad)");
+        earthDisc.setAttribute("fill", ok ? "var(--data-earth-high)" : "var(--state-bad)");
+        stEarth.textContent = ok ? "ENLACE DTE" : "SIN ENLACE";
+        stEarth.className = `sim-pill ${ok ? "ok" : "bad"}`;
+      }
+      slEarth.addEventListener("input", updateEarth);
+      updateEarth();
+
+      // Simulador 3: Pendiente
+      const slSlope = document.getElementById("sl-slope");
+      const outSlope = document.getElementById("out-slope");
+      const stSlope = document.getElementById("st-slope");
+      const slopeGroup = document.getElementById("slope-group");
+      function updateSlope() {
+        const deg = Number(slSlope.value);
+        outSlope.textContent = `${deg.toFixed(1)}°`;
+        slopeGroup.setAttribute("transform", `rotate(${-deg} 180 94)`);
+        if (deg <= 8) {
+          stSlope.textContent = deg <= 5 ? "IDEAL HLS" : "APTO HLS";
+          stSlope.className = "sim-pill ok";
+        } else if (deg <= 10) {
+          stSlope.textContent = "SOLO CLPS";
+          stSlope.className = "sim-pill warn";
+        } else if (deg <= 20) {
+          stSlope.textContent = "SOLO ROVER";
+          stSlope.className = "sim-pill warn";
+        } else {
+          stSlope.textContent = "ESCARPADO";
+          stSlope.className = "sim-pill bad";
+        }
+      }
+      slSlope.addEventListener("input", updateSlope);
+      updateSlope();
+
+      // Simulador 4: Escudo SVF
+      const slShield = document.getElementById("sl-shield");
+      const outShield = document.getElementById("out-shield");
+      const stShield = document.getElementById("st-shield");
+      const shieldWalls = document.getElementById("shield-walls");
+      const skyCone = document.getElementById("sky-cone");
+      function updateShield() {
+        const deg = Number(slShield.value);
+        outShield.textContent = `${deg}°`;
+        const peakY = 98 - deg * 2.3;
+        shieldWalls.setAttribute("d", `M20 100 L85 ${peakY} L125 100 L235 100 L275 ${peakY} L340 100 L340 116 L20 116 Z`);
+        const spread = Math.max(22, 95 - deg * 2.2);
+        skyCone.setAttribute("points", `180,100 ${180 - spread},12 ${180 + spread},12`);
+        const svf = Math.max(0.25, 1 - deg / 58);
+        stShield.textContent = `SVF ${svf.toFixed(2)}`;
+        stShield.className = `sim-pill ${svf < 0.75 ? "ok" : "warn"}`;
+      }
+      slShield.addEventListener("input", updateShield);
+      updateShield();
+
+      const toast = document.getElementById("toast");
+      let timer = null;
+      function showToast(html) {
+        toast.innerHTML = html;
+        toast.classList.add("show");
+        clearTimeout(timer);
+        timer = setTimeout(() => toast.classList.remove("show"), 4500);
+      }
+
+      const PAYLOADS = {
+        "mons-mouton": `runExample({ ids: ["mons-mouton"], date: "2026-12-15T00:00:00Z", pole: true, layer: "solar" })`,
+        "im-1": `runExample({ ids: ["im-1"], date: "2026-12-15T00:00:00Z", pole: true, layer: "slope" })`,
+        "apollo-11": `runExample({ ids: ["apollo-11"], date: "2026-12-15T00:00:00Z", pole: false, layer: "lroc" })`,
+        "compare": `runExample({ ids: ["apollo-11", "mons-mouton"], date: "2026-12-15T00:00:00Z", compare: true })`,
+      };
+      document.querySelectorAll("[data-sim]").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          showToast(`<strong>Mock · Abriría en Zenith:</strong><br/><code>${PAYLOADS[btn.dataset.sim]}</code>`);
+        });
+      });
+      document.getElementById("btn-tour").addEventListener("click", () => {
+        showToast(`<strong>Mock · Tour guiado:</strong><br/><code>startTour()</code>`);
+      });
+    </script>
+  </body>
+</html>
