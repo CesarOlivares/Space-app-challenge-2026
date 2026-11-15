@@ -120,39 +120,22 @@
         <aside id="drawer" class="drawer glass" hidden aria-labelledby="drawer-title">
           <div class="drawer-head">
             <h2 id="drawer-title" data-i18n="drawer.title">Configuración</h2>
+            <div class="segmented wide" role="group" data-i18n-attr="aria-label: controls.modeGroup">
+              <button type="button" data-mode="simple" aria-pressed="true" data-i18n="controls.simple">Simple</button>
+              <button type="button" data-mode="tecnico" aria-pressed="false" data-i18n="controls.technical">Técnico</button>
+            </div>
             <button type="button" id="drawer-close" class="icon-btn" data-i18n-attr="aria-label: drawer.close">✕</button>
           </div>
 
+          <div class="segmented wide drawer-tabs" role="tablist" data-i18n-attr="aria-label: drawer.tabsLabel">
+            <button type="button" id="tab-btn-sites" role="tab" aria-selected="true" aria-controls="tab-sites" data-drawer-tab="sites" tabindex="0" data-i18n="drawer.tabSites">Sitios</button>
+            <button type="button" id="tab-btn-layers" role="tab" aria-selected="false" aria-controls="tab-layers" data-drawer-tab="layers" tabindex="-1" data-i18n="drawer.tabLayers">Globo y Capas</button>
+          </div>
+
           <div class="drawer-body">
-            <div class="drawer-top-controls">
-              <div class="segmented wide" role="group" data-i18n-attr="aria-label: controls.modeGroup">
-                <button type="button" data-mode="simple" aria-pressed="true" data-i18n="controls.simple">Simple</button>
-                <button type="button" data-mode="tecnico" aria-pressed="false" data-i18n="controls.technical">Técnico</button>
-              </div>
-
-              <div class="segmented wide drawer-tabs" role="tablist" data-i18n-attr="aria-label: drawer.tabsLabel">
-                <button type="button" id="tab-btn-sites" role="tab" aria-selected="true" aria-controls="tab-sites" data-drawer-tab="sites" tabindex="0" data-i18n="drawer.tabSites">Sitios</button>
-                <button type="button" id="tab-btn-layers" role="tab" aria-selected="false" aria-controls="tab-layers" data-drawer-tab="layers" tabindex="-1" data-i18n="drawer.tabLayers">Globo y Capas</button>
-              </div>
-            </div>
-
             <!-- Pestaña 1: Sitios -->
             <div id="tab-sites" class="drawer-tabpanel" role="tabpanel" aria-labelledby="tab-btn-sites">
-              <section class="group" id="sites-panel">
-                <div class="list-header">
-                  <label><input type="checkbox" id="filter-south-pole" /> <span data-i18n="list.southOnly">Solo polo sur</span></label>
-                  <div class="list-actions">
-                    <button type="button" id="clear-selection" class="small" data-i18n="list.clearSelection">Quitar selección</button>
-                    <button type="button" id="clear-pins" class="small" data-i18n="list.clearPins">Quitar pines</button>
-                    <button type="button" id="export-csv" class="small" data-i18n="list.csv">Exportar CSV</button>
-                  </div>
-                </div>
-                <p class="list-hint simple-only" data-i18n="list.hintSimple"></p>
-                <p class="list-hint tech-only" data-i18n="list.hint"></p>
-                <ol id="site-list"></ol>
-              </section>
-
-              <section class="group">
+              <section class="group pin-controls">
                 <button type="button" id="place-pin-toggle" aria-pressed="false" data-i18n="pin.place">Colocar pin en la Luna</button>
                 <p class="caption pin-hint" id="place-pin-hint" hidden data-i18n="pin.modeHint">Modo activo: haz clic en la Luna (o Shift+clic) para evaluar un punto.</p>
                 <details class="custom">
@@ -169,7 +152,23 @@
                 </details>
               </section>
 
-              <details class="custom tech-only" open>
+              <section class="group" id="sites-panel">
+                <div class="list-header">
+                  <div class="list-header-top">
+                    <label><input type="checkbox" id="filter-south-pole" /> <span data-i18n="list.southOnly">Solo polo sur</span></label>
+                    <button type="button" id="export-csv" class="small" data-i18n="list.csv">Exportar CSV</button>
+                  </div>
+                  <div class="list-actions">
+                    <button type="button" id="clear-selection" class="small" data-i18n="list.clearSelection">Quitar selección</button>
+                    <button type="button" id="clear-pins" class="small" data-i18n="list.clearPins">Quitar pines</button>
+                  </div>
+                </div>
+                <p class="list-hint simple-only" data-i18n="list.hintSimple"></p>
+                <p class="list-hint tech-only" data-i18n="list.hint"></p>
+                <ol id="site-list"></ol>
+              </section>
+
+              <details class="custom tech-only" id="settings-details">
                 <summary data-i18n="settings.summary">Ajustes del puntaje</summary>
                 <form id="settings">
                   <label><span data-i18n="settings.weight">Peso de cada criterio</span>
@@ -262,17 +261,18 @@
               </section>
             </div>
 
-            <a class="btn learn-link" href="#aprender" data-i18n="learn.more">Aprender más</a>
+          </div>
 
-            <div class="buttons">
+          <footer class="drawer-footer">
+            <div class="drawer-footer-actions">
+              <a class="btn learn-link" href="#aprender" data-i18n="learn.more">Aprender más</a>
               <button type="button" id="copy-link" data-i18n="controls.copyLink">Copiar enlace</button>
             </div>
-
             <details class="custom credits">
               <summary data-i18n="credits.title">Créditos y fuentes</summary>
               <p class="caption" data-i18n="credits.body"></p>
             </details>
-          </div>
+          </footer>
         </aside>
 
         <!-- Detalle completo del sitio: se abre desde la ficha. -->
