@@ -425,7 +425,8 @@ const ENTER = {
     // ocultos hasta el segundo tiempo
     gsap.set($('.z1, .z2, .moon4', s), {opacity: 0}); gsap.set($('.zen .ch', s), {yPercent: 115}); gsap.set($('.eq .bx, .eq .op', s), {opacity: 0, y: 30});
     const svg = $('.links', s)[0]; svg.innerHTML = '';
-    s._steps = [() => {   // segundo clic: "Para esto nace Zenith"
+    s._auto = 13.5;   // la unión parte sola a los 13,5 s ("Para esto nace Zenith"); un clic la adelanta
+    s._steps = [() => {   // segundo tiempo: "Para esto nace Zenith"
       const t2 = gsap.timeline({paused: true});
       const lines = chips.map(el => { const x = el.offsetLeft + el.offsetWidth / 2, y = el.offsetTop + el.offsetHeight / 2, L = Math.hypot(CX - x, CY - y);
         const ln = document.createElementNS('http://www.w3.org/2000/svg', 'line'); ln.setAttribute('x1', x); ln.setAttribute('y1', y); ln.setAttribute('x2', CX); ln.setAttribute('y2', CY);
@@ -483,7 +484,7 @@ if (!reduce) { gsap.to('#s4 .moon4', {rotation: 6, duration: 30, yoyo: true, rep
 /* ===== Navegación y transiciones ===== */
 const TYPE = {2: 'push', 4: 'push', 5: 'blinds'};  // índice (0-based) → tipo; por defecto iris
 const iris = document.getElementById('iris'), ring = iris.querySelector('.ring');
-const demos = new Map(); let cur = -1, tl = null, trans = null, steps = [], step = 0;
+const demos = new Map(); let cur = -1, tl = null, trans = null, steps = [], step = 0, autoT = null;
 let keep = -1;   // lámina saliente: su demo sigue visible hasta que termina la transición
 function dropOthers(i) { for (const k of [...demos.keys()]) if (k !== i && k !== keep) { demos.get(k).destroy(); demos.delete(k); } if (i !== 0 && keep !== 0) stopPortada(); }
 function manageDemos(i) {
@@ -494,7 +495,9 @@ function manageDemos(i) {
 function enter(i, instant) {
   const s = slides[i]; restore(s);
   if (i === 0) stopPortada();
-  s._steps = null; tl = ENTER[s.id](s); steps = s._steps || []; step = 0; manageDemos(i);
+  autoT?.kill(); autoT = null;
+  s._steps = null; s._auto = 0; tl = ENTER[s.id](s); steps = s._steps || []; step = 0; manageDemos(i);
+  if (s._auto && !instant && !reduce) autoT = gsap.delayedCall(s._auto, () => { if (cur === i && step < steps.length) { if (tl) tl.progress(1); tl = steps[step++](); tl.play(0); } });
   location.hash = 'lamina-' + (i + 1);
   if (instant || reduce) { tl.progress(1); while (step < steps.length) { tl = steps[step++](); tl.progress(1); } } else tl.play(0);
 }
@@ -520,7 +523,7 @@ function go(i) {
   trans.call(() => tl.play(0), null, type === 'push' ? .3 : .25);
 }
 function next() { if (trans && trans.isActive()) { trans.progress(1); return; } if (tl && tl.isActive()) { tl.progress(1); return; }
-  if (step < steps.length) { tl = steps[step++](); tl.play(0); return; } go(cur + 1); }
+  if (step < steps.length) { autoT?.kill(); tl = steps[step++](); tl.play(0); return; } go(cur + 1); }
 function prev() { if (trans && trans.isActive()) trans.progress(1); if (cur > 0) show(cur - 1, true); }
 addEventListener('keydown', e => {
   if (['ArrowRight', 'PageDown', ' ', 'Enter'].includes(e.key)) { e.preventDefault(); next(); }
