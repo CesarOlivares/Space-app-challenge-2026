@@ -5,8 +5,11 @@ import websockets
 OUT = sys.argv[1]; os.makedirs(OUT, exist_ok=True); B = shutil.which("brave-browser")
 ONLY = [int(x) for x in sys.argv[2].split(",")] if len(sys.argv) > 2 else [1, 2, 3, 4, 5, 6, 7]
 R = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-CLICS = {4: [4.0]}  # clics del presentador dentro de una lámina (segundos)
+CLICS = {4: [4.0]}
+if os.environ.get("FINAL"):  # estado final de cada lámina (para el PDF)
+    CLICS = {4: [1.0]}  # clics del presentador dentro de una lámina (segundos)
 TIMES = {1: [7], 2: [7], 3: [6, 17], 4: [3.5, 5.0, 5.8, 9], 5: [6, 13, 22], 6: [6, 14, 24], 7: [7]}
+if os.environ.get("FINAL"): TIMES = {1: [8], 2: [7], 3: [16], 4: [7], 5: [20], 6: [19], 7: [8]}
 async def main():
     port, dbg = random.randint(20000, 29999), random.randint(30000, 39999)
     srv = subprocess.Popen([sys.executable, "-m", "http.server", str(port), "--directory", os.path.join(R, "dist")], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, start_new_session=True)
@@ -28,7 +31,7 @@ async def main():
                 (infos if d["params"]["type"] == "info" else errs if d["params"]["type"] in ("error", "warning") else []).append(txt[:200])
             if d.get("id") == my: return d.get("result", {})
     await send("Runtime.enable"); await send("Page.enable")
-    await send("Emulation.setDeviceMetricsOverride", width=1920, height=1080, deviceScaleFactor=0.5, mobile=False)
+    await send("Emulation.setDeviceMetricsOverride", width=1920, height=1080, deviceScaleFactor=float(os.environ.get("DPR", "0.5")), mobile=False)
     for i in ONLY:
         await send("Page.navigate", url=(os.environ.get("BASE") or f"http://localhost:{port}/index.html") + f"?v={i}#lamina-{i}")
         t0 = 0; pend = list(CLICS.get(i, []))
