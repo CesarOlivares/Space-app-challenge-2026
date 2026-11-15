@@ -468,32 +468,44 @@ function legendItemsForLayer(layer, maxSlopeDeg) {
   const maxSlope = Number.isInteger(slope) ? String(slope) : num(slope, 1);
   switch (layer) {
     case "risk-a":
-      return [
-        ["#10c891", t("layers.legFlat")],
-        ["#f5c518", t("layers.legMod", { max: maxSlope })],
-        ["#e12d37", t("layers.legSteep", { max: maxSlope })],
-      ];
+      return {
+        title: t("layers.legTitleSlope", { max: maxSlope }),
+        items: [
+          ["#10c891", t("layers.legFlat")],
+          ["#f5c518", t("layers.legMod", { max: maxSlope })],
+          ["#e12d37", t("layers.legSteep", { max: maxSlope })],
+        ],
+      };
     case "solar":
-      return [
-        ["#facc15", t("layers.legSunHigh")],
-        ["#f97316", t("layers.legSunMed")],
-        ["#3b82f6", t("layers.legSunLow")],
-        ["#0f172a", t("layers.legSunCold")],
-      ];
+      return {
+        title: t("layers.legTitleSolar"),
+        items: [
+          ["#facc15", t("layers.legSunHigh")],
+          ["#f97316", t("layers.legSunMed")],
+          ["#3b82f6", t("layers.legSunLow")],
+          ["#1e293b", t("layers.legSunCold")],
+        ],
+      };
     case "comm":
-      return [
-        ["#22c55e", t("layers.legCommDirect")],
-        ["#eab308", t("layers.legCommInterm")],
-        ["#0f172a", t("layers.legCommNone")],
-      ];
+      return {
+        title: t("layers.legTitleComm"),
+        items: [
+          ["#22c55e", t("layers.legCommDirect")],
+          ["#eab308", t("layers.legCommInterm")],
+          ["#1e293b", t("layers.legCommNone")],
+        ],
+      };
     case "suitability":
-      return [
-        ["#34d399", t("layers.legSuitOpt")],
-        ["#0ea5e9", t("layers.legSuitGood")],
-        ["#ea8a18", t("layers.legSuitLim")],
-        ["#dc2626", t("layers.legSuitSteep")],
-        ["#0f172a", t("layers.legSuitBlocked")],
-      ];
+      return {
+        title: t("layers.legTitleSuit"),
+        items: [
+          ["#34d399", t("layers.legSuitOpt")],
+          ["#0ea5e9", t("layers.legSuitGood")],
+          ["#ea8a18", t("layers.legSuitLim")],
+          ["#dc2626", t("layers.legSuitSteep", { max: maxSlope })],
+          ["#1e293b", t("layers.legSuitBlocked")],
+        ],
+      };
     default:
       return null;
   }
@@ -504,14 +516,30 @@ function renderActiveLayerLegend() {
   const layer = globe.layerMode ?? "surface";
   const surface = globe.surfaceMode ?? "lroc";
   activeLayerLegend.dataset.layer = layer;
-  const items = legendItemsForLayer(layer, state.config.maxSlopeDeg);
-  if (!items) {
+  const spec = legendItemsForLayer(layer, state.config.maxSlopeDeg);
+  if (!spec) {
     const msg = document.createElement("span");
+    msg.className = "leg-surface";
     msg.textContent = t(surface === "lola" ? "layers.legendSurfaceLola" : "layers.legendSurfaceLroc");
     activeLayerLegend.replaceChildren(msg);
     return;
   }
-  activeLayerLegend.replaceChildren(...items.map(([color, label]) => {
+  const head = document.createElement("div");
+  head.className = "leg-head";
+  head.textContent = spec.title;
+
+  const bar = document.createElement("div");
+  bar.className = "leg-bar";
+  bar.setAttribute("aria-hidden", "true");
+  for (const [color] of spec.items) {
+    const seg = document.createElement("span");
+    seg.style.setProperty("--c", color);
+    bar.append(seg);
+  }
+
+  const list = document.createElement("div");
+  list.className = "leg-items";
+  for (const [color, label] of spec.items) {
     const wrap = document.createElement("span");
     wrap.className = "leg-item";
     const swatch = document.createElement("span");
@@ -519,8 +547,9 @@ function renderActiveLayerLegend() {
     swatch.style.setProperty("--c", color);
     swatch.setAttribute("aria-hidden", "true");
     wrap.append(swatch, document.createTextNode(label));
-    return wrap;
-  }));
+    list.append(wrap);
+  }
+  activeLayerLegend.replaceChildren(head, bar, list);
 }
 
 let riskGridLoadedForSlope = null;
