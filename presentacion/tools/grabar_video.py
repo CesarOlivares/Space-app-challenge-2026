@@ -21,7 +21,7 @@ PLAN = {
     1: dict(prev=None, dur=8.0),
     2: dict(prev=[("show", 0), ("ff", 6)], dur=7.0),
     3: dict(prev=[("show", 1), ("ff", 6)], dur=13.5),
-    4: dict(prev=[("show", 2), ("ff", 16)], dur=11.0, clicks=[6.6]),
+    4: dict(prev=[("show", 2), ("ff", 16)], dur=18.0, clicks=[13.5]),  # la frase de los datos dura ~14 s
     5: dict(prev=[("show", 3), ("ff", 5)], dur=18.0),   # show(.., true) ya aplica el segundo tiempo de la 4
     6: dict(prev=[("show", 4), ("ff", 20)], dur=17.0),
     7: dict(prev=[("show", 5), ("ff", 19)], dur=8.0),
