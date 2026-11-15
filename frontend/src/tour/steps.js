@@ -29,8 +29,8 @@ export function mainTour(ctx) {
       before: () => ctx.drawer(false),
       title: T("La fecha de aterrizaje", "The landing date"),
       body: T(
-        "Todo lo que ves corresponde a aterrizar en esta fecha (hora UTC). Cambia ±1 día o ±7 días, vuelve a «Ahora», escribe una fecha o usa ▶ Animar.",
-        "Everything you see assumes landing on this date (UTC). Step ±1 or ±7 days, jump to “Now”, type a date, or press ▶ Animate.",
+        "Todo lo que ves corresponde a aterrizar en esta fecha (hora UTC). Cambia el día con ‹ › o escribe una fecha.",
+        "Everything you see assumes landing on this date (UTC). Change the day with ‹ › or type a date.",
       ),
       read: T("Mueve la fecha y mira cómo cambian los sitios viables: la Luna gira y el Sol cambia de ángulo.", "Move the date and watch the viable sites change: the Moon turns and the Sun changes angle."),
     },
@@ -99,8 +99,8 @@ export function mainTour(ctx) {
       before: () => { ctx.drawer(false); },
       title: T("Configuración", "Settings"),
       body: T(
-        "El engranaje abre la configuración: modo Simple o Técnico, lista y colocación de pines, capas del globo 3D, ponderador de criterios y enlace del escenario.",
-        "The gear opens settings: Simple or Technical mode, site list and pin placement, 3D globe layers, scoring weights and a shareable scenario link.",
+        "El engranaje abre todo lo configurable en dos pestañas: Sitios (lista, pines y ajustes en Técnico) y Globo y Capas (tiempo, animación, capas y relieve 3D), además del enlace del escenario.",
+        "The gear opens everything adjustable in two tabs: Sites (site list, pins and scoring settings in Technical) and Globe & Layers (time, animation, 3D globe layers and relief), plus the scenario link.",
       ),
       read: T("El enlace copiado reproduce esta misma vista (fecha, sitios y ajustes) para compartirla.", "The copied link reproduces this exact view (date, sites and settings) so you can share it."),
     },
@@ -113,8 +113,8 @@ export function mainTour(ctx) {
       },
       title: T("Simple o Técnico", "Simple or Technical"),
       body: T(
-        "Simple muestra tarjetas limpias con lo esencial. Técnico agrega la pestaña «Ponderador» (pesos, pendiente límite, ventana y estancia), coordenadas y sub-puntajes E/C/T en la lista, y controles avanzados de relieve 3D.",
-        "Simple shows clean cards with the essentials. Technical adds the “Scoring” tab (weights, slope limit, window and stay), coordinates and E/C/T sub-scores in the list, and advanced 3D relief controls.",
+        "Simple muestra lo esencial. Técnico agrega los ajustes del puntaje en «Sitios» (pesos, pendiente límite, ventana y estancia), coordenadas y sub-puntajes E/C/T en la lista, y controles avanzados de relieve 3D.",
+        "Simple shows the essentials. Technical adds scoring settings under “Sites” (weights, slope limit, window and stay), coordinates and E/C/T sub-scores in the list, and advanced 3D relief controls.",
       ),
       read: T("Cambiar los pesos puede cambiar el ganador; la comparación te avisa si eso pasa.", "Changing the weights can change the winner; the comparison tells you when it does."),
     },

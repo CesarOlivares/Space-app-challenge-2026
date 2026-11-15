@@ -351,7 +351,6 @@ const drawerTabButtons = [...document.querySelectorAll("[data-drawer-tab]")];
 const drawerTabPanels = {
   sites: document.getElementById("tab-sites"),
   layers: document.getElementById("tab-layers"),
-  model: document.getElementById("tab-model"),
 };
 const layersInfoWrap = document.getElementById("layers-info-wrap");
 const layersInfoBtn = document.getElementById("layers-info-btn");
@@ -365,12 +364,11 @@ function setLayersInfo(open) {
 }
 
 function visibleDrawerTabButtons() {
-  return drawerTabButtons.filter((b) => !(state.mode === "simple" && b.classList.contains("tech-only")));
+  return drawerTabButtons;
 }
 
 function setDrawerTab(tab, { focus = false } = {}) {
-  let next = tab in drawerTabPanels ? tab : "sites";
-  if (state.mode !== "tecnico" && next === "model") next = "sites";
+  const next = tab in drawerTabPanels ? tab : "sites";
   activeDrawerTab = next;
   for (const btn of drawerTabButtons) {
     const selected = btn.dataset.drawerTab === next;
@@ -636,7 +634,6 @@ function applyMode(mode) {
   for (const button of document.querySelectorAll("[data-mode]")) {
     button.setAttribute("aria-pressed", button.dataset.mode === state.mode);
   }
-  if (state.mode === "simple" && activeDrawerTab === "model") setDrawerTab("sites");
   stored.set("mode", state.mode);
 }
 
