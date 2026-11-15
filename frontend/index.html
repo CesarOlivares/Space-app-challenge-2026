@@ -76,21 +76,40 @@
       <section id="sec-explorar" class="page page--explore" hidden aria-labelledby="explore-title">
         <h1 id="explore-title" class="sr-only" tabindex="-1" data-i18n="explore.h1">Vista general</h1>
 
-        <!-- Fecha: lo único que está siempre a la vista. -->
-        <div id="datebar" class="glass">
-          <button type="button" class="step" data-shift-days="-1" data-i18n-attr="aria-label: date.prev; title: date.prev">‹</button>
-          <label class="sr-only" for="date-input" data-i18n="controls.date">Fecha de aterrizaje (UTC)</label>
-          <input id="date-input" type="datetime-local" step="3600" />
-          <button type="button" class="step" data-shift-days="1" data-i18n-attr="aria-label: date.next; title: date.next">›</button>
-          <p id="status" role="status">Conectando…</p>
-        </div>
+        <!-- Barra superior izquierda: fecha, animación y leyenda mínima siempre alineadas sin superposición. -->
+        <div class="hud-top-left">
+          <div id="datebar" class="glass">
+            <div class="datebar-row datebar-row-top">
+              <button type="button" class="step" data-shift-days="-1" data-i18n-attr="aria-label: date.prev; title: date.prev">‹</button>
+              <label class="sr-only" for="date-input" data-i18n="controls.date">Fecha de aterrizaje (UTC)</label>
+              <input id="date-input" type="datetime-local" step="3600" />
+              <button type="button" class="step" data-shift-days="1" data-i18n-attr="aria-label: date.next; title: date.next">›</button>
+              <span class="datebar-sep" aria-hidden="true"></span>
+              <p id="status" role="status">Conectando…</p>
+            </div>
+            <div class="datebar-row datebar-row-controls" role="group" data-i18n-attr="aria-label: controls.shiftGroup">
+              <button type="button" data-shift-days="-7" data-i18n-attr="aria-label: date.prevWeek; title: date.prevWeek">−7 d</button>
+              <button type="button" id="date-now" data-i18n="controls.now">Ahora</button>
+              <button type="button" data-shift-days="7" data-i18n-attr="aria-label: date.nextWeek; title: date.nextWeek">+7 d</button>
+              <button type="button" id="play" aria-pressed="false" data-i18n="controls.play">▶ Animar</button>
+              <label class="inline"><span data-i18n="controls.step">Paso</span>
+                <select id="play-speed">
+                  <option value="2">2 h</option>
+                  <option value="6" selected>6 h</option>
+                  <option value="12">12 h</option>
+                  <option value="24" data-i18n="controls.oneDay">1 día</option>
+                </select>
+              </label>
+            </div>
+          </div>
 
-        <!-- Cómo leer los puntos, siempre a la vista (el "?" abre el detalle). -->
-        <ul id="legend-mini" class="glass" data-i18n-attr="aria-label: legend.title">
-          <li><svg class="reticle-key" viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="7" fill="none" stroke="var(--viable)" stroke-opacity=".3" stroke-width="2.6"/><circle cx="10" cy="10" r="7" fill="none" stroke="var(--viable)" stroke-width="2.6" stroke-dasharray="28.6 43.98" transform="rotate(-90 10 10)"/><circle cx="10" cy="10" r="1.6" fill="var(--viable)"/></svg><span data-i18n="legmini.arc">Arco: puntaje</span></li>
-          <li><svg class="reticle-key" viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="7" fill="none" stroke="var(--viable)" stroke-opacity=".3" stroke-width="2.6"/><circle cx="10" cy="10" r="7" fill="none" stroke="var(--viable)" stroke-width="2.6" stroke-dasharray="44.0 43.98" transform="rotate(-90 10 10)"/><circle cx="10" cy="10" r="1.6" fill="var(--viable)"/></svg><span data-i18n="legmini.viable">Celeste: viable</span></li>
-          <li><svg class="reticle-key" viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="6" fill="none" stroke="var(--off)" stroke-width="2.4" stroke-dasharray="2.2 2.4"/><circle cx="10" cy="10" r="1.6" fill="var(--off)"/></svg><span data-i18n="legmini.off">Gris punteado: no viable</span></li>
-        </ul>
+          <!-- Cómo leer los puntos, siempre a la vista (el "?" abre el detalle). -->
+          <ul id="legend-mini" class="glass" data-i18n-attr="aria-label: legend.title">
+            <li><svg class="reticle-key" viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="7" fill="none" stroke="var(--viable)" stroke-opacity=".3" stroke-width="2.6"/><circle cx="10" cy="10" r="7" fill="none" stroke="var(--viable)" stroke-width="2.6" stroke-dasharray="28.6 43.98" transform="rotate(-90 10 10)"/><circle cx="10" cy="10" r="1.6" fill="var(--viable)"/></svg><span data-i18n="legmini.arc">Arco: puntaje</span></li>
+            <li><svg class="reticle-key" viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="7" fill="none" stroke="var(--viable)" stroke-opacity=".3" stroke-width="2.6"/><circle cx="10" cy="10" r="7" fill="none" stroke="var(--viable)" stroke-width="2.6" stroke-dasharray="44.0 43.98" transform="rotate(-90 10 10)"/><circle cx="10" cy="10" r="1.6" fill="var(--viable)"/></svg><span data-i18n="legmini.viable">Celeste: viable</span></li>
+            <li><svg class="reticle-key" viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="6" fill="none" stroke="var(--off)" stroke-width="2.4" stroke-dasharray="2.2 2.4"/><circle cx="10" cy="10" r="1.6" fill="var(--off)"/></svg><span data-i18n="legmini.off">Gris punteado: no viable</span></li>
+          </ul>
+        </div>
 
         <!-- Panel del engranaje: todo lo configurable. -->
         <aside id="drawer" class="drawer glass" hidden aria-labelledby="drawer-title">
@@ -190,28 +209,6 @@
 
             <!-- Pestaña 2: Globo y Capas -->
             <div id="tab-layers" class="drawer-tabpanel" role="tabpanel" aria-labelledby="tab-btn-layers" hidden>
-              <section class="group">
-                <h3 data-i18n="drawer.time">Fecha y tiempo</h3>
-                <div class="buttons" role="group" data-i18n-attr="aria-label: controls.shiftGroup">
-                  <button type="button" data-shift-days="-7" data-i18n-attr="aria-label: date.prevWeek; title: date.prevWeek">−7 d</button>
-                  <button type="button" data-shift-days="-1" data-i18n-attr="aria-label: date.prev; title: date.prev">−1 d</button>
-                  <button type="button" id="date-now" data-i18n="controls.now">Ahora</button>
-                  <button type="button" data-shift-days="1" data-i18n-attr="aria-label: date.next; title: date.next">+1 d</button>
-                  <button type="button" data-shift-days="7" data-i18n-attr="aria-label: date.nextWeek; title: date.nextWeek">+7 d</button>
-                </div>
-                <div class="buttons play" role="group" data-i18n-attr="aria-label: controls.playGroup">
-                  <button type="button" id="play" aria-pressed="false" data-i18n="controls.play">▶ Animar</button>
-                  <label class="inline"><span data-i18n="controls.step">Paso</span>
-                    <select id="play-speed">
-                      <option value="2">2 h</option>
-                      <option value="6" selected>6 h</option>
-                      <option value="12">12 h</option>
-                      <option value="24" data-i18n="controls.oneDay">1 día</option>
-                    </select>
-                  </label>
-                </div>
-              </section>
-
               <section class="group">
                 <h3 data-i18n="drawer.globe">Globo</h3>
                 <div class="buttons" role="group" data-i18n-attr="aria-label: controls.viewGroup">
