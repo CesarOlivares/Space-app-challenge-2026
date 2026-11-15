@@ -6,10 +6,18 @@
 import { escapeHtml } from "../format.js";
 import { getLang } from "../i18n.js";
 import { icon } from "../icons.js";
+import { DETAILS, LABELS } from "./learnContent.js";
+import { figureHtml } from "./learnFigures.js";
 
 const TXT = {
   es: {
     title: "Aprender",
+    idxAria: "Ir a un tema",
+    idxWhy: "Lo básico", idxNasa: "Cómo decide la NASA", idxKpi: "Indicadores", idxCharts: "Gráficos", idxEx: "Ejemplos",
+    tapHint: "Toca una tarjeta para ver cómo leerla, un ejemplo real y dónde la ves en la herramienta.",
+    tourTitle: "¿Primera vez aquí?",
+    tourText: "Haz el recorrido guiado: resalta cada control de la herramienta, dice para qué sirve y cómo leerlo. Dura unos 2 minutos.",
+    tourBtn: "Empezar el tutorial",
     lead: "Lo necesario para leer los resultados sin ser experto: qué hace difícil aterrizar en la Luna, cómo decide la NASA, qué mide cada indicador y qué puedes probar ahora mismo.",
     whyTitle: "¿Por qué es difícil elegir dónde aterrizar?",
     w1t: "Sin atmósfera",
@@ -95,6 +103,12 @@ const TXT = {
   },
   en: {
     title: "Learn",
+    idxAria: "Jump to a topic",
+    idxWhy: "The basics", idxNasa: "How NASA decides", idxKpi: "Indicators", idxCharts: "Charts", idxEx: "Examples",
+    tapHint: "Tap a card to see how to read it, a real example and where you see it in the tool.",
+    tourTitle: "First time here?",
+    tourText: "Take the guided tour: it highlights each control of the tool, says what it is for and how to read it. It takes about 2 minutes.",
+    tourBtn: "Start the tutorial",
     lead: "What you need to read the results without being an expert: what makes landing on the Moon hard, how NASA decides, what each indicator measures and what you can try right now.",
     whyTitle: "Why is choosing a landing site so hard?",
     w1t: "No atmosphere",
@@ -181,6 +195,7 @@ const TXT = {
 };
 
 const tr = (key) => (TXT[getLang()] ?? TXT.es)[key] ?? TXT.es[key] ?? key;
+const sectionFromHash = () => location.hash.replace(/^#/, "").split("/")[0];
 const ic = (name) => icon(name).outerHTML;
 
 // Fuentes primarias de la sección «Cómo decide la NASA» (las mismas de docs/modelo/investigacion).
@@ -199,36 +214,108 @@ const EXAMPLES = [
   { title: "ex4t", text: "ex4x", ids: ["apollo-11", "mons-mouton"], date: DATE, compare: true },
 ];
 
-const WHY = [["phases", "w1t", "w1x"], ["kpiEnergy", "w2t", "w2x"], ["kpiTerrain", "w3t", "w3x"], ["kpiComms", "w4t", "w4x"]];
+// [id, ícono, clave del título, clave del texto corto]. El id es el de la tarjeta en DETAILS y en la URL.
+const WHY = [["why-dark", "notViable", "w1t", "w1x"], ["why-days", "time", "w2t", "w2x"], ["why-grazing", "sun", "w3t", "w3x"], ["why-earth", "earth", "w4t", "w4x"]];
 const KPIS = [
-  ["kpiComms", "kCommT", "kCommX"], ["kpiEnergy", "kEnergyT", "kEnergyX"], ["kpiTerrain", "kTerrainT", "kTerrainX"],
-  ["kpiShield", "kShieldT", "kShieldX"], ["kpiTotal", "kTotalT", "kTotalX"],
+  ["kpi-comms", "kpiComms", "kCommT", "kCommX"], ["kpi-energy", "kpiEnergy", "kEnergyT", "kEnergyX"], ["kpi-terrain", "kpiTerrain", "kTerrainT", "kTerrainX"],
+  ["kpi-shield", "kpiShield", "kShieldT", "kShieldX"], ["kpi-total", "kpiTotal", "kTotalT", "kTotalX"],
 ];
 const STEPS = ["s1", "s2", "s3", "s4", "s5"];
 const CRITERIA = [["c1a", "c1b", "c1c"], ["c2a", "c2b", "c2c"], ["c3a", "c3b", "c3c"], ["c4a", "c4b", "c4c"], ["c5a", "c5b", "c5c"]];
-const CHARTS = [["g1t", "g1x"], ["g2t", "g2x"], ["g3t", "g3x"], ["g4t", "g4x"], ["g5t", "g5x"], ["g6t", "g6x"]];
+const CHARTS = [
+  ["chart-reticle", "reticle", "g1t", "g1x"], ["chart-margin", "target", "g2t", "g2x"], ["chart-horizon", "compass", "g3t", "g3x"],
+  ["chart-window", "time", "g4t", "g4x"], ["chart-calendar", "brackets", "g5t", "g5x"], ["chart-weights", "crosshair", "g6t", "g6x"],
+];
+const INDEX = [["learn-why", "idxWhy"], ["learn-nasa", "idxNasa"], ["learn-kpi", "idxKpi"], ["learn-charts", "idxCharts"], ["learn-ex", "idxEx"]];
+const SEEN_KEY = "learnSeen";
 
 export class LearnView {
   // onExample({ ids, date, pole, compare }): abre la herramienta con ese ejemplo.
-  constructor(root, { onExample, onGoExplore }) {
+  constructor(root, { onExample, onGoExplore, onTour = () => {} }) {
     this.root = root;
+    this.open = new Set();
+    this.seen = new Set(this.loadSeen());
     root.addEventListener("click", (e) => {
+      const head = e.target.closest("[data-card]");
+      if (head) this.toggle(head.dataset.card);
+      const jump = e.target.closest("[data-jump]");
+      if (jump) document.getElementById(jump.dataset.jump)?.scrollIntoView({ behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block: "start" });
       const card = e.target.closest("[data-example]");
-      if (card) onExample(EXAMPLES[Number(card.dataset.example)]);
+      if (card) onExample(EXAMPLES[Number(card.dataset.example)], Number(card.dataset.example));
       if (e.target.closest("[data-learn-explore]")) onGoExplore();
+      if (e.target.closest("[data-learn-tour]")) onTour();
     });
+    window.addEventListener("hashchange", () => this.openFromHash());
     this.render();
+    this.openFromHash();
+  }
+
+  loadSeen() {
+    try { return JSON.parse(localStorage.getItem(SEEN_KEY) ?? "[]"); } catch { return []; }
+  }
+
+  saveSeen() {
+    try { localStorage.setItem(SEEN_KEY, JSON.stringify([...this.seen])); } catch { /* sin almacenamiento */ }
+  }
+
+  // Abre o cierra una tarjeta sin volver a dibujar todo; el estado abierto queda en la URL (#aprender/<id>).
+  toggle(id, force) {
+    const el = document.getElementById(`learn-card-${id}`);
+    if (!el) return;
+    const open = force ?? !this.open.has(id);
+    if (open) { this.open.add(id); this.seen.add(id); this.saveSeen(); } else this.open.delete(id);
+    el.classList.toggle("open", open);
+    el.classList.toggle("seen", this.seen.has(id));
+    el.querySelector("[data-card]").setAttribute("aria-expanded", String(open));
+    if (sectionFromHash() === "aprender") {
+      history.replaceState(null, "", `${location.pathname}${location.search}#aprender${open ? `/${id}` : ""}`);
+    }
+  }
+
+  // Enlace directo a una tarjeta: #aprender/kpi-comms.
+  openFromHash() {
+    const [section, id] = location.hash.replace(/^#/, "").split("/");
+    if (section !== "aprender" || !id || !DETAILS[id]) return;
+    this.toggle(id, true);
+    setTimeout(() => {
+      const el = document.getElementById(`learn-card-${id}`);
+      el?.scrollIntoView({ block: "center" });
+      el?.querySelector("[data-card]").focus({ preventScroll: true });
+    }, 350);
+  }
+
+  card([id, i, t, x]) {
+    const d = DETAILS[id];
+    const L = LABELS[getLang()] ?? LABELS.es;
+    const pick = (v) => escapeHtml(v?.[getLang()] ?? v?.es ?? "");
+    const open = this.open.has(id);
+    const fig = figureHtml(id, getLang(), escapeHtml);
+    const layers = d ? [
+      fig,
+      d.read && `<div class="lcard-layer"><h4>${L.read}</h4><p>${pick(d.read)}</p></div>`,
+      d.example && `<div class="lcard-layer"><h4>${L.example}</h4><p>${pick(d.example)}</p></div>`,
+      d.where && `<div class="lcard-layer"><h4>${L.where}</h4><p>${pick(d.where)}</p></div>`,
+      d.tryEx != null && `<button type="button" class="btn btn--primary" data-example="${d.tryEx}">${L.tryIt}: ${escapeHtml(tr(EXAMPLES[d.tryEx].title))}</button>`,
+    ].filter(Boolean).join("") : "";
+    return `<li class="lcard${open ? " open" : ""}${this.seen.has(id) ? " seen" : ""}" id="learn-card-${id}">
+      <h3 class="lcard-h"><button type="button" class="lcard-head" id="lh-${id}" data-card="${id}" aria-expanded="${open}" aria-controls="lp-${id}">
+        ${ic(i)}<span class="lcard-text"><span class="lcard-title">${escapeHtml(tr(t))}</span><span class="lcard-sum">${escapeHtml(tr(x))}</span></span>
+        <span class="lcard-mark" aria-hidden="true"></span><span class="sr-only lcard-seen">${L.seen}</span>
+      </button></h3>
+      <div class="lcard-panel" id="lp-${id}" role="region" aria-labelledby="lh-${id}"><div class="lcard-inner">${layers}</div></div>
+    </li>`;
   }
 
   render() {
-    const card = ([i, t, x]) => `<li>${ic(i)}<div><h3>${escapeHtml(tr(t))}</h3><p>${escapeHtml(tr(x))}</p></div></li>`;
+    const card = (row) => this.card(row);
     const why = WHY.map(card).join("");
     const kpis = KPIS.map(card).join("");
+    const index = INDEX.map(([id, k]) => `<button type="button" data-jump="${id}">${escapeHtml(tr(k))}</button>`).join("");
     const steps = STEPS.map((k) => `<li>${escapeHtml(tr(k))}</li>`).join("");
     const criteria = CRITERIA.map(([a, b, c]) => `
       <tr><th scope="row">${escapeHtml(tr(a))}</th><td>${escapeHtml(tr(b))}</td><td>${escapeHtml(tr(c))}</td></tr>`).join("");
     const sources = NASA_SOURCES.map(([label, url]) => `<li><a href="${url}" target="_blank" rel="noopener">${escapeHtml(label)}</a></li>`).join("");
-    const charts = CHARTS.map(([t, x]) => `<li><h3>${escapeHtml(tr(t))}</h3><p>${escapeHtml(tr(x))}</p></li>`).join("");
+    const charts = CHARTS.map(card).join("");
     const examples = EXAMPLES.map((ex, n) => `
       <li><div><h3>${escapeHtml(tr(ex.title))}</h3><p>${escapeHtml(tr(ex.text))}</p></div>
         <button type="button" class="btn" data-example="${n}">${escapeHtml(tr("try"))}</button></li>`).join("");
@@ -242,6 +329,12 @@ export class LearnView {
           <span class="section-head__rule"></span>
         </div>
         <p class="learn-lead">${escapeHtml(tr("lead"))}</p>
+
+        <div class="tour-invite">${ic("tutorial")}<p><b>${escapeHtml(tr("tourTitle"))}</b>${escapeHtml(tr("tourText"))}</p>
+          <button type="button" class="btn btn--primary" data-learn-tour>${escapeHtml(tr("tourBtn"))}</button></div>
+
+        <nav class="learn-index" aria-label="${escapeHtml(tr("idxAria"))}">${index}</nav>
+        <p class="learn-sub learn-hint">${escapeHtml(tr("tapHint"))}</p>
 
         <section aria-labelledby="learn-why"><h2 id="learn-why">${escapeHtml(tr("whyTitle"))}</h2><ul class="learn-cards">${why}</ul></section>
 
@@ -264,7 +357,7 @@ export class LearnView {
 
         <section aria-labelledby="learn-kpi"><h2 id="learn-kpi">${escapeHtml(tr("kpiTitle"))}</h2><p class="learn-sub">${escapeHtml(tr("kpiLead"))}</p><ul class="learn-cards">${kpis}</ul></section>
 
-        <section aria-labelledby="learn-charts"><h2 id="learn-charts">${escapeHtml(tr("chartsTitle"))}</h2><p class="learn-sub">${escapeHtml(tr("chartsLead"))}</p><ul class="learn-charts">${charts}</ul></section>
+        <section aria-labelledby="learn-charts"><h2 id="learn-charts">${escapeHtml(tr("chartsTitle"))}</h2><p class="learn-sub">${escapeHtml(tr("chartsLead"))}</p><ul class="learn-cards learn-cards--charts">${charts}</ul></section>
 
         <section aria-labelledby="learn-ex"><h2 id="learn-ex">${escapeHtml(tr("exTitle"))}</h2><p class="learn-sub">${escapeHtml(tr("exLead"))}</p><ul class="learn-examples">${examples}</ul></section>
         <section aria-labelledby="learn-lim"><h2 id="learn-lim">${escapeHtml(tr("limTitle"))}</h2><ul class="learn-limits">${limits}</ul>

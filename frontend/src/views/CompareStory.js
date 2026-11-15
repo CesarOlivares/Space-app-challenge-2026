@@ -26,6 +26,7 @@ const SERIES_COLORS = ["#56b4e9", "#e69f00", "#46c878", "#cc79a7"];
 const TXT = {
   es: {
     back: "Volver al globo",
+    howRead: "¿Cómo leer esto?",
     eyebrow: "Lectura preliminar",
     titleTwo: "{a} frente a {b}",
     titleMany: "Comparación de {n} sitios",
@@ -188,6 +189,7 @@ const TXT = {
   },
   en: {
     back: "Back to the globe",
+    howRead: "How to read this",
     eyebrow: "Preliminary reading",
     titleTwo: "{a} vs {b}",
     titleMany: "Comparison of {n} sites",
@@ -554,7 +556,7 @@ function buildExplanation(results) {
 export class CompareStory {
   // `loadTimeline(result)` y `loadAvailability(result)` piden al servidor los datos pesados del detalle
   // técnico; solo se llaman cuando el usuario lo abre.
-  constructor(root, { onBack, onGoExplore, onSuggest, loadTimeline = null, loadAvailability = null, loadPatch = null }) {
+  constructor(root, { onBack, onGoExplore, onTour = () => {}, onSuggest, loadTimeline = null, loadAvailability = null, loadPatch = null }) {
     this.root = root;
     this.loadTimeline = loadTimeline;
     this.loadAvailability = loadAvailability;
@@ -563,6 +565,7 @@ export class CompareStory {
     root.addEventListener("click", (e) => {
       if (e.target.closest("[data-story-back]")) onBack();
       if (e.target.closest("[data-story-explore]")) onGoExplore();
+      if (e.target.closest("[data-story-tour]")) onTour();
       const suggestion = e.target.closest("[data-suggest]");
       if (suggestion) onSuggest(suggestion.dataset.suggest.split("|"));
     });
@@ -669,6 +672,7 @@ export class CompareStory {
       <div class="story">
         <aside class="story-explain">
           <button type="button" class="btn story-back" data-story-back>← ${tr("back")}</button>
+          <button type="button" class="btn story-howread" data-story-tour>${tr("howRead")}</button>
           <p class="eyebrow">${tr("eyebrow")}</p>
           <h1 class="story-title" id="cmpsec-title" tabindex="-1">${exp.title}</h1>
           <p class="context">${tr("context", { date: escapeHtml(formatUtc(results[0].date)), days })}</p>
