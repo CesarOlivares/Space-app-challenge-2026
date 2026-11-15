@@ -51,10 +51,12 @@ Qué hace la aplicación por ti:
 
 | Qué | Dónde | Notas |
 |---|---|---|
-| Relieve global, 16 píxeles por grado | `frontend/public/textures/moon_height_2k.png` + `moon_relief.json` | Se genera con `./run.sh data`. Mapa de 8 bits entre `min_m` y `max_m`. La clase `frontend/src/views/heightField.js` lo lee: `new HeightField(imagen, meta).heightMeters(lat, lon)` |
-| Normales del relieve | `frontend/public/textures/moon_normal_4k.jpg` | Ya lo usa el globo |
+| LOLA Global DEM (16 px/grado) | `frontend/public/textures/ldem_16.tif` | Se descarga con `./run.sh data`. Usado por `GlobalDEM` en el backend para calcular pendiente y rugosidad en todo el globo. |
+| Relieve global para Three.js | `frontend/public/textures/moon_height_2k.png` + `moon_relief.json` | Se genera con `./run.sh data`. Mapa de 8 bits entre `min_m` y `max_m` con el sellado continuo del polo sur de LOLA. La clase `frontend/src/views/heightField.js` lo lee: `new HeightField(imagen, meta).heightMeters(lat, lon)` |
+| Normales del relieve | `frontend/public/textures/moon_normal_4k.jpg` | Ya lo usa el shader del globo |
 | Relieve del polo sur, 120 m por píxel | `backend/data/dem/ldem_75s_120m.img` | Se descarga con `./run.sh data --dem` (116 MB). Proyección estereográfica polar; el cálculo está en `backend/app/models/terrain.py` |
 | Máscaras de horizonte | `backend/data/horizons/<id>.json` | Ya precalculadas para los sitios al sur de 80° S |
+| Rutas de relieve en la API | `/api/sites/{id}/terrain` (corte polar 120m) y `/api/sites/{id}/patch` (grilla NxN global) | Documentadas en `docs/API.md` |
 
 Si tu vista necesita datos que la API no entrega (por ejemplo un recorte del relieve alrededor de un sitio), agrega una ruta en `backend/app/controllers/` apoyada en `terrain.py`, con su prueba en `backend/tests/`, y documéntala en `docs/API.md`.
 

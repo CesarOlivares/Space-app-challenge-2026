@@ -34,15 +34,10 @@ Caso probado: Mons Mouton frente a Mons Malapert, 20 nov 2026 23:00 UTC, ventana
 
 ## 2. Datos de terreno y protección: ¿qué sitios los tienen?
 
-Consulta a `/api/scores` del 20-11-2026: **solo 6 de 22 sitios** tienen terreno y protección (im-1, im-2, mons-mouton, mons-malapert, shackleton-ridge, change-7). Son los que caen dentro del DEM polar LOLA (al sur de ~80° S). Los 16 restantes (Apollo, Luna, Chang'e 3–6, Chandrayaan-3, SLIM, Blue Ghost) muestran "Sin datos".
-
-Consecuencias:
-- Comparar un sitio Apollo con uno polar mezcla un puntaje de 2 criterios con uno de 4. Hoy no se nota porque terreno y protección pesan 0, pero si alguien sube esos pesos los totales dejan de ser comparables.
-- Para el público objetivo (Artemis, polo sur) los 6 sitios polares son los que importan. Los históricos sirven como referencia educativa.
-
-Opciones (decisión del equipo de modelo, P0):
-1. **Pendiente global con LOLA GDR** (~59 m/px a 118 m/px, global). Da pendiente aproximada para todos los sitios, con la resolución declarada. Es la vía recomendada.
-2. Dejarlos sin datos, y **bloquear la comparación del total** entre un sitio con 2 criterios y uno con 4 (mostrar "no comparable" en vez de un número).
+Estado de datos tras la integración del modelo de elevación global:
+- **Terreno (elevación, pendiente, rugosidad):** **Los 22 sitios del catálogo** (y cualquier coordenada personalizada del globo) cuentan con datos de elevación y cálculo de pendiente medidos directamente con el **LOLA Global DEM** (`ldem_16.tif`, 16 px/grado, ~1,89 km/px) de NASA PDS / SVS, complementado por el **DEM Polar LOLA** (`LDEM_75S_120M`, 120 m/px) al sur de 75° S.
+- **Protección ante impactos (A):** Sigue disponible exclusivamente para los sitios al sur de 80° S con máscara de horizonte 360° calculada por trazado de rayos. Para los demás sitios vale `null` (marcado en `missing_criteria` si $w_A > 0$).
+- **Comparabilidad:** Al contar todos los sitios con métricas de terreno reales ($T$), la comparación del criterio de aterrizaje es consistente globalmente. $w_T = 0$ y $w_A = 0$ por defecto para mantener la ponderación alineada con los requisitos oficiales validados.
 
 ---
 
@@ -89,7 +84,7 @@ Prioridades: **P0** = el resultado hoy puede llevar a una conclusión equivocada
 | 0.3 | Decidir los pesos por defecto y documentar la razón en `modelo/05-puntaje.md` | Modelo | **Documentado el 14-11** (50/50, la NASA no publica pesos). La decisión de cambiarlos sigue siendo del equipo |
 | 0.4 | Viabilidad = luz **durante toda la estancia** (parámetro `stay_days`, por defecto 6,5 días), no solo en el instante del aterrizaje | Backend + Modelo | **Hecho el 14-11**: `viable` es falso si el Sol se pone antes; `sun_through_stay` en la API; tests en `test_viabilidad_estancia.py` |
 | 0.5 | Umbral de pendiente de 8° (Wueller; coincide con el umbral de orientación del HLS, que no es pendiente del terreno), configurable; era 15° | Backend + Modelo | **Hecho el 14-11**: por defecto 8°, con la salvedad de que el DEM de 120 m lo hace optimista |
-| 0.6 | Cobertura de terreno: pendiente global LOLA GDR **o** marcar el total como "no comparable" cuando los sitios tienen distintos criterios | Modelo + Backend | **Aviso hecho el 14-11** (`missing_criteria` en la API y en la comparación). Falta decidir si se agrega pendiente global |
+| 0.6 | Cobertura de terreno: pendiente global LOLA GDR **o** marcar el total como "no comparable" cuando los sitios tienen distintos criterios | Modelo + Backend | **Hecho el 15-11**: Integrado LOLA Global DEM 16 px/grado (`ldem_16.tif`); todos los 22 sitios tienen elevación y pendiente reales. Aviso `missing_criteria` activo si falta protección |
 | 0.7 | Separar la "protección ante impactos" como métrica exploratoria, con la nota "criterio del equipo, no de la NASA" | UX + Frontend | **Hecho el 14-11** en la fila de la comparación; falta el glosario |
 
 ### P1 · Herramienta de decisión

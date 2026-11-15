@@ -2,10 +2,11 @@
 
 | Ruta | Contenido | En git |
 |---|---|---|
-| `sites.json` | Catálogo curado de sitios de aterrizaje | Sí |
+| `sites.json` | Catálogo curado de sitios de aterrizaje con metadatos de misión | Sí |
 | `kernels/` | Kernels SPICE de efemérides y orientación lunar | No, se descargan con `./run.sh data` |
 | `horizons/` | Máscaras de horizonte por terreno de los sitios al sur de 80° S | Sí; se recalculan con `./run.sh horizons` |
-| `dem/` | DEM polar LOLA `LDEM_75S_120M` (116 MB) | No; opcional, con `./run.sh data --dem` |
+| `dem/` | DEM polar LOLA `LDEM_75S_120M` (116 MB, resolución 120 m/px) | No; opcional, con `./run.sh data --dem` |
+| `../../frontend/public/textures/ldem_16.tif` | LOLA Global DEM (16 px/grado, NASA PDS / SVS) para topografía global y relieve 3D | No, se descarga y procesa con `./run.sh data` |
 
 Las texturas del globo y Three.js también se descargan con `./run.sh data`, en `frontend/public/textures/` y `frontend/vendor/`.
 

@@ -61,20 +61,21 @@ im-2 y mons-mouton están casi en el mismo lugar y con la misma geometría; el r
 
 ### Terreno (T)
 
-La pendiente y la rugosidad salen **solo** del DEM polar `LDEM_75S_120M` (al sur de 75° S): se ajusta un plano a la ventana de 3 × 3 píxeles alrededor del sitio (`terrain.py`).
+La elevación, pendiente y rugosidad se obtienen de datos medidos por el altímetro láser LOLA de la misión LRO:
+1. **Polo Sur ($\varphi \le -75^\circ$ S):** Sale del DEM polar `LDEM_75S_120M` (120 m por píxel): se ajusta un plano por mínimos cuadrados a la ventana de $3 \times 3$ píxeles (~360 m de base) alrededor del sitio (`terrain.py`), obteniendo `source: "lola_dem"`.
+2. **Global ($\varphi > -75^\circ$ S):** Proviene del **LOLA Global DEM** (`LDEM_16`, 16 píxeles por grado, ~1,89 km/píxel en el ecuador, NASA PDS / SVS), calculando la pendiente por diferencias finitas centradas sobre el geoide lunar y la rugosidad RMS local (`source: "lola_global"`).
+3. **Sin DEM disponible:** Si los archivos DEM no están en el servidor, `source = "unavailable"`, la elevación se toma del catálogo (`elevation_m`, fuente LROC) y pendiente/rugosidad quedan en `null`.
 
 | Métrica | Qué mide | Qué no mide |
 |---|---|---|
-| Pendiente | Inclinación del plano sobre ~360 m | La pendiente bajo las patas del módulo (escala de metros) |
-| Rugosidad | Desviación RMS del relieve respecto de ese plano, a 120 m por píxel | Rocas o bloques |
+| Pendiente | Inclinación media del plano a la escala de la grilla (120 m o ~1,9 km) | La micro-pendiente bajo las patas del tren de aterrizaje (escala métrica) |
+| Rugosidad | Desviación estándar RMS del relieve respecto del plano local | Rocas individuales o bloques menores a la celda |
 
-Fuera del DEM, `source` = `"unavailable"`: pendiente, rugosidad y T valen `null`, T no entra al puntaje y la pendiente no afecta la viabilidad. La altura se toma del catálogo (`elevation_m`, fuente LROC) cuando existe. No hay valores de terreno escritos a mano ni estimados con fórmulas.
-
-$T$ (*landing ease*) combina 65 % pendiente, 25 % rugosidad y 10 % de azimuts con horizonte bajo 18°. Esas constantes son **supuestos sin fuente**: por eso T pesa 0 por defecto y se muestra como información.
+$T$ (*landing ease*) combina 65 % pendiente, 25 % rugosidad y 10 % de azimuts con horizonte bajo 18°. Esas constantes son **supuestos del equipo**: por eso $T$ pesa 0 por defecto y se muestra como información técnica.
 
 ### Protección (A)
 
-Índice experimental de cuánto cielo tapa el relieve ([03 · Horizonte](03-horizonte.md)). Solo existe con horizonte por terreno; con horizonte esférico vale `null`, no 0 (la API devuelve `scores.asteroid = null` y `topography.relief_data = false`). No tiene fuente publicada ni figura entre los criterios de la NASA: pesa 0 por defecto.
+Índice experimental de cuánto cielo tapa el relieve ([03 · Horizonte](03-horizonte.md)). Solo existe con horizonte por terreno en sitios polares ($\le -75^\circ$ S); en sitios sin máscara de relieve vale `null`, no 0 (la API devuelve `scores.asteroid = null` y `topography.relief_data = false`). No tiene fuente publicada ni figura entre los criterios oficiales de la NASA: pesa 0 por defecto.
 
 ### Puntaje global
 
@@ -84,9 +85,9 @@ $$
 
 Por defecto $w_E = w_C = 0{,}5$ y $w_T = w_A = 0$, así que $P = (E + C)/2$: lo que pide el desafío y lo que está validado contra Horizons. La NASA usa figuras de mérito ponderadas pero **no publica los pesos**, así que cualquier reparto es una decisión del equipo; por eso los pesos son configurables y la interfaz muestra siempre los que se usaron.
 
-Un término sin dato (`null`) se excluye junto con su peso. Cuando un criterio **con peso > 0** falta en un sitio, la API lo lista en `missing_criteria` (p. ej. `["terrain"]` para Apollo 11 si $w_T > 0$): su $P$ se calculó con menos criterios y **no es comparable** con el de un sitio que los tiene todos. La comparación lo avisa y marca el total como parcial.
+Un término sin dato (`null`) se excluye junto con su peso. Cuando un criterio **con peso > 0** falta en un sitio, la API lo lista en `missing_criteria` (p. ej. `["protection"]` para Apollo 11 si $w_A > 0$): su $P$ se calculó con menos criterios y **no es comparable** con el de un sitio que los tiene todos. La comparación lo avisa y marca el total como parcial. Con la integración del Global DEM, el criterio de terreno $T$ está disponible para todos los sitios.
 
-Un sitio no viable (Sol o Tierra no visibles al aterrizar, o pendiente medida sobre el límite) conserva su P, pero la interfaz lo presenta como **referencial** y la comparación no lo declara ganador.
+Un sitio no viable (Sol o Tierra no visibles al aterrizar, sol que no cubre la estancia de 6,5 días, o pendiente medida sobre el límite) conserva su P, pero la interfaz lo presenta como **referencial** y la comparación no lo declara ganador.
 
 ### Efecto del relieve
 

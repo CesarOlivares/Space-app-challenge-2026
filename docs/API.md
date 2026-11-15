@@ -13,19 +13,28 @@ Todas las rutas cuelgan de `/api` y responden JSON. Con el servidor levantado, l
 
 ### Parámetros del puntaje
 
-Los aceptan `/scores`, `/sky` y `/compare` como parámetros de consulta.
+Los aceptan `/scores`, `/sky`, `/compare`, `/scores/custom` y `/scores/matrix` como parámetros de consulta.
 
 | Parámetro | Por defecto | Rango | Significado |
 |---|---|---|---|
-| `window_days` | 14 | (0, 60] | Duración de la ventana de misión |
-| `step_hours` | 2 en `/scores`, 0,5 en `/sky` y `/compare` | [0,25, 24] | Paso de muestreo |
-| `sun_margin_deg` | 0 | [-5, 30] | Elevación mínima para contar el Sol como visible |
-| `earth_margin_deg` | 0 | [-5, 30] | Elevación mínima para contar la Tierra como visible |
-| `weight_energy` | 0,5 | [0, 1] | Peso de la energía en el puntaje global |
-| `weight_communication` | 0,5 | [0, 1] | Peso de la comunicación en el puntaje global |
+| `window_days` | 14.0 | (0, 60] | Duración de la ventana de misión en días |
+| `step_hours` | 2.0 en `/scores`, 0.5 en `/sky` y `/compare` | [0.25, 24] | Paso de muestreo temporal en horas |
+| `sun_margin_deg` | 0.0 | [-5, 30] | Elevación mínima para contar el Sol como visible (grados) |
+| `earth_margin_deg` | 2.0 | [-5, 30] | Elevación mínima para contar la Tierra como visible (margen de antena NASA/TM-20220013310 §5.8.3) |
+| `weight_energy` | 0.5 | [0, 1] | Peso de la energía ($w_E$) en el puntaje global |
+| `weight_communication` | 0.5 | [0, 1] | Peso de la comunicación ($w_C$) en el puntaje global |
+| `weight_terrain` | 0.0 | [0, 2] | Peso de la facilidad de aterrizaje / topografía ($w_T$) en el puntaje global |
+| `weight_protection` | 0.0 | [0, 2] | Peso de la protección ante impactos ($w_A$) en el puntaje global |
+| `max_slope_deg` | 8.0 | (2.0, 45.0] | Pendiente máxima admisible del terreno (umbral NASA HLS-R-0071 / Wueller et al.) |
+| `stay_days` | 6.5 | (0, 60] | Estancia en superficie que la luz solar continua debe cubrir (días, perfil HLS Artemis III) |
 | `panel` | `tiempo` | `tiempo`, `horizontal`, `vertical` | Orientación de los paneles para la energía: solo tiempo de luz, paneles planos (sen de la elevación) o verticales que siguen al Sol (cos de la elevación) |
 
-La fórmula está en `backend/app/models/scoring.py` y en la sección 1 de la [propuesta](PROPUESTA.md). Todos los puntajes van de 0 a 100. `viable` es `true` solo si el Sol y la Tierra están sobre el horizonte al aterrizar.
+La fórmula está en `backend/app/models/scoring.py` y en la sección 1 de la [propuesta](PROPUESTA.md). Todos los puntajes van de 0 a 100.
+
+`viable` es `true` solo si se cumplen simultáneamente tres condiciones:
+1. **Luz solar:** El Sol está sobre el horizonte al aterrizar y la iluminación solar continua cubre toda la estancia de misión (`stay_days`, por defecto 6,5 días / 156 h).
+2. **Comunicación:** La Tierra está sobre el horizonte local (`elevation_deg >= earth_margin_deg`) al aterrizar.
+3. **Pendiente del terreno:** Si hay datos de elevación medidos, la pendiente local no supera el límite de seguridad (`slope_deg <= max_slope_deg`).
 
 ### Errores
 
@@ -71,23 +80,80 @@ Catálogo completo. El formato de cada sitio está descrito en [backend/data/REA
 
 ### `GET /api/scores?date=…`
 
-Puntajes de todo el catálogo para una fecha; alimenta el globo. Versión compacta: posición al aterrizar, sin ventanas. Usa muestreo grueso y guarda en caché cada combinación de fecha y parámetros (RNF-01: menos de 1 s).
+Puntajes de todo el catálogo para una fecha; alimenta el globo. Versión compacta: posición al aterrizar, sin series temporales detalladas. Usa muestreo grueso y guarda en caché cada combinación de fecha y parámetros (RNF-01: menos de 1 s).
 
 `GET /api/scores?date=2026-12-15T00:00:00Z`
 
 ```json
 {
   "date": "2026-12-15T00:00:00Z",
-  "config": {"window_days": 14.0, "step_hours": 2.0, "sun_margin_deg": 0.0, "earth_margin_deg": 0.0,
-             "weight_energy": 0.5, "weight_communication": 0.5},
+  "config": {
+    "window_days": 14.0, "step_hours": 2.0, "sun_margin_deg": 0.0, "earth_margin_deg": 2.0,
+    "weight_energy": 0.5, "weight_communication": 0.5, "weight_terrain": 0.0, "weight_protection": 0.0,
+    "max_slope_deg": 8.0, "stay_days": 6.5, "panel": "tiempo"
+  },
   "scores": [
     {
       "site_id": "apollo-12",
       "date": "2026-12-15T00:00:00Z",
       "viable": false,
-      "scores": {"energy": 37.4, "communication": 100.0, "total": 68.7},
+      "sun_through_stay": false,
+      "missing_criteria": [],
+      "scores": {
+        "energy": 37.4,
+        "communication": 100.0,
+        "landing_ease": 98.2,
+        "asteroid_protection": null,
+        "terrain": 98.2,
+        "asteroid": null,
+        "total": 68.7
+      },
+      "topography": {
+        "elevation_m": -145.2,
+        "slope_deg": 1.45,
+        "roughness_m": 0.22,
+        "aspect_deg": 132.0,
+        "sky_view_factor": 1.0,
+        "source": "lola_global",
+        "relief_data": false,
+        "slope_ok": true
+      },
       "sun": {"azimuth_deg": 94.664, "elevation_deg": -42.754, "visible": false},
       "earth": {"azimuth_deg": 82.484, "elevation_deg": 72.031, "visible": true}
+    }
+  ]
+}
+```
+
+### `POST /api/scores/custom?date=…`
+
+Evalúa un lote de puntos arbitrarios definidos por el usuario (`lat, lon`) utilizando el mismo ponderador general y configuración activa.
+
+```http
+POST /api/scores/custom?date=2026-12-15T00:00:00Z
+Content-Type: application/json
+
+{
+  "points": [
+    {"lat": -89.5, "lon": 120.0, "name": "Punto Personalizado 1"},
+    {"lat": 0.0, "lon": 0.0, "name": "Centro del Disco"}
+  ]
+}
+```
+
+```json
+{
+  "date": "2026-12-15T00:00:00Z",
+  "config": {"…": "…"},
+  "scores": [
+    {
+      "site_id": "custom:-89.5000,120.0000",
+      "date": "2026-12-15T00:00:00Z",
+      "viable": false,
+      "scores": {"energy": 85.0, "communication": 70.0, "landing_ease": 92.0, "total": 78.5},
+      "topography": {"elevation_m": 1250.0, "slope_deg": 3.4, "source": "lola_dem", "…": "…"},
+      "sun": {"…": "…"},
+      "earth": {"…": "…"}
     }
   ]
 }
@@ -151,6 +217,37 @@ Detalle de un sitio: posición del Sol y la Tierra al aterrizar, tiempos hasta e
 }
 ```
 
+### `GET /api/sites/{sitio}/patch?date=…&size=…&window_days=…`
+
+Grilla local $N \times N$ de elevación, pendiente y exposición solar alrededor del sitio de aterrizaje. Funciona a escala global: utiliza el DEM polar LOLA (120 m/px) al sur de 75° S y el DEM global LOLA (16 px/grado) en el resto de la Luna.
+
+Parámetros:
+- `size`: dimensión impar de la grilla (por defecto 25, entero impar entre 5 y 51).
+- `date`: fecha y hora de inicio del análisis solar (ISO 8601).
+- `window_days`: duración de la ventana solar en días (por defecto 14.0, rango (0, 60]).
+
+`GET /api/sites/im-2/patch?size=25&window_days=14`
+
+```json
+{
+  "site_id": "im-2",
+  "size": 25,
+  "spacing_m": 120.0,
+  "elevation_m": [[1250.0, 1255.2, "…"], "…"],
+  "slope_deg": [[4.2, 5.1, "…"], "…"],
+  "source": "lola_dem",
+  "solar": {
+    "window_days": 14.0,
+    "exposure_pct": [[75.0, 80.0, "…"], "…"],
+    "instant_lit": [[true, true, "…"], "…"],
+    "mean_solar_pct": 68.4,
+    "optimal_landing_pct": 82.5,
+    "sun_azimuth_deg": 142.3,
+    "sun_elevation_deg": 1.45
+  }
+}
+```
+
 ### `GET /api/sites/{sitio}/timeline?date=…&days=…&step_hours=…`
 
 Serie temporal para la línea de tiempo y la animación. Parámetros: `days` (por defecto 14, máximo 60), `step_hours` (por defecto 1), `sun_margin_deg`, `earth_margin_deg`. Máximo 5000 puntos por serie.
@@ -199,6 +296,52 @@ Mejores fechas de aterrizaje de un sitio (RF-18). Evalúa una fecha cada `step_h
   "results": [
     {"site_id": "im-2", "date": "2026-12-15T06:00:00Z", "viable": true,
      "scores": {"energy": 100.0, "communication": 100.0, "total": 100.0}, "sun": {"…": "…"}, "earth": {"…": "…"}}
+  ]
+}
+```
+
+### `GET /api/sites/{sitio}/availability?date=…&days=…&step_hours=…`
+
+Disponibilidad de aterrizaje a lo largo del año (modelo CASSA de la NASA). Evalúa sistemáticamente si cada fecha cumple los tres requisitos de misión y qué criterio falla en las fechas no viables:
+- `"sun"`: falta de luz al aterrizar o noche lunar antes de completar la estancia continua (`stay_days`, por defecto 6,5 días).
+- `"earth"`: sin línea de visión a la Tierra por encima del margen de antena (`earth_margin_deg`).
+- `"slope"`: pendiente del terreno superior al límite operativo (`max_slope_deg`).
+
+Parámetros:
+- `date`: fecha de inicio (ISO 8601).
+- `days`: horizonte de tiempo en días (por defecto 365.0, rango (0, 400]).
+- `step_hours`: frecuencia de muestreo en horas (por defecto 24.0, rango [6, 48]).
+- Parámetros de puntaje opcionales: `stay_days`, `max_slope_deg`, `earth_margin_deg`.
+
+`GET /api/sites/im-2/availability?days=365&step_hours=24`
+
+```json
+{
+  "site_id": "im-2",
+  "start": "2026-12-15T00:00:00Z",
+  "days": 365.0,
+  "step_hours": 24.0,
+  "config": {
+    "window_days": 14.0,
+    "stay_days": 6.5,
+    "max_slope_deg": 8.0,
+    "earth_margin_deg": 2.0
+  },
+  "evaluated": 366,
+  "available": 65,
+  "available_fraction": 0.1776,
+  "failing_counts": {
+    "sun": 298,
+    "earth": 14,
+    "slope": 0
+  },
+  "dates": [
+    {
+      "date": "2026-12-15T00:00:00Z",
+      "available": false,
+      "failing": ["sun"],
+      "total": 42.1
+    }
   ]
 }
 ```
@@ -303,5 +446,42 @@ Parámetros:
   },
   "elevations_m": [1250.0, 1252.5, "…"],
   "slopes_deg": [4.2, 5.1, "…"]
+}
+```
+
+### `GET /api/risk-grid?max_slope_deg=…`
+
+Grilla global de $72 \times 36$ celdas ($5^\circ \times 5^\circ$) en caché, utilizada para alimentar las capas térmicas y de aptitud superpuestas directamente sobre el relieve del globo 3D.
+
+Cada celda combina:
+- `landing_ease`: Facilidad topográfica calculada con pendiente y rugosidad reales (`lola_dem` en polos o `lola_global` globalmente).
+- `solar_exposure`: Exposición solar estimada sobre el ciclo sinódico (50% en ecuador, ajustada por elevación y aspecto hacia el ecuador en polos).
+- `earth_comm`: Línea de visión directa a la Tierra (DTE) con bloqueo geométrico de la cara oculta y atenuación en cuencas polares profundas.
+- `suitability`: Índice integrado de aptitud (0–100) con exclusión estricta (`0.0` / zona negra de NO-GO) si no hay comunicación directa con la Tierra (`earth_comm < 15.0`, cara oculta de la Luna sin satélite repetidor), si es trampa de frío permanente (`solar_exposure < 20.0`), o si la pendiente supera `max_slope_deg`.
+
+Parámetros:
+- `max_slope_deg`: umbral máximo de pendiente segura (por defecto 8.0°, rango (2.0, 45.0]).
+
+`GET /api/risk-grid?max_slope_deg=8.0`
+
+```json
+{
+  "cols": 72,
+  "rows": 36,
+  "lon_step_deg": 5.0,
+  "lat_step_deg": 5.0,
+  "cells": [
+    {
+      "lat": -87.5,
+      "lon": -177.5,
+      "elevation_m": -1240.5,
+      "slope_deg": 4.12,
+      "landing_ease": 88.5,
+      "asteroid_protection": null,
+      "solar_exposure": 52.0,
+      "earth_comm": 0.0,
+      "suitability": 0.0
+    }
+  ]
 }
 ```
