@@ -36,6 +36,10 @@ export function notViableReason(score) {
   // Above 0 deg but not visible: occluded by local terrain or below configured margin.
   if (!score.sun.visible) {
     reasons.push(t(score.sun.elevation_deg > 0 ? "reason.sunBlocked" : "reason.sunBelow"));
+  } else if (score.sun_through_stay === false) {
+    // /api/scores no repite la config en cada sitio: sin ella, la frase va sin el número de días.
+    const stay = score.config?.stay_days;
+    reasons.push(t(stay ? "reason.sunShort" : "reason.sunShortNoDays", { days: stay ? num(stay, 1) : "" }));
   }
   if (!score.earth.visible) {
     reasons.push(t(score.earth.elevation_deg > 0 ? "reason.earthBlocked" : "reason.earthBelow"));

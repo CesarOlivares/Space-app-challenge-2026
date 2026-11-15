@@ -9,10 +9,13 @@ Para un sitio y una fecha de aterrizaje $t_0$, con ventana de misión $T_w$ (por
 ### Viabilidad
 
 $$
-\text{viable} \iff \text{Sol visible en } t_0 \ \land\ \text{Tierra visible en } t_0 \ \land\ \text{pendiente} \le \theta_{\max}
+\text{viable} \iff \text{Sol visible en } t_0 \ \land\ \text{Tierra visible en } t_0 \ \land\ T_c \ge T_s \ \land\ \text{pendiente} \le \theta_{\max}
 $$
 
-Visible significa holgura positiva, con relieve y margen incluidos (ver [03 · Horizonte](03-horizonte.md)). La condición de pendiente se aplica solo si hay dato (ver [Terreno](#terreno-t)); sin dato no cambia el veredicto. $\theta_{\max}$ = 15° por defecto (`max_slope_deg`), **supuesto del equipo**.
+Visible significa holgura positiva, con relieve y margen incluidos (ver [03 · Horizonte](03-horizonte.md)).
+
+- **Luz durante toda la estancia** ($T_c \ge T_s$): las horas continuas de luz desde el aterrizaje deben cubrir la estancia $T_s$ = 6,5 días (`stay_days`; se recorta a la ventana). La NASA pide Sol durante toda la estancia del HLS y las 13 regiones de 2022 tienen sitios con 6,5 días de luz continua ([regiones-artemis.md](investigacion/regiones-artemis.md)). La API lo expone como `sun_through_stay`.
+- **Pendiente** $\le \theta_{\max}$ = 8° por defecto (`max_slope_deg`), solo si hay dato (ver [Terreno](#terreno-t)); sin dato no cambia el veredicto. El 8° es el filtro de terreno de Wueller et al. y coincide con el umbral de **orientación** del HLS (HLS-R-0071); no es una especificación de pendiente del terreno del HLS. Nuestra pendiente sale de un DEM de 120 m (base de ~360 m), más suave que a escala del módulo: con el mismo umbral el veredicto es **optimista**.
 
 ### Energía
 
@@ -79,7 +82,9 @@ $$
 P = \frac{w_E\,E + w_C\,C + w_T\,T + w_A\,A}{w_E + w_C + w_T + w_A}
 $$
 
-Por defecto $w_E = w_C = 0{,}5$ y $w_T = w_A = 0$, así que $P = (E + C)/2$: lo que pide el desafío y lo que está validado contra Horizons. Un término sin dato (`null`) se excluye junto con su peso.
+Por defecto $w_E = w_C = 0{,}5$ y $w_T = w_A = 0$, así que $P = (E + C)/2$: lo que pide el desafío y lo que está validado contra Horizons. La NASA usa figuras de mérito ponderadas pero **no publica los pesos**, así que cualquier reparto es una decisión del equipo; por eso los pesos son configurables y la interfaz muestra siempre los que se usaron.
+
+Un término sin dato (`null`) se excluye junto con su peso. Cuando un criterio **con peso > 0** falta en un sitio, la API lo lista en `missing_criteria` (p. ej. `["terrain"]` para Apollo 11 si $w_T > 0$): su $P$ se calculó con menos criterios y **no es comparable** con el de un sitio que los tiene todos. La comparación lo avisa y marca el total como parcial.
 
 Un sitio no viable (Sol o Tierra no visibles al aterrizar, o pendiente medida sobre el límite) conserva su P, pero la interfaz lo presenta como **referencial** y la comparación no lo declara ganador.
 
@@ -89,7 +94,7 @@ Ejemplo real del modelo para un aterrizaje el 15/12/2026: en IM-2 el Sol está a
 
 ## Supuestos del equipo, pendientes de respaldar
 
-- [ ] **Límite de pendiente de 15°.** Más laxo que cualquier criterio citado: Wueller et al. (2026) usan ≤ 8° con margen de 100 m y Peña-Asensio et al. ≤ 5°. Los 8°/5° del HLS (HLS-R-0071) son inclinación del **vehículo**, no pendiente del terreno. Con 8° sobre el DEM 3 × 3, IM-1 (11,8°), Mons Mouton (9,4°) y Shackleton (10,2°) pasarían a no viables.
+- [x] **Límite de pendiente.** Resuelto el 14-11-2026: el valor por defecto pasó de 15° a 8° (Wueller et al.; Peña-Asensio usan ≤ 5°). Los 8°/5° del HLS (HLS-R-0071) son inclinación del **vehículo**, no pendiente del terreno. Con 8° sobre el DEM 3 × 3, IM-1 (11,8°), Mons Mouton (9,4°) y Shackleton (10,2°) pasan a no viables. Pendiente: medirla a escala de la elipse de aterrizaje (100 m, 3σ) en vez de 360 m.
 - [ ] **Constantes de T y A.** Sin fuente; mientras no la tengan, peso 0.
 
 - [ ] **Ventana de 14 días.** ¿Corresponde a la duración típica de misiones CLPS (IM-1, IM-2 y Blue Ghost duraron días a ~2 semanas)? Citar las duraciones planificadas.
@@ -98,5 +103,5 @@ Ejemplo real del modelo para un aterrizaje el 15/12/2026: en IM-2 el Sol está a
 - [ ] **Modelo de paneles.** Confirmar con diseños reales: VIPER, Intuitive Machines y Firefly usan paneles verticales o mixtos.
 - [ ] **Sol como punto.** Con el Sol a pocos grados del horizonte, que asome medio disco (radio ~0,27°) ya da algo de energía. Evaluar contar la visibilidad por el limbo superior.
 - [x] **Tierra como punto.** Resuelto: centro a 2° sobre el horizonte (margen de antena de NASA/TM-20220013310 §5.8.3), que cubre el disco completo. Visibilidad a largo plazo validada contra el mapa oficial de PGDA (ver [06 · Validación](06-validacion.md)).
-- [ ] **Viabilidad solo en $t_0$.** Un sitio que gana Sol y Tierra una hora después del aterrizaje se marca no viable. ¿Conviene exigirlo en una ventana alrededor del aterrizaje?
+- [x] **Viabilidad solo en $t_0$.** Resuelto parcialmente el 14-11-2026: ahora exige además luz continua durante la estancia de 6,5 días. Falta decidir si la **Tierra** también debe cubrir la estancia (hoy solo se exige en $t_0$) y fijar una duración de estancia por tipo de misión (6,5 días es la del HLS tripulado; las CLPS duran distinto).
 - [ ] **Irradiancia constante.** No se considera la variación de la distancia Tierra-Sol (~±3,4 %) ni la temperatura. Documentar si es despreciable para el objetivo de la herramienta.

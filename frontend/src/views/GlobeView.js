@@ -5,7 +5,7 @@ import { HeightField } from "./heightField.js";
 
 const TEXTURES = "public/textures";
 const MARKER_LIFT = 0.004; // radios lunares que el marcador flota sobre el terreno
-const MARKER_SIZE = 0.045; // radio de la retícula (radios lunares) con la cámara a la distancia por defecto
+const MARKER_SIZE = 0.034; // radio de la retícula (radios lunares) con la cámara a la distancia por defecto
 const SEGMENTS_FLAT = [192, 96]; // malla sin relieve
 const SEGMENTS_RELIEF = [512, 256]; // con relieve: más vértices para que el desplazamiento se vea suave
 const DEFAULT_DISTANCE = 3.7;
@@ -89,25 +89,10 @@ function buildLolaTexture(img) {
   return tex;
 }
 
-/**
- * Computes a quaternion aligning local +X (East), +Y (Up), +Z (North)
- * to the lunar surface tangent plane at (lat, lon).
- * @param {number} lat - Latitude in degrees.
- * @param {number} lon - East longitude in degrees.
- * @returns {THREE.Quaternion}
- */
-function localTangentQuaternion(lat, lon) {
-  const up = latLonToVector(lat, lon, 1).normalize();
-  const lo = THREE.MathUtils.degToRad(lon);
-  const east = new THREE.Vector3(-Math.sin(lo), 0, -Math.cos(lo)).normalize();
-  const north = new THREE.Vector3().crossVectors(up, east).normalize();
-  const basis = new THREE.Matrix4().makeBasis(east, up, north);
-  return new THREE.Quaternion().setFromRotationMatrix(basis);
-}
-
-// ---- Marcador de sitio: retícula de aterrizaje plana sobre el suelo ----
-// Geometría en el plano tangente local (+Y = arriba). Radio exterior del anillo = 1; la escala
+// ---- Marcador de sitio: retícula de aterrizaje que siempre mira a la cámara ----
+// Geometría en el plano XZ (normal +Y); #updateMarkerScale la gira hacia la cámara (billboard). Radio exterior del anillo = 1; la escala
 // del grupo la fija #updateMarkerScale para que el tamaño en pantalla sea casi constante.
+const FACE_CAMERA = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1, 0, 0), Math.PI / 2);
 const RING_IN = 0.74;
 const RING_OUT = 1;
 
@@ -621,9 +606,8 @@ export class GlobeView {
       const group = new THREE.Group();
       group.position.copy(latLonToVector(site.lat, site.lon, this.#markerRadius(site)));
 
-      // Todo el marcador vive en el plano tangente: se apoya sobre el suelo como una mira.
+      // De frente a la cámara, como una mira de HUD: se lee igual en el centro y en el borde.
       const reticle = new THREE.Group();
-      reticle.quaternion.copy(localTangentQuaternion(site.lat, site.lon));
 
       // Fondo oscuro: da contraste sobre los mares claros y las tierras altas brillantes.
       const backing = new THREE.Mesh(flat(new THREE.CircleGeometry(1.22, 32)), markerMaterial(0.45));
@@ -809,9 +793,12 @@ export class GlobeView {
     this.markerGroup.visible = this.markerFade > 0.01;
     if (!this.markerGroup.visible) return;
     const zoom = THREE.MathUtils.clamp((this.camera.position.length() - 1) / (DEFAULT_DISTANCE - 1), 0.04, 1.6);
+    // Orientación de cámara + giro de 90° en X: la normal (+Y) de la retícula queda hacia el usuario.
+    const facing = this.camera.quaternion.clone().multiply(FACE_CAMERA);
     for (const marker of this.markers.values()) {
       const r = marker.size * zoom * this.markerFade * (marker.site.id === this.hoveredId ? 1.3 : 1);
       marker.reticle.scale.setScalar(r);
+      marker.reticle.quaternion.copy(facing);
       // Sin prueba de profundidad, los de la cara oculta se esconden a mano.
       const pos = marker.group.position;
       marker.group.visible = pos.dot(this.camera.position) - pos.lengthSq() > 0;

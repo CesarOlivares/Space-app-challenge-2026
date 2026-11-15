@@ -56,11 +56,14 @@ const TXT = {
     reasonEnergy: "Tiene {a} de luz continua desde el aterrizaje (frente a {b}): menos riesgo en la noche lunar.",
     reasonTerrain: "Pendiente local de {a}° frente a {b}°: menos riesgo de vuelco al aterrizar.",
     reasonAsteroid: "El relieve cercano cubre el {a} % del cielo frente al {b} %: más resguardo ante impactos.",
-    qTotal: "Resumen de los cuatro criterios (más es mejor)",
+    qTotal: "Mezcla {w} (más es mejor)",
     qCommunication: "¿Cuántos días hay enlace directo con la Tierra?",
     qEnergy: "¿Cuánto Sol seguido tendrá desde que aterriza?",
     qTerrain: "¿Qué tan inclinado es el suelo? (menos es mejor)",
-    qAsteroid: "¿Cuánto lo resguarda el relieve de impactos?",
+    qAsteroid: "¿Cuánto lo resguarda el relieve de impactos? Métrica exploratoria del equipo, no un requisito de la NASA",
+    noWinner: "No hay un ganador por puntaje global: los totales se calcularon con distintos criterios. Compara fila por fila.",
+    notComparable: "El total de {names} se calculó sin {criteria}, porque no hay dato en ese sitio: no es comparable con el de un sitio que sí lo tiene.",
+    alsoDiffers: "También difiere, sin pesar en el total",
     uTotal: "/ 100",
     uCommunication: "de {n} días",
     uEnergy: "de luz continua",
@@ -79,7 +82,11 @@ const TXT = {
     mEnergy: "Energía",
     mTerrain: "Terreno",
     mAsteroid: "Protección",
-    gTotal: "Resumen ponderado: 20 % energía, 20 % comunicación, 40 % terreno, 20 % protección.",
+    gTotal: "Índice ponderado con los pesos actuales: {w}. Un criterio con peso 0 no cuenta en el total; los pesos se cambian en el engranaje.",
+    wEnergy: "energía",
+    wCommunication: "comunicación",
+    wTerrain: "terreno",
+    wProtection: "protección",
     gCommunication: "Qué tan estable es la señal directa con la Tierra durante la misión (% de la ventana con la Tierra visible).",
     gEnergy: "Luz solar disponible: horas seguidas de Sol y su aprovechamiento.",
     gTerrain: "Qué tan fácil y seguro es posarse: pendiente, rugosidad y despeje de aproximación.",
@@ -89,6 +96,7 @@ const TXT = {
     subTerrain: "Pendiente {v}° · {src}",
     subAsteroid: "Relieve cubre {v} % del cielo",
     subTotal: "Índice ponderado, no una medida física",
+    subPartial: "Total parcial: faltan criterios con peso",
     refOnly: "no viable · referencial",
     noSet: "toda la ventana",
     srcCatalog: "catálogo",
@@ -141,11 +149,14 @@ const TXT = {
     reasonEnergy: "It has {a} of continuous light from landing (vs {b}): less risk through the lunar night.",
     reasonTerrain: "Local slope {a}° vs {b}°: lower risk of tipping over at touchdown.",
     reasonAsteroid: "Nearby terrain covers {a} % of the sky vs {b} %: more shelter from impacts.",
-    qTotal: "Summary of the four criteria (higher is better)",
+    qTotal: "Blend of {w} (higher is better)",
     qCommunication: "How many days with a direct link to Earth?",
     qEnergy: "How much unbroken sunlight after landing?",
     qTerrain: "How steep is the ground? (lower is better)",
-    qAsteroid: "How much does the terrain shelter it from impacts?",
+    qAsteroid: "How much does the terrain shelter it from impacts? Exploratory team metric, not a NASA requirement",
+    noWinner: "There is no winner by overall score: the totals were computed with different criteria. Compare row by row.",
+    notComparable: "The total for {names} was computed without {criteria}, because there is no data at that site: it is not comparable with a site that has it.",
+    alsoDiffers: "Also differs, not counted in the total",
     uTotal: "/ 100",
     uCommunication: "of {n} days",
     uEnergy: "of continuous light",
@@ -164,7 +175,11 @@ const TXT = {
     mEnergy: "Energy",
     mTerrain: "Terrain",
     mAsteroid: "Protection",
-    gTotal: "Weighted summary: 20 % energy, 20 % communication, 40 % terrain, 20 % protection.",
+    gTotal: "Weighted index with the current weights: {w}. A criterion with weight 0 does not count toward the total; change the weights in the gear panel.",
+    wEnergy: "energy",
+    wCommunication: "communication",
+    wTerrain: "terrain",
+    wProtection: "protection",
     gCommunication: "How steady the direct signal to Earth is during the mission (% of the window with Earth visible).",
     gEnergy: "Sunlight available: unbroken hours of Sun and how well they are used.",
     gTerrain: "How easy and safe it is to touch down: slope, roughness and approach clearance.",
@@ -174,6 +189,7 @@ const TXT = {
     subTerrain: "Slope {v}° · {src}",
     subAsteroid: "Terrain covers {v} % of the sky",
     subTotal: "Weighted index, not a physical measure",
+    subPartial: "Partial total: weighted criteria are missing",
     refOnly: "not viable · reference only",
     noSet: "the whole window",
     srcCatalog: "catalog",
@@ -192,10 +208,27 @@ const TXT = {
   },
 };
 
+// Pesos reales con los que el servidor calculó el puntaje global (se fijan en render()).
+let currentConfig = null;
+
 const tr = (key, params = {}) => {
   const dict = TXT[getLang()] ?? TXT.es;
-  return (dict[key] ?? TXT.es[key] ?? key).replace(/\{(\w+)\}/g, (_, name) => params[name] ?? "");
+  const all = { w: weightsText(currentConfig), ...params };
+  return (dict[key] ?? TXT.es[key] ?? key).replace(/\{(\w+)\}/g, (_, name) => all[name] ?? "");
 };
+
+// "50 % energía y 50 % comunicación": solo los criterios con peso, normalizados a 100 %.
+function weightsText(config) {
+  if (!config) return "";
+  const dict = TXT[getLang()] ?? TXT.es;
+  const parts = [
+    ["wEnergy", config.weight_energy], ["wCommunication", config.weight_communication],
+    ["wTerrain", config.weight_terrain], ["wProtection", config.weight_protection],
+  ].filter(([, w]) => w > 0);
+  const sum = parts.reduce((a, [, w]) => a + w, 0);
+  const items = parts.map(([k, w]) => `${Math.round((w / sum) * 100)} % ${dict[k]}`);
+  return items.length > 1 ? `${items.slice(0, -1).join(", ")} ${getLang() === "en" ? "and" : "y"} ${items.at(-1)}` : items[0] ?? "";
+}
 
 const SUGGESTIONS = [
   { ids: ["apollo-11", "mons-mouton"], title: "sg1t", text: "sg1x" },
@@ -243,10 +276,10 @@ const METRICS = [
       const d = Math.round(best.scores.total - other.scores.total);
       return d ? signed(tr(d === 1 ? "dPoint" : "dPoints", { v: d }), isBest) : "";
     },
-    sub: (r) => (r.viable ? tr("subTotal") : tr("refOnly")),
+    sub: (r) => (r.missing_criteria?.length ? tr("subPartial") : r.viable ? tr("subTotal") : tr("refOnly")),
   },
   {
-    key: "communication", label: "mCommunication", goal: "gCommunication", ask: "qCommunication", icon: "kpiComms",
+    key: "communication", weightKey: "weight_communication", label: "mCommunication", goal: "gCommunication", ask: "qCommunication", icon: "kpiComms",
     value: (r) => r.scores.communication,
     show: (r) => ({ big: days(earthDays(r)), unit: tr("uCommunication", { n: r.config.window_days }) }),
     delta: (best, other, isBest) => {
@@ -257,7 +290,7 @@ const METRICS = [
     reason: (w, o) => tr("reasonCommunication", { a: earthShare(w), b: earthShare(o) }),
   },
   {
-    key: "energy", label: "mEnergy", goal: "gEnergy", ask: "qEnergy", icon: "kpiEnergy",
+    key: "energy", weightKey: "weight_energy", label: "mEnergy", goal: "gEnergy", ask: "qEnergy", icon: "kpiEnergy",
     value: (r) => r.scores.energy,
     show: (r) => ({ big: formatDuration(sunHours(r)), unit: r.sun.visible && r.sun.hours_until_set == null ? tr("uEnergyAll") : tr("uEnergy") }),
     delta: (best, other, isBest) => {
@@ -268,7 +301,7 @@ const METRICS = [
     reason: (w, o) => tr("reasonEnergy", { a: untilSet(w), b: untilSet(o) }),
   },
   {
-    key: "terrain", label: "mTerrain", goal: "gTerrain", ask: "qTerrain", icon: "kpiTerrain",
+    key: "terrain", weightKey: "weight_terrain", label: "mTerrain", goal: "gTerrain", ask: "qTerrain", icon: "kpiTerrain",
     value: (r) => r.scores.terrain ?? null, // null: sin pendiente medida (fuera del DEM polar)
     show: (r) => ({ big: `${num(slope(r), 1)}°`, unit: tr("uTerrain") }),
     delta: (best, other, isBest) => {
@@ -284,7 +317,7 @@ const METRICS = [
     reason: (w, o) => tr("reasonTerrain", { a: num(slope(w), 1), b: num(slope(o), 1) }),
   },
   {
-    key: "asteroid", label: "mAsteroid", goal: "gAsteroid", ask: "qAsteroid", icon: "kpiShield",
+    key: "asteroid", weightKey: "weight_protection", label: "mAsteroid", goal: "gAsteroid", ask: "qAsteroid", icon: "kpiShield",
     value: (r) => r.scores.asteroid ?? null, // null: sin relieve real alrededor
     show: (r) => ({ big: `${Math.round(shielded(r))} %`, unit: tr("uAsteroid") }),
     delta: (best, other, isBest) => {
@@ -336,13 +369,26 @@ function buildExplanation(results) {
   }
 
   // Los criterios donde el ganador más se despega (≥ 3 puntos), con dato en ambos sitios.
-  const reasons = pool.length < 2 || delta < 1 ? [] : METRICS.filter((m) => m.reason)
+  // Solo se dan como razón los que pesan en el total; los demás se listan aparte, sin decir que explican el resultado.
+  // Un criterio con peso que falta en algún sitio: su total no es comparable con el de los demás.
+  const incomplete = results.filter((r) => r.missing_criteria?.length);
+  if (incomplete.length && pool.length >= 2) headline = tr("noWinner");
+  const gaps = pool.length < 2 || delta < 1 || incomplete.length ? [] : METRICS.filter((m) => m.reason)
     .map((m) => ({ m, a: m.value(first.r), b: m.value(second.r) }))
     .filter((x) => x.a != null && x.b != null && x.a - x.b >= 3)
-    .map((x) => ({ m: x.m, gap: x.a - x.b }))
-    .sort((a, b) => b.gap - a.gap)
-    .slice(0, 3)
-    .map(({ m }) => `<li><b>${escapeHtml(tr(m.label))}</b>${escapeHtml(m.reason(first.r, second.r))}</li>`);
+    .map((x) => ({ m: x.m, gap: x.a - x.b, counts: (first.r.config?.[x.m.weightKey] ?? 0) > 0 }))
+    .sort((a, b) => b.gap - a.gap);
+  const li = ({ m }) => `<li><b>${escapeHtml(tr(m.label))}</b>${escapeHtml(m.reason(first.r, second.r))}</li>`;
+  const reasons = gaps.filter((g) => g.counts).slice(0, 3).map(li);
+  const aside = gaps.filter((g) => !g.counts).slice(0, 3).map(li);
+
+  const missingNames = [...new Set(incomplete.flatMap((r) => r.missing_criteria))]
+    .map((c) => tr({ terrain: "mTerrain", protection: "mAsteroid" }[c] ?? "mTotal").toLowerCase());
+
+  const notComparable = incomplete.length ? [tr("notComparable", {
+    names: incomplete.map((r) => `<strong>${escapeHtml(shortName(r.site))}</strong>`).join(", "),
+    criteria: missingNames.join(", "),
+  })] : [];
 
   const problems = results.filter((r) => !r.viable).map((r) => tr("notViable", {
     name: `<strong>${escapeHtml(shortName(r.site))}</strong>`, reason: escapeHtml(notViableReason(r)),
@@ -356,7 +402,7 @@ function buildExplanation(results) {
       : `<li>${tr("nextNone", { name: label, days: 30 })}</li>`;
   }) : [];
 
-  return { title, headline, reasons, problems, next, eligible: new Set(pool.map((x) => x.i)) };
+  return { title, headline, reasons, aside, notComparable, problems, next, eligible: new Set(pool.map((x) => x.i)) };
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -411,6 +457,7 @@ export class CompareStory {
 
   render(results) {
     this.results = results;
+    currentConfig = results[0].config;
     const exp = buildExplanation(results);
     const n = results.length;
     const days = results[0].config.window_days;
@@ -465,9 +512,10 @@ export class CompareStory {
     }).join("");
 
     const glossary = METRICS.map((m) => `<li><b>${escapeHtml(tr(m.label))}.</b> ${escapeHtml(tr(m.goal))}</li>`).join("");
-    const whyBlock = exp.reasons.length
+    const asideBlock = exp.aside.length ? `<h2>${tr("alsoDiffers")}</h2><ul class="why aside">${exp.aside.join("")}</ul>` : "";
+    const whyBlock = (exp.reasons.length
       ? `<h2>${tr("why")}</h2><ul class="why">${exp.reasons.join("")}</ul>`
-      : exp.next.length ? `<h2>${tr("nextTitle")}</h2><ul class="why next">${exp.next.join("")}</ul>` : "";
+      : exp.next.length ? `<h2>${tr("nextTitle")}</h2><ul class="why next">${exp.next.join("")}</ul>` : "") + asideBlock;
 
     this.root.innerHTML = `
       <div class="story">
@@ -478,6 +526,7 @@ export class CompareStory {
           <p class="context">${tr("context", { date: escapeHtml(formatUtc(results[0].date)), days })}</p>
           <p class="headline">${exp.headline}</p>
           ${exp.problems.map((p) => `<p class="warn">${p}</p>`).join("")}
+          ${exp.notComparable.map((p) => `<p class="warn">${p}</p>`).join("")}
           ${whyBlock}
           <div class="decide"><b>${tr("forDecision")}</b><p>${tr("forDecisionText")}</p></div>
           <details class="learn"><summary>${tr("learn")}</summary><ul>${glossary}</ul></details>

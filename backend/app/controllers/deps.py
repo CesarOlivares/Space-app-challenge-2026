@@ -8,7 +8,7 @@ from typing import Literal
 from fastapi import HTTPException, Query, Request
 
 from app.models.ephemeris import Ephemeris, as_utc
-from app.models.scoring import EARTH_MARGIN_DEG, ScoringConfig
+from app.models.scoring import EARTH_MARGIN_DEG, MAX_SLOPE_DEG, STAY_DAYS, ScoringConfig
 from app.models.site import Site, custom_site
 from app.models.terrain import evaluate_terrain
 
@@ -67,7 +67,8 @@ def _config_dependency(default_step_hours: float):
         weight_communication: float = Query(0.5, ge=0, le=1, description="Weight for communication score"),
         weight_terrain: float = Query(0.0, ge=0.0, le=2.0, description="Weight for landing ease score"),
         weight_protection: float = Query(0.0, ge=0.0, le=2.0, description="Weight for asteroid & ejecta protection score"),
-        max_slope_deg: float = Query(15.0, gt=2.0, le=45.0, description="Maximum allowable landing slope in degrees"),
+        max_slope_deg: float = Query(MAX_SLOPE_DEG, gt=2.0, le=45.0, description="Maximum allowable landing slope in degrees (HLS 0-8 deg)"),
+        stay_days: float = Query(STAY_DAYS, gt=0, le=60, description="Surface stay that continuous sunlight must cover, in days"),
         panel: Literal["tiempo", "horizontal", "vertical"] = Query(
             "tiempo", description="Solar panel orientation for energy scoring"
         ),
@@ -82,6 +83,7 @@ def _config_dependency(default_step_hours: float):
             weight_terrain=weight_terrain,
             weight_protection=weight_protection,
             max_slope_deg=max_slope_deg,
+            stay_days=stay_days,
             panel=panel,
         )
 

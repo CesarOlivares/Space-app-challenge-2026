@@ -13,6 +13,7 @@ import { onLangChange, t } from "../i18n.js";
  *   weightEnergy: number,
  *   weightTerrain: number,
  *   maxSlopeDeg: number,
+ *   stayDays: number,
  *   windowDays: number,
  *   sunMarginDeg: number,
  *   earthMarginDeg: number,
@@ -23,7 +24,8 @@ export const DEFAULT_CONFIG = {
   weightEnergy: 0.5,
   weightTerrain: 0.0,
   weightProtection: 0.0,
-  maxSlopeDeg: 15.0,
+  maxSlopeDeg: 8.0, // HLS-R-0071: 0–8° umbral, 5° meta
+  stayDays: 6.5, // luz continua exigida: estancia de ~6,5 días (NASA 2022)
   windowDays: 14,
   sunMarginDeg: 0,
   earthMarginDeg: 2,
@@ -94,7 +96,8 @@ export class SettingsPanel {
       weightEnergy: number("weight", 50, 0, 100) / 100,
       weightTerrain: number("weight-terrain", 0, 0, 200) / 100,
       weightProtection: number("weight-protection", 0, 0, 200) / 100,
-      maxSlopeDeg: number("max-slope", 15.0, 3.0, 25.0),
+      maxSlopeDeg: number("max-slope", 8.0, 3.0, 25.0),
+      stayDays: number("stay", 6.5, 0.5, 30),
       windowDays: number("window", 14, 1, 30),
       sunMarginDeg: number("sun-margin", 0, 0, 20),
       earthMarginDeg: number("earth-margin", 2, 0, 20),
@@ -120,6 +123,7 @@ export class SettingsPanel {
       this.form.elements["max-slope"].value = this.config.maxSlopeDeg;
     }
     this.form.elements.window.value = this.config.windowDays;
+    if (this.form.elements.stay) this.form.elements.stay.value = this.config.stayDays;
     this.form.elements["sun-margin"].value = this.config.sunMarginDeg;
     this.form.elements["earth-margin"].value = this.config.earthMarginDeg;
     this.form.elements.panel.value = this.config.panel;
@@ -164,7 +168,8 @@ export function configParams(config) {
     weight_communication: Math.round((1 - weightEnergy) * 100) / 100,
     weight_terrain: config.weightTerrain ?? 0.0,
     weight_protection: config.weightProtection ?? 0.0,
-    max_slope_deg: config.maxSlopeDeg ?? 15.0,
+    max_slope_deg: config.maxSlopeDeg ?? 8.0,
+    stay_days: config.stayDays ?? 6.5,
     panel: config.panel ?? "tiempo",
   };
 }

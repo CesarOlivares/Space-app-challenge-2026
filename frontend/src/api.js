@@ -152,9 +152,9 @@ export function fetchScoresMatrix(startDate, { days = 30, stepHours = 12, sites 
 
 /**
  * Fetches the global 72x36 lunar surface risk grid for on-globe heatmap overlays.
- * @param {number} [maxSlopeDeg=15.0] - Critical lander tip-over slope threshold in degrees.
+ * @param {number} [maxSlopeDeg=8.0] - Critical lander tip-over slope threshold in degrees.
  * @returns {Promise<Object>}
  */
-export function fetchRiskGrid(maxSlopeDeg = 15.0) {
+export function fetchRiskGrid(maxSlopeDeg = 8.0) {
   return request("/api/risk-grid", { params: { max_slope_deg: maxSlopeDeg } });
 }

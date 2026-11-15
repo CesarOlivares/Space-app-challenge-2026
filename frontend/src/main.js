@@ -381,7 +381,7 @@ document.getElementById("drawer-close").addEventListener("click", () => {
 // Moon Layer Switcher pill bar (Surface / Risk A / Risk B / Safe Havens)
 let riskGridLoadedForSlope = null;
 async function ensureRiskGrid() {
-  const slope = state.config.maxSlopeDeg ?? 15;
+  const slope = state.config.maxSlopeDeg ?? 8;
   if (riskGridLoadedForSlope === slope) return;
   try {
     const grid = await fetchRiskGrid(slope);
