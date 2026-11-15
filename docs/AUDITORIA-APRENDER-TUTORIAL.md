@@ -1,5 +1,7 @@
 # Auditoría y pipeline · Aprender y tutorial guiado
 
+> **Estado (15/11/2026):** P1 y P2 hechos (rama `ux/tutorial-principal`). P3 hecho en `aprender/desplegables`: tarjetas desplegables con «cómo leerlo · ejemplo real · dónde lo ves · pruébalo» para los hechos, indicadores y gráficos, índice de temas, «visto» y enlace directo `#aprender/<id>`. Pendiente de P3: los criterios NASA siguen como tabla (AP5) y las capas aún no tienen miniaturas (P4).
+
 Fecha: 15/11/2026 · Recorrido: portada → Aprender (04) completo → vista general → ficha de Apollo 11 → detalle → comparación.
 
 **Problema en una línea:** la sección Aprender explica *qué* hay, pero no enseña a *usarlo*. Hoy funciona como un glosario de datos curiosos en tarjetas estáticas, y el resto de la página da por hecho que el usuario sabe moverse por ella (seleccionar varios sitios, abrir el engranaje, leer el arco de la retícula, entender «6 de 22 viables»).
