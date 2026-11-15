@@ -470,6 +470,7 @@ function legendItemsForLayer(layer, maxSlopeDeg) {
     case "risk-a":
       return {
         title: t("layers.legTitleSlope", { max: maxSlope }),
+        gradient: "linear-gradient(to right, #10c891 0%, #f5c518 50%, #e12d37 100%)",
         items: [
           ["#10c891", t("layers.legFlat")],
           ["#f5c518", t("layers.legMod", { max: maxSlope })],
@@ -479,31 +480,34 @@ function legendItemsForLayer(layer, maxSlopeDeg) {
     case "solar":
       return {
         title: t("layers.legTitleSolar"),
+        gradient: "linear-gradient(to right, #1e293b 0%, #3b82f6 33%, #f97316 67%, #facc15 100%)",
         items: [
-          ["#facc15", t("layers.legSunHigh")],
-          ["#f97316", t("layers.legSunMed")],
-          ["#3b82f6", t("layers.legSunLow")],
           ["#1e293b", t("layers.legSunCold")],
+          ["#3b82f6", t("layers.legSunLow")],
+          ["#f97316", t("layers.legSunMed")],
+          ["#facc15", t("layers.legSunHigh")],
         ],
       };
     case "comm":
       return {
         title: t("layers.legTitleComm"),
+        gradient: "linear-gradient(to right, #1e293b 0%, #eab308 50%, #22c55e 100%)",
         items: [
-          ["#22c55e", t("layers.legCommDirect")],
-          ["#eab308", t("layers.legCommInterm")],
           ["#1e293b", t("layers.legCommNone")],
+          ["#eab308", t("layers.legCommInterm")],
+          ["#22c55e", t("layers.legCommDirect")],
         ],
       };
     case "suitability":
       return {
         title: t("layers.legTitleSuit"),
+        gradient: "linear-gradient(to right, #1e293b 0%, #dc2626 25%, #ea8a18 50%, #0ea5e9 75%, #34d399 100%)",
         items: [
-          ["#34d399", t("layers.legSuitOpt")],
-          ["#0ea5e9", t("layers.legSuitGood")],
-          ["#ea8a18", t("layers.legSuitLim")],
-          ["#dc2626", t("layers.legSuitSteep", { max: maxSlope })],
           ["#1e293b", t("layers.legSuitBlocked")],
+          ["#dc2626", `>${maxSlope}°`],
+          ["#ea8a18", t("layers.legSuitLim")],
+          ["#0ea5e9", t("layers.legSuitGood")],
+          ["#34d399", t("layers.legSuitOpt")],
         ],
       };
     default:
@@ -531,25 +535,18 @@ function renderActiveLayerLegend() {
   const bar = document.createElement("div");
   bar.className = "leg-bar";
   bar.setAttribute("aria-hidden", "true");
-  for (const [color] of spec.items) {
-    const seg = document.createElement("span");
-    seg.style.setProperty("--c", color);
-    bar.append(seg);
-  }
+  bar.style.background = spec.gradient;
 
-  const list = document.createElement("div");
-  list.className = "leg-items";
-  for (const [color, label] of spec.items) {
-    const wrap = document.createElement("span");
-    wrap.className = "leg-item";
-    const swatch = document.createElement("span");
-    swatch.className = "swatch";
-    swatch.style.setProperty("--c", color);
-    swatch.setAttribute("aria-hidden", "true");
-    wrap.append(swatch, document.createTextNode(label));
-    list.append(wrap);
+  const ticks = document.createElement("div");
+  ticks.className = "leg-ticks";
+  ticks.style.setProperty("--cols", String(spec.items.length));
+  for (const [, label] of spec.items) {
+    const tick = document.createElement("span");
+    tick.className = "leg-tick";
+    tick.textContent = label;
+    ticks.append(tick);
   }
-  activeLayerLegend.replaceChildren(head, bar, list);
+  activeLayerLegend.replaceChildren(head, bar, ticks);
 }
 
 let riskGridLoadedForSlope = null;
