@@ -8,6 +8,7 @@ from fastapi.testclient import TestClient
 
 from app.main import app
 from app.models.scoring import MAX_SLOPE_DEG, STAY_DAYS, ScoringConfig, evaluate
+from app.models.terrain import _get_global_dem, TerrainMetrics
 
 LANDING = datetime.fromisoformat("2026-11-20T23:00:00+00:00")
 DEM_FILE = Path(__file__).resolve().parents[1] / "data" / "dem" / "ldem_75s_120m.img"
@@ -59,18 +60,34 @@ def test_criterios_con_peso_y_sin_dato_se_informan(ephemeris, catalog):
     por_defecto = evaluate(ephemeris, sin_relieve, LANDING)
     assert por_defecto.missing_criteria == ()  # terreno y protección pesan 0
     con_terreno = evaluate(ephemeris, sin_relieve, LANDING, ScoringConfig(weight_terrain=1.0, weight_protection=0.5))
-    assert con_terreno.missing_criteria == ("terrain", "protection")
+    if _get_global_dem() is None:
+        assert con_terreno.missing_criteria == ("terrain", "protection")
+    else:
+        assert con_terreno.missing_criteria == ("protection",)
+        # Con terreno explícitamente no disponible, se informa terrain y protection
+        sin_dato = TerrainMetrics(elevation_m=None, slope_deg=None, roughness_m=None, source="unavailable")
+        con_sin_dato = evaluate(
+            ephemeris,
+            sin_relieve,
+            LANDING,
+            ScoringConfig(weight_terrain=1.0, weight_protection=0.5),
+            terrain=sin_dato,
+        )
+        assert con_sin_dato.missing_criteria == ("terrain", "protection")
     polar = evaluate(ephemeris, catalog["mons-malapert"], LANDING, ScoringConfig(weight_terrain=1.0))
     assert polar.missing_criteria == ()
 
 
 @requires_dem
 def test_api_expone_estancia_y_criterios_faltantes(client):
-    data = client.get("/api/scores", params={"date": "2026-11-20T23:00:00Z", "weight_terrain": 1.0}).json()
+    data = client.get("/api/scores", params={"date": "2026-11-20T23:00:00Z", "weight_terrain": 1.0, "weight_protection": 1.0}).json()
     assert data["config"]["stay_days"] == 6.5
     assert data["config"]["max_slope_deg"] == 8.0
     by_id = {s["site_id"]: s for s in data["scores"]}
-    assert by_id["apollo-11"]["missing_criteria"] == ["terrain"]
+    if _get_global_dem() is None:
+        assert by_id["apollo-11"]["missing_criteria"] == ["terrain", "protection"]
+    else:
+        assert by_id["apollo-11"]["missing_criteria"] == ["protection"]
     assert by_id["mons-malapert"]["missing_criteria"] == []
     assert isinstance(by_id["apollo-11"]["sun_through_stay"], bool)
 
