@@ -387,7 +387,7 @@ async function ensureRiskGrid() {
   try {
     const grid = await fetchRiskGrid(slope);
     riskGridLoadedForSlope = slope;
-    globe.setRiskGrid(grid);
+    globe.setRiskGrid(grid, slope);
   } catch {
     /* keep existing overlay if network fails */
   }

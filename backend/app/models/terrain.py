@@ -28,6 +28,10 @@ DEM_MAX_LAT = -75.0
 DEM_SOURCE = "LOLA LDEM_75S_120M (PDS Geosciences)"
 MOON_RADIUS_M = 1737400.0
 
+GLOBAL_DEM_FILE = "ldem_16.tif"
+GLOBAL_DEM_PIXELS_PER_DEG = 16.0
+GLOBAL_DEM_SOURCE = "LOLA LDEM_16 (NASA PDS / SVS)"
+
 AZIMUTH_STEP_DEG = 0.5
 MAX_DISTANCE_KM = 150.0
 OBSERVER_HEIGHT_M = 2.0  # paneles o antena de un módulo típico
@@ -197,6 +201,137 @@ class PolarDEM:
         )
 
 
+class GlobalDEM:
+    """Modelo de elevación digital global LOLA (16 píxeles por grado, NASA PDS / SVS).
+
+    Cubre el 100% de la superficie lunar (-90° a +90° lat, -180° a +180° lon).
+    Valores originales en kilómetros sobre la esfera de 1737,4 km, convertidos a metros.
+    """
+
+    def __init__(self, path: Path):
+        from PIL import Image
+
+        with Image.open(path) as img:
+            self.data = np.asarray(img, dtype=np.float32) * 1000.0
+        self.height_px, self.width_px = self.data.shape
+        self.step_m = (MOON_RADIUS_M * math.pi) / (180.0 * GLOBAL_DEM_PIXELS_PER_DEG)
+
+    @classmethod
+    def open(cls, custom_path: Path | None = None) -> GlobalDEM | None:
+        if custom_path is not None and Path(custom_path).is_file():
+            return cls(Path(custom_path))
+        candidates = (
+            Path(__file__).resolve().parents[3] / "frontend" / "public" / "textures" / GLOBAL_DEM_FILE,
+            Path(__file__).resolve().parents[2] / "data" / "dem" / GLOBAL_DEM_FILE,
+        )
+        for p in candidates:
+            if p.is_file():
+                return cls(p)
+        return None
+
+    @staticmethod
+    def pixel(lat: float | np.ndarray, lon: float | np.ndarray) -> tuple[float | np.ndarray, float | np.ndarray]:
+        """(fila, columna) con índice flotante en la grilla equirrectangular."""
+        row = (90.0 - np.asarray(lat, dtype=float)) * GLOBAL_DEM_PIXELS_PER_DEG
+        col = ((np.asarray(lon, dtype=float) + 180.0) % 360.0) * GLOBAL_DEM_PIXELS_PER_DEG
+        return row, col
+
+    def height(self, lat: float | np.ndarray, lon: float | np.ndarray) -> float | np.ndarray:
+        """Altura (m) sobre la esfera de 1737,4 km, con interpolación bilineal."""
+        row, col = self.pixel(lat, lon)
+        scalar = np.isscalar(lat) or (isinstance(lat, np.ndarray) and lat.ndim == 0)
+        row = np.asarray(row, dtype=float)
+        col = np.asarray(col, dtype=float)
+
+        r0 = np.clip(np.floor(row).astype(int), 0, self.height_px - 2)
+        r1 = r0 + 1
+        c0 = np.floor(col).astype(int) % self.width_px
+        c1 = (c0 + 1) % self.width_px
+
+        fr = row - r0
+        fc = col - np.floor(col)
+
+        d = self.data
+        top = d[r0, c0] * (1.0 - fc) + d[r0, c1] * fc
+        bottom = d[r1, c0] * (1.0 - fc) + d[r1, c1] * fc
+        result = top * (1.0 - fr) + bottom * fr
+        return float(result) if scalar else result
+
+    def metrics(self, lat: float, lon: float) -> TerrainMetrics:
+        """Calcula pendiente, aspecto, rugosidad y elevación en una vecindad 3×3 píxeles (~3,8 km)."""
+        row, col = self.pixel(lat, lon)
+        r_c = max(1, min(self.height_px - 2, int(round(float(row)))))
+        c_c = int(round(float(col)))
+
+        c_m1 = (c_c - 1) % self.width_px
+        c_0 = c_c % self.width_px
+        c_p1 = (c_c + 1) % self.width_px
+
+        patch = np.empty((3, 3), dtype=np.float32)
+        patch[0, 0] = self.data[r_c - 1, c_m1]
+        patch[0, 1] = self.data[r_c - 1, c_0]
+        patch[0, 2] = self.data[r_c - 1, c_p1]
+        patch[1, 0] = self.data[r_c, c_m1]
+        patch[1, 1] = self.data[r_c, c_0]
+        patch[1, 2] = self.data[r_c, c_p1]
+        patch[2, 0] = self.data[r_c + 1, c_m1]
+        patch[2, 1] = self.data[r_c + 1, c_0]
+        patch[2, 2] = self.data[r_c + 1, c_p1]
+
+        lat_rad = math.radians(lat)
+        dy = self.step_m
+        dx = dy * max(math.cos(lat_rad), 0.01)
+
+        dz_dx = float(
+            (patch[0, 2] + 2.0 * patch[1, 2] + patch[2, 2])
+            - (patch[0, 0] + 2.0 * patch[1, 0] + patch[2, 0])
+        ) / (8.0 * dx)
+        dz_dy = float(
+            (patch[0, 0] + 2.0 * patch[0, 1] + patch[0, 2])
+            - (patch[2, 0] + 2.0 * patch[2, 1] + patch[2, 2])
+        ) / (8.0 * dy)
+
+        slope_deg = math.degrees(math.atan(math.hypot(dz_dx, dz_dy)))
+        aspect_deg = math.degrees(math.atan2(-dz_dx, dz_dy)) % 360.0
+
+        dx_coords = np.array([-dx, 0.0, dx], dtype=float)
+        dy_coords = np.array([dy, 0.0, -dy], dtype=float)
+        dx_grid, dy_grid = np.meshgrid(dx_coords, dy_coords)
+        plane_z = float(np.mean(patch)) + dz_dx * dx_grid + dz_dy * dy_grid
+        roughness_m = float(np.sqrt(np.mean((patch - plane_z) ** 2)))
+
+        elevation_m = float(self.height(lat, lon))
+        return TerrainMetrics(
+            elevation_m=round(elevation_m, 1),
+            slope_deg=round(max(0.0, slope_deg), 2),
+            roughness_m=round(max(0.0, roughness_m), 2),
+            source="lola_global",
+            aspect_deg=round(aspect_deg, 1),
+        )
+
+    def cutout(self, lat: float, lon: float, size: int = 25) -> tuple[np.ndarray, np.ndarray, float]:
+        """Extrae un parche size × size centrado en (lat, lon) con cálculo de pendientes."""
+        row, col = self.pixel(lat, lon)
+        r_c = int(round(float(row)))
+        c_c = int(round(float(col)))
+        half = size // 2
+
+        r_start = max(0, min(self.height_px - size, r_c - half))
+        r_end = r_start + size
+        c_indices = [(c_c - half + i) % self.width_px for i in range(size)]
+
+        elevations = self.data[r_start:r_end, c_indices].copy()
+
+        lat_rad = math.radians(lat)
+        dy = self.step_m
+        dx = dy * max(math.cos(lat_rad), 0.02)
+
+        gy, gx = np.gradient(elevations, dy, dx)
+        slopes = np.degrees(np.arctan(np.hypot(gx, gy))).astype(np.float32)
+
+        return elevations, slopes, dy
+
+
 def destination(lat: float, lon: float, azimuth_deg: np.ndarray, distance_m: np.ndarray):
     """Punto a `distance_m` del sitio en dirección `azimuth_deg`, sobre la esfera."""
     la, lo = np.radians(lat), np.radians(lon)
@@ -282,6 +417,16 @@ def _get_polar_dem() -> PolarDEM | None:
     return PolarDEM.open(_DEM_DIR)
 
 
+@lru_cache(maxsize=1)
+def _get_global_dem() -> GlobalDEM | None:
+    """Loads and caches the Global LOLA DEM (16 px/deg) if present on disk.
+
+    Returns:
+        Opened GlobalDEM instance, or None when the DEM file is absent.
+    """
+    return GlobalDEM.open()
+
+
 def _evaluate_lola_dem(dem: PolarDEM, lat: float, lon: float) -> TerrainMetrics | None:
     """Computes slope and RMS roughness from a 3x3 LOLA DEM pixel window.
 
@@ -327,20 +472,27 @@ def _evaluate_lola_dem(dem: PolarDEM, lat: float, lon: float) -> TerrainMetrics 
     )
 
 
-@lru_cache(maxsize=1024)
+@lru_cache(maxsize=4096)
 def _evaluate_from_coordinates(lat_deg: float, lon_deg: float) -> TerrainMetrics | None:
-    dem = _get_polar_dem()
-    if dem is None:
-        return None
-    return _evaluate_lola_dem(dem, lat_deg, lon_deg)
+    if lat_deg <= DEM_MAX_LAT:
+        dem = _get_polar_dem()
+        if dem is not None:
+            metrics = _evaluate_lola_dem(dem, lat_deg, lon_deg)
+            if metrics is not None:
+                return metrics
+    global_dem = _get_global_dem()
+    if global_dem is not None:
+        return global_dem.metrics(lat_deg, lon_deg)
+    return None
 
 
 def evaluate_terrain(lat: float, lon: float, site_data: dict | None = None) -> TerrainMetrics:
     """Evaluates lunar surface elevation, slope, and roughness for a site.
 
-    The polar LOLA DEM is the only source of slope and roughness. Without DEM
-    coverage the result has source="unavailable" and None slope and roughness;
-    the elevation then comes from the catalog's top-level `elevation_m`, if any.
+    Uses high-resolution South Pole LOLA DEM (120 m/px) where available (lat <= -75°);
+    otherwise falls back to the Global LOLA DEM (16 px/deg). Without any DEM coverage,
+    returns source="unavailable" with None slope and roughness; the elevation then comes
+    from the catalog's top-level `elevation_m`, if any.
 
     Args:
         lat: Planetocentric latitude in degrees [-90, 90].
@@ -403,15 +555,20 @@ def compute_patch_solar_grid(
     size = elev.shape[0]
     n_samples = len(sun_track.hours)
 
-    l0, s0 = PolarDEM.pixel(np.array([lat]), np.array([lon]))
-    l_n, s_n = PolarDEM.pixel(np.array([lat + 1e-4]), np.array([lon]))
-    l_e, s_e = PolarDEM.pixel(np.array([lat]), np.array([lon + 1e-4]))
-    v_n = np.array([float(l_n[0] - l0[0]), float(s_n[0] - s0[0])])
-    norm_n = np.linalg.norm(v_n)
-    v_n = v_n / norm_n if norm_n > 0 else np.array([-1.0, 0.0])
-    v_e = np.array([float(l_e[0] - l0[0]), float(s_e[0] - s0[0])])
-    norm_e = np.linalg.norm(v_e)
-    v_e = v_e / norm_e if norm_e > 0 else np.array([0.0, 1.0])
+    if lat <= DEM_MAX_LAT:
+        l0, s0 = PolarDEM.pixel(np.array([lat]), np.array([lon]))
+        l_n, s_n = PolarDEM.pixel(np.array([lat + 1e-4]), np.array([lon]))
+        l_e, s_e = PolarDEM.pixel(np.array([lat]), np.array([lon + 1e-4]))
+        v_n = np.array([float(l_n[0] - l0[0]), float(s_n[0] - s0[0])])
+        norm_n = np.linalg.norm(v_n)
+        v_n = v_n / norm_n if norm_n > 0 else np.array([-1.0, 0.0])
+        v_e = np.array([float(l_e[0] - l0[0]), float(s_e[0] - s0[0])])
+        norm_e = np.linalg.norm(v_e)
+        v_e = v_e / norm_e if norm_e > 0 else np.array([0.0, 1.0])
+    else:
+        # Equirrectangular: la fila decrece hacia el Norte (-row = +y) y la columna crece al Este (+col = +x)
+        v_n = np.array([-1.0, 0.0])
+        v_e = np.array([0.0, 1.0])
 
     illum_sum = np.zeros((size, size), dtype=float)
     instant_illum = np.zeros((size, size), dtype=bool)
@@ -462,10 +619,12 @@ def evaluate_terrain_patch(
         raise ValueError("patch size must be an odd integer >= 5")
 
     dem = _get_polar_dem()
+    global_dem = _get_global_dem()
     half = size // 2
     source = "unavailable"
     elev = None
     slopes = None
+    spacing_m = DEM_SCALE_M
 
     if dem is not None and lat <= DEM_MAX_LAT:
         line, sample = PolarDEM.pixel(np.asarray(lat, dtype=float), np.asarray(lon, dtype=float))
@@ -482,6 +641,11 @@ def evaluate_terrain_patch(
             slopes = np.degrees(np.arctan(np.hypot(dz_dx, dz_dy)))
             elev = padded[1:-1, 1:-1]
             source = "lola_dem"
+            spacing_m = DEM_SCALE_M
+
+    if elev is None and global_dem is not None:
+        elev, slopes, spacing_m = global_dem.cutout(lat, lon, size=size)
+        source = "lola_global"
 
     if elev is None:
         return {
@@ -494,7 +658,7 @@ def evaluate_terrain_patch(
 
     result = {
         "size": size,
-        "spacing_m": DEM_SCALE_M,
+        "spacing_m": round(spacing_m, 1),
         "elevation_m": np.round(elev, 1).tolist(),
         "slope_deg": np.round(slopes, 2).tolist(),
         "source": source,
@@ -506,7 +670,7 @@ def evaluate_terrain_patch(
         dummy_site = Site(id="patch", name="patch", lat=lat, lon=lon)
         track = ephemeris.track(dummy_site, "sun", date, duration_h=window_days * 24.0, step_h=6.0)
         instant_illum, window_illum_pct, mean_solar_pct = compute_patch_solar_grid(
-            elev, lat, lon, track, horizon_mask=horizon_mask
+            elev, lat, lon, track, horizon_mask=horizon_mask, step_m=spacing_m
         )
         safe_slope = slopes <= 10.0
         good_sun = window_illum_pct >= 50.0

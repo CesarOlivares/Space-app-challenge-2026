@@ -220,14 +220,24 @@ def _build_risk_grid(max_slope_deg: float = 15.0) -> dict:
                 earth_comm = max(0.0, earth_comm - 35.0)
 
             # Combined Suitability (3-variable intersection: Landing Ease + Solar Access + Earth Comm).
-            # Without measured terrain, Landing Ease is left out and the other weights renormalize.
-            solar_term = solar_exp * (100.0 / 75.0) if solar_exp <= 75.0 else 100.0
-            if landing_ease is None:
-                suitability = (0.35 * solar_term + 0.25 * earth_comm) / 0.60
+            # Hard exclusion (NO-GO): A cell is non-viable if any of the 3 criteria fails:
+            # 1. No direct line-of-sight to Earth (earth_comm < 15.0 / Far Side without relay).
+            # 2. Extreme permanent shadow cold trap (solar_exp < 20.0).
+            # 3. Measured slope exceeds critical tip-over angle (slope_deg > max_slope_deg).
+            is_viable = (earth_comm >= 15.0) and (solar_exp >= 20.0)
+            if metrics.slope_deg is not None and metrics.slope_deg > max_slope_deg:
+                is_viable = False
+
+            if not is_viable:
+                suitability = 0.0
             else:
-                suitability = 0.40 * landing_ease + 0.35 * solar_term + 0.25 * earth_comm
-                if metrics.slope_deg > max_slope_deg:
-                    suitability = min(suitability, 18.0)
+                solar_term = float(np.clip((solar_exp - 20.0) * (100.0 / 60.0), 0.0, 100.0))
+                comm_term = float(np.clip((earth_comm - 15.0) * (100.0 / 85.0), 0.0, 100.0))
+                if landing_ease is None:
+                    # Without measured local slope, use 75.0 baseline (smooth mare average)
+                    suitability = 0.40 * 75.0 + 0.35 * solar_term + 0.25 * comm_term
+                else:
+                    suitability = 0.40 * landing_ease + 0.35 * solar_term + 0.25 * comm_term
 
             cells.append({
                 "lat": round(lat, 2),

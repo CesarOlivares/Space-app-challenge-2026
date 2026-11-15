@@ -86,3 +86,45 @@ def test_terrain_patch_solar_mapping(dem, ephemeris):
     # Verifica que la iluminación varía espacialmente según el relieve local
     flat_solar = [v for row in solar["exposure_pct"] for v in row]
     assert min(flat_solar) < max(flat_solar)
+
+
+def test_global_dem_features():
+    from app.models.terrain import _get_global_dem, evaluate_terrain
+
+    gdem = _get_global_dem()
+    if gdem is None:
+        pytest.skip("DEM global LOLA no presente (ejecutar ./run.sh data)")
+
+    # Apollo 11 en Mare Tranquillitatis: mare plano, pendiente muy suave (< 2°)
+    ap11 = evaluate_terrain(0.674, 23.473)
+    assert ap11.source == "lola_global"
+    assert -2100 <= ap11.elevation_m <= -1800
+    assert ap11.slope_deg < 2.0
+    assert ap11.aspect_deg is not None
+
+    # Borde del Cráter Tycho (-43.3° S, -11.2° O): pared empinada (> 10°)
+    tycho = evaluate_terrain(-43.3, -11.2)
+    assert tycho.source == "lola_global"
+    assert tycho.slope_deg > 10.0
+
+
+def test_global_dem_patch_solar_mapping(ephemeris):
+    from datetime import datetime
+    from app.models.terrain import _get_global_dem, evaluate_terrain_patch
+
+    if _get_global_dem() is None:
+        pytest.skip("DEM global LOLA no presente")
+
+    date = datetime.fromisoformat("2026-12-15T00:00:00+00:00")
+    # Tycho crater patch
+    patch = evaluate_terrain_patch(-43.3, -11.2, size=25, ephemeris=ephemeris, date=date, window_days=14.0)
+    assert patch["size"] == 25
+    assert patch["source"] == "lola_global"
+    assert "solar" in patch
+    solar = patch["solar"]
+    assert len(solar["exposure_pct"]) == 25
+    assert 0.0 <= solar["mean_solar_pct"] <= 100.0
+    assert len(patch["slope_deg"]) == 25
+    # En Tycho, las pendientes máximas superan los 15°
+    flat_slopes = [s for row in patch["slope_deg"] for s in row]
+    assert max(flat_slopes) > 15.0

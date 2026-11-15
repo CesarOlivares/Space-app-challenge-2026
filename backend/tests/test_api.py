@@ -217,9 +217,10 @@ def test_proteccion_sin_relieve_es_sin_datos_y_no_cero(client):
 
 
 def test_total_sin_relieve_se_renormaliza_sin_proteccion(client):
-    # Fuera del DEM polar no hay T ni A: se omiten y P = (0,5·E + 0,5·C) / 1.
+    # Sin máscara de relieve de 150 km, el blindaje A es null. Con peso_terreno=0 por defecto,
+    # el puntaje P se renormaliza a (0,5·E + 0,5·C) / 1.
     s = {x["site_id"]: x for x in client.get("/api/scores", params={"date": DATE}).json()["scores"]}["apollo-11"]["scores"]
-    assert s["terrain"] is None and s["asteroid"] is None
+    assert s["asteroid"] is None
     expected = (0.5 * s["energy"] + 0.5 * s["communication"]) / 1.0
     assert s["total"] == pytest.approx(expected, abs=0.1)
 
@@ -255,10 +256,14 @@ def test_risk_grid_endpoint(client):
     assert 0.0 <= first["solar_exposure"] <= 100.0
     assert 0.0 <= first["earth_comm"] <= 100.0
     assert 0.0 <= first["suitability"] <= 100.0
-    # Terreno medido solo dentro del DEM polar; el resto va en null, sin valores inventados.
+    # Terreno medido: dentro del DEM polar o global; asteroides queda en null sin máscara 3D.
     assert all(c["asteroid_protection"] is None for c in data["cells"])
+    from app.models.terrain import _get_global_dem
     north = data["cells"][-1]
-    assert north["slope_deg"] is None and north["landing_ease"] is None
+    if _get_global_dem() is None:
+        assert north["slope_deg"] is None and north["landing_ease"] is None
+    else:
+        assert north["slope_deg"] is not None and north["landing_ease"] is not None
 
 
 

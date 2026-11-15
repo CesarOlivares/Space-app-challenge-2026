@@ -180,54 +180,145 @@ function buildShieldCrownGeometry(profile36) {
 }
 
 /**
+ * Linearly interpolates an RGBA color tuple across multi-stop normalized thresholds [0, 1].
+ * @param {Array<[number, [number, number, number, number]]>} stops
+ * @param {number} t - Normalized position in [0, 1].
+ * @returns {[number, number, number, number]}
+ */
+function colorRamp(stops, t) {
+  const x = Math.max(0, Math.min(1, t));
+  for (let i = 0; i < stops.length - 1; i++) {
+    const [t0, c0] = stops[i];
+    const [t1, c1] = stops[i + 1];
+    if (x <= t1) {
+      const f = (x - t0) / (t1 - t0);
+      return [
+        Math.round(c0[0] + (c1[0] - c0[0]) * f),
+        Math.round(c0[1] + (c1[1] - c0[1]) * f),
+        Math.round(c0[2] + (c1[2] - c0[2]) * f),
+        Math.round(c0[3] + (c1[3] - c0[3]) * f),
+      ];
+    }
+  }
+  return stops[stops.length - 1][1];
+}
+
+/**
+ * Estimates terrain slope in degrees at (lat, lon) using the global 2K elevation heightfield.
+ * Runs in ~100 nanoseconds using 4 bilinearly interpolated samples.
+ * @param {HeightField|null} field - Loaded lunar global heightfield.
+ * @param {number} lat - Latitude in degrees [-90, 90].
+ * @param {number} lon - Longitude in degrees [-180, 180].
+ * @returns {number|null} Slope in degrees, or null if field not ready.
+ */
+function estimateSlopeFromField(field, lat, lon) {
+  if (!field) return null;
+  const dLat = 0.25; // ~7.5 km step on lunar surface
+  const rad = Math.PI / 180;
+  const cosLat = Math.max(0.12, Math.cos(lat * rad));
+  const dLon = dLat / cosLat;
+  const hN = field.heightMeters(Math.min(89.8, lat + dLat), lon);
+  const hS = field.heightMeters(Math.max(-89.8, lat - dLat), lon);
+  const hE = field.heightMeters(lat, lon + dLon);
+  const hW = field.heightMeters(lat, lon - dLon);
+  const distY = 2 * dLat * 30320; // 30.32 km per degree on Moon
+  const distX = 2 * dLon * 30320 * cosLat;
+  const dz_dy = (hN - hS) / distY;
+  const dz_dx = (hE - hW) / distX;
+  return THREE.MathUtils.radToDeg(Math.atan(Math.hypot(dz_dx, dz_dy)));
+}
+
+/**
  * Maps a risk score or mode to an RGBA tuple [r, g, b, a] for the on-globe heatmap.
  * @param {"risk-a"|"risk-b"|"solar"|"comm"|"suitability"|"safe-havens"} mode - Active risk visualization mode.
- * @param {number} slopeDeg - Local slope in degrees.
+ * @param {number|null} slopeDeg - Local slope in degrees.
  * @param {number} ease - Landing Ease score (0-100).
  * @param {number} shield - Asteroid Protection score (0-100).
  * @param {number} [solar=50] - Solar exposure percentage (0-100).
  * @param {number} [comm=100] - Earth communication line-of-sight percentage (0-100).
  * @param {number} [suit=50] - Combined 3-variable suitability score (0-100).
+ * @param {number} [maxSlopeDeg=15] - Maximum safe lander slope limit in degrees.
  * @returns {[number, number, number, number]}
  */
-function riskCellColor(mode, slopeDeg, ease, shield, solar = 50, comm = 100, suit = 50) {
+function riskCellColor(mode, slopeDeg, ease, shield, solar = 50, comm = 100, suit = 50, maxSlopeDeg = 15.0) {
   if (mode === "risk-a") {
-    if (slopeDeg <= 5.0 || ease >= 78) return [16, 200, 145, 190]; // Emerald/Cyan flat
-    if (slopeDeg <= 10.0 || ease >= 50) return [245, 165, 25, 185]; // Amber moderate
-    return [225, 45, 55, 205]; // Crimson steep risk
+    if (slopeDeg != null) {
+      if (slopeDeg <= 5.0) return [16, 200, 145, 190]; // Emerald flat (< 5°)
+      if (slopeDeg <= maxSlopeDeg) {
+        const t = (slopeDeg - 5.0) / Math.max(1, maxSlopeDeg - 5.0);
+        return colorRamp([
+          [0.0, [245, 197, 24, 185]], // Amber (5°)
+          [1.0, [249, 115, 22, 205]], // Orange (maxSlopeDeg)
+        ], t);
+      }
+      return [225, 45, 55, 220]; // Crimson steep hazard (> maxSlopeDeg)
+    }
+    if (ease >= 78) return [16, 200, 145, 190];
+    if (ease >= 50) return [245, 165, 25, 185];
+    return [225, 45, 55, 205];
   }
   if (mode === "risk-b") {
-    if (shield >= 45) return [14, 165, 233, 205]; // Deep Cyan sheltered
-    if (shield >= 22) return [56, 189, 248, 165]; // Moderate shield
-    return [234, 88, 12, 185]; // Orange/Red exposed plateau
+    if (shield >= 45) return [14, 165, 233, 205];
+    if (shield >= 22) return [56, 189, 248, 165];
+    return [234, 88, 12, 185];
   }
   if (mode === "solar") {
-    // Thermal radiance palette: Dark navy (shadows) -> Orange -> Warm gold (high illumination)
-    if (solar >= 65) return [250, 204, 21, 220]; // Bright gold #facc15
-    if (solar >= 45) return [249, 115, 22, 190]; // Warm amber/orange #f97316
-    if (solar >= 25) return [59, 130, 246, 160]; // Moderate blue #3b82f6
-    return [15, 23, 42, 225]; // Deep navy cold trap #0f172a
+    // Thermal radiance: Dark navy (<20% cold trap) -> Blue -> Orange -> Warm Gold
+    if (solar < 20.0) return [15, 23, 42, 235]; // Deep navy cold trap
+    const t = Math.max(0, Math.min(1, (solar - 20) / 75));
+    return colorRamp([
+      [0.00, [59, 130, 246, 175]],  // 20%: Cool Blue
+      [0.45, [249, 115, 22, 195]],  // 54%: Warm Orange
+      [1.00, [250, 204, 21, 230]],  // 95%+: Bright Gold
+    ], t);
   }
   if (mode === "comm") {
-    // Earth Line-of-sight / Direct Signal: Green (Near side) -> Yellow (Libration) -> Red (Far side)
-    if (comm >= 75) return [34, 197, 94, 205]; // Strong green #22c55e
-    if (comm >= 25) return [234, 179, 8, 185]; // Intermittent yellow #eab308
-    return [225, 29, 72, 215]; // No direct signal / far side red #e11d48
+    // Direct Signal: Deep space black (<15% Far side) -> Yellow limb -> Strong green
+    if (comm < 15.0) return [15, 23, 42, 235]; // Far side / No direct signal
+    const t = Math.max(0, Math.min(1, (comm - 15) / 85));
+    return colorRamp([
+      [0.00, [234, 179, 8, 185]],   // 15%: Intermittent yellow limb
+      [0.50, [132, 204, 22, 200]],  // 57%: Lime
+      [1.00, [34, 197, 94, 215]],   // 100%: Strong green (Near side)
+    ], t);
   }
-  // suitability / safe-havens: Combined 3-variable intersection (Slope + Solar + Comm)
-  if (suit >= 72) return [52, 211, 153, 230]; // Optimal touchdown zone: Emerald #34d399
-  if (suit >= 50) return [14, 165, 233, 195]; // Good candidate zone: Cyan #0ea5e9
-  if (suit >= 30) return [245, 158, 11, 175]; // Sub-optimal / limited resources: Amber #f59e0b
-  return [225, 29, 72, 205]; // Unsafe / steep / shadow trap: Rose/Red #e11d48
+
+  // mode === "suitability" || mode === "safe-havens"
+  // 1. HARD EXCLUSION: If ANY of the 3 criteria fails, the site is NON-VIABLE:
+  const hasSignal = comm >= 15.0;
+  const hasSun = solar >= 20.0;
+  const safeSlope = slopeDeg == null || slopeDeg <= maxSlopeDeg;
+  const isViable = hasSignal && hasSun && safeSlope && suit > 15.0;
+
+  if (!isViable) {
+    if (!safeSlope) {
+      // Rojo de advertencia mecánica: riesgo de vuelco por pendiente excesiva
+      return [220, 38, 38, 225]; // #dc2626 Crimson Hazard Red
+    }
+    // Negro profundo: sin señal a Tierra (Cara Oculta) o trampa fría en sombra permanente
+    return [15, 23, 42, 235]; // #0f172a Deep Space / Slate Black
+  }
+
+  // 2. GRADIENTE CONTINUO POR PUNTAJE PARA ZONAS VIABLES:
+  // Interpolación suave y continua: Ámbar (30) -> Oro (52) -> Cyan (75) -> Verde Esmeralda (95-100)
+  const t = Math.max(0, Math.min(1, (suit - 30) / 70));
+  return colorRamp([
+    [0.00, [234, 138, 24, 185]],  // 30: Warm Amber
+    [0.32, [245, 197, 24, 205]],  // 52: Golden Yellow
+    [0.65, [14, 165, 233, 225]],  // 75: Aerospace Cyan
+    [1.00, [52, 211, 153, 245]],  // 100: Optimal Emerald Green
+  ], t);
 }
 
 /**
  * Generates a smooth bilinear-interpolated RGBA CanvasTexture from the 72x36 risk grid.
  * @param {Object} grid - Grid payload from GET /api/risk-grid.
  * @param {"risk-a"|"risk-b"|"solar"|"comm"|"suitability"|"safe-havens"} mode - Active risk layer mode.
+ * @param {HeightField|null} [field] - Optional global 2K elevation heightfield for slope calculation.
+ * @param {number} [maxSlopeDeg=15] - Maximum safe lander slope limit in degrees.
  * @returns {THREE.CanvasTexture}
  */
-function buildRiskOverlayTexture(grid, mode) {
+function buildRiskOverlayTexture(grid, mode, field = null, maxSlopeDeg = 15.0) {
   const { cols, rows, cells } = grid;
   const w = 288;
   const h = 144;
@@ -241,6 +332,7 @@ function buildRiskOverlayTexture(grid, mode) {
   for (let py = 0; py < h; py++) {
     // py=0 is North (+90), py=h-1 is South (-90); grid row 0 is South (-90)
     const latFrac = 1.0 - (py + 0.5) / h;
+    const lat = latFrac * 180 - 90;
     const gr = Math.max(0, Math.min(rows - 1.001, latFrac * rows - 0.5));
     const r0 = Math.floor(gr);
     const r1 = Math.min(rows - 1, r0 + 1);
@@ -248,6 +340,7 @@ function buildRiskOverlayTexture(grid, mode) {
 
     for (let pxIdx = 0; pxIdx < w; pxIdx++) {
       const lonFrac = (pxIdx + 0.5) / w;
+      const lon = lonFrac * 360 - 180;
       const gc = ((lonFrac * cols - 0.5) % cols + cols) % cols;
       const c0 = Math.floor(gc);
       const c1 = (c0 + 1) % cols;
@@ -266,18 +359,42 @@ function buildRiskOverlayTexture(grid, mode) {
         return (v00 * (1 - fc) + v10 * fc) * (1 - fr) + (v01 * (1 - fc) + v11 * fc) * fr;
       };
 
-      // Sin dato medido en alguna esquina (fuera del DEM polar): la capa de pendiente no pinta nada.
-      const measured = [c00, c10, c01, c11].every((cell) => cell.slope_deg != null);
-      if (mode === "risk-a" && !measured) continue;
+      // Si el DEM polar no cubre este punto, estimamos la pendiente desde el mapa de alturas 2K
+      let slope = bilerp("slope_deg", null);
+      if (slope == null && field) {
+        slope = estimateSlopeFromField(field, lat, lon);
+      }
+
+      // Si mode es risk-a y no tenemos ningún dato de pendiente (ni polar ni global), no pintamos
+      if (mode === "risk-a" && slope == null) continue;
+
+      const ease = bilerp("landing_ease", 50);
+      const shield = bilerp("asteroid_protection", 30);
+      const solar = bilerp("solar_exposure", 50);
+      const comm = bilerp("earth_comm", 50);
+      let suit = bilerp("suitability", 50);
+
+      // Refinamiento de aptitud con la pendiente del mapa de alturas fuera del DEM polar
+      if (slope != null && c00.slope_deg == null && (mode === "suitability" || mode === "safe-havens")) {
+        if (slope > maxSlopeDeg || comm < 15.0 || solar < 20.0) {
+          suit = 0.0;
+        } else {
+          const slopeScore = Math.max(0, 100 * (1.0 - slope / maxSlopeDeg));
+          const solarTerm = Math.min(100, Math.max(0, (solar - 20) * (100 / 60)));
+          const commTerm = Math.min(100, Math.max(0, (comm - 15) * (100 / 85)));
+          suit = 0.40 * slopeScore + 0.35 * solarTerm + 0.25 * commTerm;
+        }
+      }
 
       const [r, g, b, a] = riskCellColor(
         mode,
-        bilerp("slope_deg", 5),
-        bilerp("landing_ease", 50),
-        bilerp("asteroid_protection", 30),
-        bilerp("solar_exposure", 50),
-        bilerp("earth_comm", 50),
-        bilerp("suitability", 50),
+        slope,
+        ease,
+        shield,
+        solar,
+        comm,
+        suit,
+        maxSlopeDeg,
       );
       const off = (py * w + pxIdx) * 4;
       px[off] = r;
@@ -314,6 +431,7 @@ export class GlobeView {
     this.surfaceMode = "lroc";
     this.layerMode = "surface";
     this.riskGrid = null;
+    this.maxSlopeDeg = 15;
     this.riskTextures = new Map();
     this.lolaTexture = null;
     this.relief = { enabled: true, exaggeration: 3, meta: null, field: null, status: "loading" };
@@ -434,6 +552,11 @@ export class GlobeView {
       this.#setReliefStatus("ready");
       this.#applyRelief();
       if (this.surfaceMode === "lola") this.setSurfaceMode("lola");
+      if (this.riskGrid && this.layerMode !== "surface") {
+        for (const tex of this.riskTextures.values()) tex.dispose();
+        this.riskTextures.clear();
+        this.setLayerMode(this.layerMode);
+      }
     } catch {
       this.#setReliefStatus("unavailable");
     }
@@ -585,9 +708,11 @@ export class GlobeView {
   /**
    * Stores the global 72x36 risk grid and refreshes the active risk overlay if needed.
    * @param {Object} grid - Grid payload from GET /api/risk-grid.
+   * @param {number} [maxSlopeDeg=15] - Maximum safe slope threshold in degrees.
    */
-  setRiskGrid(grid) {
+  setRiskGrid(grid, maxSlopeDeg = 15) {
     this.riskGrid = grid;
+    this.maxSlopeDeg = maxSlopeDeg;
     for (const tex of this.riskTextures.values()) tex.dispose();
     this.riskTextures.clear();
     if (this.layerMode !== "surface") {
@@ -597,7 +722,7 @@ export class GlobeView {
 
   /**
    * Switches the on-globe surface visualization layer.
-   * @param {"surface"|"risk-a"|"risk-b"|"safe-havens"} mode - Active lunar layer mode.
+   * @param {"surface"|"risk-a"|"risk-b"|"solar"|"comm"|"suitability"|"safe-havens"} mode - Active lunar layer mode.
    */
   setLayerMode(mode) {
     this.layerMode = mode;
@@ -608,7 +733,7 @@ export class GlobeView {
     }
     let tex = this.riskTextures.get(mode);
     if (!tex) {
-      tex = buildRiskOverlayTexture(this.riskGrid, mode);
+      tex = buildRiskOverlayTexture(this.riskGrid, mode, this.relief?.field, this.maxSlopeDeg ?? 15);
       this.riskTextures.set(mode, tex);
     }
     this.riskOverlay.material.map = tex;
