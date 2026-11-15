@@ -1,0 +1,502 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Zenit · Pitch</title>
+<style>
+@font-face{font-family:Archivo;src:url(assets/fonts/archivo-var.woff2) format("woff2");font-weight:100 900;font-stretch:62% 125%}
+@font-face{font-family:JBM;src:url(assets/fonts/jetbrains-mono-var.woff2) format("woff2");font-weight:100 800}
+/*@@tokens.css*/
+/*@@maqueta.css*/
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;background:#000;overflow:hidden}
+body{font-family:Archivo,system-ui,sans-serif;color:var(--ink)}
+#stage{position:absolute;left:50%;top:50%;width:1920px;height:1080px;transform-origin:center;background:var(--bg)}
+.slide{position:absolute;inset:0;overflow:hidden;visibility:hidden;background:var(--bg)}
+.slide.on{visibility:visible}
+.slide.paper{background:var(--paper);color:var(--paper-ink)}
+.abs{position:absolute}
+.h{font-weight:900;font-stretch:125%;line-height:.92;letter-spacing:-.01em;text-transform:uppercase}
+.mono{font-family:JBM,monospace}
+.kick{position:absolute;left:var(--m);top:var(--top-kick);font:600 var(--t-label)/1 JBM,monospace;letter-spacing:.28em;text-transform:uppercase;color:var(--acc)}
+.paper .kick{color:var(--acc-paper)}
+.title{position:absolute;left:var(--m);top:var(--top-title);font-size:var(--t-title)}
+.acc{color:var(--acc)}.paper .acc{color:var(--acc-paper)}
+.lbl{font:500 var(--t-label)/1.25 JBM,monospace;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+.paper .lbl{color:var(--paper-muted)}
+.sub{font:600 var(--t-sub)/1.15 Archivo}
+.txt{font:500 var(--t-text)/1.3 Archivo}
+.big{font-family:JBM,monospace;font-weight:700;line-height:1}
+.pg{position:absolute;right:64px;bottom:var(--bottom-src);font:500 var(--t-label) JBM,monospace;color:var(--muted);letter-spacing:.2em}
+.paper .pg{color:var(--paper-muted)}
+.src{position:absolute;left:var(--m);bottom:var(--bottom-src);font:400 var(--t-src) Archivo;color:var(--muted)}
+.paper .src{color:var(--paper-muted)}
+.stars{position:absolute;inset:0;pointer-events:none}
+.stars i{position:absolute;border-radius:50%;background:#fff;animation:tw 4s ease-in-out infinite}
+@keyframes tw{50%{opacity:.15}}
+.grid-bg{position:absolute;inset:0;background-image:linear-gradient(rgba(11,13,20,.06) 1px,transparent 1px),linear-gradient(90deg,rgba(11,13,20,.06) 1px,transparent 1px);background-size:96px 96px}
+.svg{display:block}.svg svg{width:100%;height:100%;display:block}
+
+/* Marco de la demo */
+.frame{position:absolute;border:1.5px solid var(--line);background:#000;overflow:hidden}
+.paper .frame{border-color:#0b0d14}
+.frame .bar{height:44px;display:flex;align-items:center;gap:12px;padding:0 18px;background:var(--panel);border-bottom:1px solid var(--line);font:500 20px JBM,monospace;color:var(--muted)}
+.frame .bar b{width:12px;height:12px;border-radius:50%;background:#2a3142}
+.frame .bar .url{margin-left:14px}
+.frame .bar .note{margin-left:auto;color:var(--acc);letter-spacing:.1em;font-size:18px}
+.demo-host{position:relative;overflow:hidden;background:#05070d}
+.zoom{position:absolute;left:0;top:0;width:1600px;height:900px;transform-origin:0 0}
+.shield{position:absolute;inset:0;z-index:50}
+.cursor{position:absolute;left:0;top:0;width:44px;height:44px;z-index:60;pointer-events:none;opacity:0;filter:drop-shadow(0 4px 10px rgba(0,0,0,.7));transform-origin:8px 4px}
+.ripple{position:absolute;width:70px;height:70px;margin:-35px 0 0 -35px;border:4px solid var(--acc);border-radius:50%;z-index:60;pointer-events:none;opacity:0}
+.loading{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font:500 22px JBM,monospace;letter-spacing:.3em;color:var(--muted);z-index:55;background:#05070d}
+.cap{position:absolute;display:flex;align-items:center;gap:18px;font:700 var(--t-text) Archivo;background:var(--paper);color:var(--paper-ink);border:2px solid var(--paper-ink);padding:14px 26px;opacity:0}
+.cap .n{font:700 28px JBM,monospace;color:var(--acc-paper)}
+.cap.ok .n{color:#1a8f4a}.cap.bad .n{color:#c2402a}
+.dark .cap,.slide:not(.paper) .cap{background:var(--bg);color:var(--ink);border-color:var(--acc)}
+.slide:not(.paper) .cap .n{color:var(--acc)}
+.slide:not(.paper) .cap.ok .n{color:var(--ok)}.slide:not(.paper) .cap.bad .n{color:var(--bad)}
+
+/* Transición */
+#iris{position:absolute;inset:0;pointer-events:none;z-index:50;visibility:hidden}
+#iris .ring{position:absolute;left:50%;top:50%;border:6px solid var(--acc);border-radius:50%;transform:translate(-50%,-50%)}
+#hint{position:fixed;left:16px;bottom:12px;font:12px JBM,monospace;color:#666;z-index:99}
+@media (prefers-reduced-motion:reduce){.stars i{animation:none}}
+
+/* Portada */
+.mask{display:inline-block;overflow:hidden;vertical-align:top;padding:0 .01em}
+.mask>span{display:inline-block}
+#s1 canvas{position:absolute;left:0;top:0;width:1920px;height:1080px}
+#s1 .glow{position:absolute;left:1000px;top:60px;width:960px;height:960px;border-radius:50%;background:radial-gradient(circle at 62% 45%,rgba(167,139,250,.20),rgba(167,139,250,0) 62%)}
+/* Factores (lámina 5) */
+.fct{display:flex;align-items:center;gap:26px;padding:22px 0 22px 24px;border-left:4px solid var(--line);font:800 38px/1.05 Archivo;font-stretch:125%;text-transform:uppercase;opacity:.5;transition:opacity .3s,border-color .3s}
+.fct .svg{width:88px;height:88px;flex:none}
+.fct.on{opacity:1;border-left-color:var(--acc)}
+/* Ecuación (lámina 4) */
+.eq{display:flex;align-items:center;gap:30px}
+.eq .bx{border:2px solid var(--ink);padding:20px 34px;font:800 52px/1 Archivo;font-stretch:125%;text-transform:uppercase}
+.eq .bx.last{border-color:var(--acc);color:var(--acc)}
+.eq .op{font:700 64px JBM,monospace;color:var(--acc)}
+/* Herramientas (lámina 6) */
+.tool{display:flex;justify-content:space-between;align-items:baseline;border-top:2px solid var(--paper-ink);padding:20px 0;font:800 44px/1 Archivo;font-stretch:125%;text-transform:uppercase;color:var(--paper-muted)}
+.tool:last-child{border-bottom:2px solid var(--paper-ink)}
+.tool span{font:500 22px JBM,monospace;letter-spacing:.1em}
+</style>
+</head>
+<body>
+<div id="stage">
+
+<!-- 1 · PORTADA -->
+<section class="slide" id="s1">
+  <div class="stars" data-stars="190"></div>
+  <div class="glow"></div>
+  <canvas width="1920" height="1080"></canvas>
+  <div class="abs svg ret" data-svg="elementos-2/hud_crosshair_lock_reticle" style="left:1400px;top:759px;width:160px;height:160px;color:var(--acc)"></div>
+  <p class="abs lbl polo" style="left:1580px;top:812px;color:var(--ink)">Polo sur<br><span class="acc" id="p-lat">−90,0°</span></p>
+  <p class="kick k1">NASA Space Apps Challenge 2026</p>
+  <h1 class="abs h hero" aria-label="Zenit" style="left:86px;top:330px;font-size:176px"></h1>
+  <p class="abs tag sub" style="left:var(--m);top:640px;width:900px">¿Dónde y cuándo aterrizar en el <span class="acc">polo sur</span> de la Luna?</p>
+  <p class="abs lbl by" style="left:var(--m);bottom:var(--bottom-src);color:var(--ink)">Usach Space Program</p>
+</section>
+
+<!-- 2 · APOLO → POLO SUR -->
+<section class="slide" id="s2">
+  <div class="stars" data-stars="70"></div>
+  <p class="kick k1">Contexto · 20 de julio de 1969</p>
+  <h2 class="title h t1" style="width:1650px">Aterrizar es decidir en segundos</h2>
+  <div class="abs n1" style="left:var(--m);top:440px"><p class="big" style="font-size:var(--t-big);color:var(--bad)"><span class="cnt" data-to="1202">1202</span></p><p class="lbl" style="margin-top:20px">Alarma · control manual</p></div>
+  <div class="abs n2" style="left:840px;top:440px"><p class="big" style="font-size:var(--t-big);color:var(--sun)">~<span class="cnt" data-to="30">30</span><span style="font-size:110px"> s</span></p><p class="lbl" style="margin-top:20px">Combustible al tocar suelo</p></div>
+  <div class="abs svg bdg" data-svg="elementos-2/hud_alert_hazard_badge" style="left:1470px;top:460px;width:354px;height:152px;color:var(--bad)"></div>
+  <p class="abs sub fin" style="left:var(--m);top:800px">Hoy volvemos. Al <span class="acc">polo sur</span>.</p>
+  <p class="abs lbl fin2" style="left:var(--m);top:880px">Programa Artemis · regiones candidatas</p>
+  <p class="src">NASA SP-350, cap. 11 (otras fuentes: 15–25 s) · NASA, regiones candidatas Artemis, 2026</p>
+  <span class="pg">02</span>
+</section>
+
+<!-- 3 · RETRASO -->
+<section class="slide paper" id="s3">
+  <div class="grid-bg"></div>
+  <p class="kick k1">Contexto · el desafío</p>
+  <h2 class="title h t1" style="width:740px">Un día de retraso cambia todo</h2>
+  <div class="abs r-block" style="left:var(--m);top:640px;width:640px">
+    <p class="lbl">Sol continuo antes del ocaso</p>
+    <p class="mono r-num" style="font-size:150px;font-weight:700;line-height:1;margin-top:14px;color:#1a8f4a"><span id="r-n">170</span><span style="font-size:70px"> h</span></p>
+    <p class="txt" style="margin-top:8px">La estancia exige <b>156 h</b> <span class="mono" style="font-size:26px;color:var(--paper-muted)">(6,5 días)</span></p>
+  </div>
+  <div class="frame fr" style="left:780px;top:130px;width:1044px">
+    <div class="bar"><b></b><b></b><b></b><span class="url">zenit · explorar</span><span class="note">Interfaz y datos reales</span></div>
+    <div class="demo-host" data-demo="retraso" style="width:1041px;height:586px"></div>
+  </div>
+  <p class="cap" data-cap style="left:780px;top:810px"></p>
+  <p class="src">Efemérides JPL DE440 · relieve LRO/LOLA · fecha de aterrizaje simulada, estancia de 6,5 días</p>
+  <span class="pg">03</span>
+</section>
+
+<!-- 4 · ZENIT -->
+<section class="slide" id="s4">
+  <div class="stars" data-stars="120"></div>
+  <img class="abs moon4" src="assets/luna.webp" alt="" style="left:1200px;top:-40px;width:1100px;height:1100px;opacity:.5;transform:scaleX(-1)">
+  <p class="kick k1">Solución</p>
+  <p class="abs sub z1" style="left:var(--m);top:150px;color:var(--muted)">Para resolverlo creamos</p>
+  <h2 class="abs h zen" style="left:86px;top:240px;font-size:190px;letter-spacing:.03em"></h2>
+  <p class="abs lbl z2" style="left:var(--m);top:490px">Luna 3D · datos científicos reales de la NASA · en segundos</p>
+  <div class="abs eq z3" style="left:var(--m);top:640px"><span class="bx">Sitio</span><span class="op">+</span><span class="bx">Fecha</span><span class="op">→</span><span class="bx last">¿Viable 14 días?</span></div>
+  <p class="src">Textura lunar: NASA SVS (dominio público)</p>
+  <span class="pg">04</span>
+</section>
+
+<!-- 5 · SOLUCIÓN: demo + tres factores -->
+<section class="slide" id="s5">
+  <div class="stars" data-stars="50"></div>
+  <p class="kick k1">Solución · tres factores</p>
+  <h2 class="title h t1">Elige y evalúa</h2>
+  <div class="frame fr" style="left:var(--m);top:275px;width:1064px">
+    <div class="bar"><b></b><b></b><b></b><span class="url">zenit · explorar · 23 nov 2026</span><span class="note">Interfaz y datos reales</span></div>
+    <div class="demo-host" data-demo="evaluar" style="width:1061px;height:597px"></div>
+  </div>
+  <div class="abs fcts" style="left:1330px;top:290px;width:494px">
+    <div class="fct" data-f="1"><div class="svg" data-svg="elementos-2/sun_radiant_corona" style="color:var(--sun)"></div>Energía solar</div>
+    <div class="fct" data-f="2"><div class="svg" data-svg="elementos-2/deep_space_radar_dish" style="color:var(--earth)"></div>Enlace con la Tierra</div>
+    <div class="fct" data-f="3"><div class="svg" data-svg="elementos-3/hud_3d_terrain_wireframe_mesh" style="color:var(--acc)"></div>Terreno seguro</div>
+    <p class="txt fin" style="margin-top:40px;color:var(--muted)">Para una misión de <b style="color:var(--ink)">2 semanas</b>, en segundos.</p>
+  </div>
+  <p class="cap" data-cap style="left:var(--m);top:945px"></p>
+  <span class="pg">05</span>
+</section>
+
+<!-- 6 · VENTAJAS -->
+<section class="slide paper" id="s6">
+  <div class="grid-bg"></div>
+  <p class="kick k1">Ventajas</p>
+  <h2 class="title h t1" style="width:1700px">Lo mismo, sin ser especialista</h2>
+  <div class="abs tools" style="left:var(--m);top:390px;width:740px">
+    <p class="lbl" style="margin-bottom:18px">Hoy se consultan por separado</p>
+    <div class="tool">QuickMap<span>para especialistas</span></div>
+    <div class="tool">Moon Trek<span>para especialistas</span></div>
+    <div class="tool">JPL Horizons<span>para especialistas</span></div>
+    <p class="h zz" style="font-size:80px;margin-top:36px">→ <span class="acc">Zenit</span></p>
+    <p class="txt zz2" style="margin-top:10px">Todo junto · <b>compara escenarios</b></p>
+  </div>
+  <p class="cap" data-cap style="left:var(--m);top:905px"></p>
+  <div class="frame fr" style="left:900px;top:390px;width:924px">
+    <div class="bar"><b></b><b></b><b></b><span class="url">zenit · comparar · 18 nov 2026</span><span class="note">Interfaz y datos reales</span></div>
+    <div class="demo-host" data-demo="comparar" style="width:921px;height:518px"></div>
+  </div>
+  <p class="src" style="left:900px">No reemplaza el análisis experto: <b>lo enfoca</b>.</p>
+  <span class="pg">06</span>
+</section>
+
+<!-- 7 · CIERRE -->
+<section class="slide" id="s7">
+  <div class="stars" data-stars="170"></div>
+  <div class="abs qrbox" style="left:1384px;top:190px;width:380px;height:380px;background:#fff;padding:0"><div id="qr" style="width:380px;height:380px"></div></div>
+  <p class="abs sub qrt" style="left:1384px;top:600px;width:440px;font-size:40px;line-height:1.15">Pruébalo en tu <span class="acc">teléfono</span></p>
+  <p class="abs lbl qru" style="left:1384px;top:700px;width:440px;font-size:22px;letter-spacing:.06em;text-transform:none;color:var(--ink)">zenith.spaceprogram.cl</p>
+  <p class="kick k1">Próximos pasos</p>
+  <div class="abs steps" style="left:var(--m);top:150px;width:1000px">
+    <p class="sub st" style="display:flex;gap:28px"><span class="mono acc" style="font-size:38px;padding-top:12px">01</span>Validar con misiones conocidas</p>
+    <p class="sub st" style="display:flex;gap:28px;margin-top:12px"><span class="mono acc" style="font-size:38px;padding-top:12px">02</span>Sumar análisis térmico</p>
+    <p class="sub st" style="display:flex;gap:28px;margin-top:12px"><span class="mono acc" style="font-size:38px;padding-top:12px">03</span>Sumar valor científico</p>
+  </div>
+  <p class="abs sub nxt" style="left:var(--m);top:560px">Preparamos lo que viene <span class="acc">después</span>.</p>
+  <h2 class="abs h gra" style="left:86px;top:690px;font-size:176px"></h2>
+  <p class="abs lbl by7" style="left:var(--m);bottom:var(--bottom-src);color:var(--ink)">Usach Space Program · Zenit</p>
+  <span class="pg">07</span>
+</section>
+
+<div id="iris"><div class="ring"></div></div>
+</div>
+<p id="hint">→ / clic: siguiente · ← vuelve · R repite · F pantalla completa</p>
+<svg width="0" height="0" style="position:absolute"><defs>
+<symbol id="cursor-shape" viewBox="0 0 44 44"><path d="M8 4 L8 36 L16 28 L22 41 L28 38 L22 26 L33 26 Z" fill="#fff" stroke="#05070d" stroke-width="2.5" stroke-linejoin="round"/></symbol>
+</defs></svg>
+
+<script src="vendor/gsap.min.js"></script>
+<script src="vendor/qrcode.min.js"></script>
+<script>
+//@@datos.js
+</script>
+<script>
+//@@maqueta.js
+</script>
+<script>
+(() => {
+const stage = document.getElementById('stage');
+const fit = () => { const s = Math.min(innerWidth/1920, innerHeight/1080); stage.style.transform = `translate(-50%,-50%) scale(${s})`; };
+addEventListener('resize', fit); fit();
+const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+document.querySelectorAll('[data-stars]').forEach((el, n) => {
+  let r = 97 * (n + 3); const rnd = () => (r = (r * 9301 + 49297) % 233280) / 233280;
+  for (let i = 0; i < +el.dataset.stars; i++) { const s = document.createElement('i'), z = 1 + rnd() * 2.2;
+    s.style.cssText = `left:${rnd()*100}%;top:${rnd()*100}%;width:${z}px;height:${z}px;opacity:${.3 + rnd()*.7};animation-delay:${-rnd()*4}s`; el.appendChild(s); }
+});
+// letras enmascaradas (cada letra sube desde una línea de corte)
+const letters = (sel, text) => { document.querySelector(sel).innerHTML = [...text].map(c => `<span class="mask"><span class="ch">${c}</span></span>`).join(''); };
+letters('#s1 .hero', 'ZENIT'); letters('#s4 .zen', 'ZENIT'); letters('#s7 .gra', 'GRACIAS');
+
+// QR hacia el sitio (se genera en la página; margen blanco de 4 módulos para que lea bien)
+(() => { const q = qrcode(0, 'M'); q.addData('https://zenith.spaceprogram.cl/#intro'); q.make(); const n = q.getModuleCount(); let d = '';
+  for (let r = 0; r < n; r++) for (let c = 0; c < n; c++) if (q.isDark(r, c)) d += `M${c + 4} ${r + 4}h1v1h-1z`;
+  document.getElementById('qr').innerHTML = `<svg viewBox="0 0 ${n + 8} ${n + 8}" width="380" height="380" shape-rendering="crispEdges"><rect width="100%" height="100%" fill="#fff"/><path d="${d}" fill="#05070d"/></svg>`; })();
+const slides = [...document.querySelectorAll('.slide')];
+const $ = (s, r) => [...r.querySelectorAll(s)];
+
+/* ===== Motor de demos: cursor, zoom y subtítulos sobre la maqueta ===== */
+const CANCEL = Symbol('cancel');
+class Demo {
+  constructor(host) {
+    this.host = host; this.dead = false; this.t0 = performance.now(); this.base = host.clientWidth / 1600; this.z = {s: 1, x: 0, y: 0}; this.c = {x: 1100, y: 700};
+    this.zoom = document.createElement('div'); this.zoom.className = 'zoom';
+    this.cursor = document.createElementNS('http://www.w3.org/2000/svg', 'svg'); this.cursor.setAttribute('class', 'cursor'); this.cursor.innerHTML = '<use href="#cursor-shape"/>';
+    this.ripple = document.createElement('div'); this.ripple.className = 'ripple';
+    this.loading = document.createElement('div'); this.loading.className = 'loading'; this.loading.textContent = 'CARGANDO…';
+    host.append(this.zoom, this.loading);
+    this.m = new Maqueta(this.zoom); this.m.root.append(this.cursor, this.ripple);
+    const shield = document.createElement('div'); shield.className = 'shield'; this.m.root.append(shield);
+    this.cap = host.closest('.slide').querySelector('[data-cap]');
+    this.apply(); this.placeCursor();
+  }
+  apply() { const {s, x, y} = this.z; this.zoom.style.transform = `scale(${this.base * s}) translate(${-x}px,${-y}px)`; this.cursor.style.scale = 1 / s; }
+  placeCursor() { this.cursor.style.transform = `translate(${this.c.x - 8}px,${this.c.y - 4}px)`; }
+  check() { if (this.dead) throw CANCEL; }
+  sleep(ms) { return new Promise((res, rej) => { const t0 = performance.now(); const tick = () => { if (this.dead) return rej(CANCEL); performance.now() - t0 >= ms ? res() : requestAnimationFrame(tick); }; tick(); }); }
+  tw(target, vars) { return new Promise((res, rej) => { if (this.dead) return rej(CANCEL); gsap.to(target, {...vars, onComplete: res}); }); }
+  destroy() { this.dead = true; gsap.killTweensOf([this.z, this.c, this.cap, this.ripple, this.cursor]); this.m?.destroy(); this.host.innerHTML = ''; if (this.cap) this.cap.style.opacity = 0; }
+  async ready() { await this.m.ready; await this.sleep(250); await this.tw(this.loading, {opacity: 0, duration: .4}); this.loading.remove(); this.t0 = performance.now(); }
+  async move(p, dur = .9) { this.cursor.style.opacity = 1; await this.tw(this.c, {x: p.x, y: p.y, duration: dur, ease: 'power2.inOut', onUpdate: () => this.placeCursor()}); }
+  pulse(p) { gsap.fromTo(this.ripple, {left: p.x, top: p.y, scale: .3, opacity: 1}, {scale: 1.6 / this.z.s, opacity: 0, duration: .6, ease: 'power2.out'}); gsap.fromTo(this.cursor, {scale: 1 / this.z.s}, {scale: .8 / this.z.s, duration: .09, yoyo: true, repeat: 1}); }
+  async clickEl(sel) { const r = this.m.rectOf(sel), p = {x: r.x + r.w / 2, y: r.y + r.h / 2}; await this.move(p); this.pulse(p); this.m.press(sel); await this.sleep(260); }
+  async clickSite(id) { const p = this.m.project(id); await this.move(p, 1.1); this.pulse(p); await this.sleep(260); }
+  async zoomTo(r, dur = 1.1, pad = 1.1) {
+    const S = Math.min(1600 / (r.w * pad), 900 / (r.h * pad), 2.4), vw = 1600 / S, vh = 900 / S;
+    const x = Math.max(0, Math.min(1600 - vw, r.x + r.w / 2 - vw / 2)), y = Math.max(0, Math.min(900 - vh, r.y + r.h / 2 - vh / 2));
+    await this.tw(this.z, {s: S, x, y, duration: dur, ease: 'power3.inOut', onUpdate: () => this.apply()});
+  }
+  async zoomOut(dur = 1) { await this.tw(this.z, {s: 1, x: 0, y: 0, duration: dur, ease: 'power3.inOut', onUpdate: () => this.apply()}); }
+  async say(html, tone = '') { if (!this.cap) return; this.check(); await this.tw(this.cap, {opacity: 0, duration: .15});
+    this.cap.className = 'cap ' + tone; this.cap.innerHTML = html; await this.tw(this.cap, {opacity: 1, duration: .3, ease: 'power2.out'}); }
+}
+const union = (...rs) => { const x = Math.min(...rs.map(r => r.x)), y = Math.min(...rs.map(r => r.y)); return {x, y, w: Math.max(...rs.map(r => r.x + r.w)) - x, h: Math.max(...rs.map(r => r.y + r.h)) - y}; };
+
+const ROUTINES = {
+  async retraso(a) {
+    const m = a.m, slide = a.host.closest('.slide'), num = slide.querySelector('#r-n'), numWrap = slide.querySelector('.r-num');
+    m.setDate('2026-11-23T00:00:00Z');
+    await a.ready();
+    m.southPole(1.8);
+    await a.sleep(900);
+    await a.say('<span class="n">23 NOV</span> Mons Malapert: viable', 'ok');
+    await a.clickSite('mons-malapert'); m.select('mons-malapert');
+    await a.sleep(500);
+    await a.zoomTo(m.rectOf('.mq-card'), 1.1, 1.2);
+    await a.sleep(1500);
+    await a.zoomTo(union(m.rectOf('.mq-datebar'), m.rectOf('.mq-card')), 1.1, 1.05);
+    await a.say('<span class="n">+1 DÍA</span> ¿y si la misión se retrasa?');
+    await a.clickEl('.mq-datebar .next'); m.setDate('2026-11-24T00:00:00Z');
+    const o = {v: 170}; gsap.to(o, {v: 146, duration: 1.2, ease: 'power2.inOut', onUpdate: () => num.textContent = Math.round(o.v)});
+    gsap.to(numWrap, {color: '#c2402a', duration: .6, delay: .9});
+    await a.sleep(500);
+    await a.zoomTo(m.rectOf('.mq-card'), 1, 1.2);
+    await a.say('<span class="n">24 NOV</span> ya no es viable', 'bad');
+  },
+  async evaluar(a) {
+    const m = a.m, slide = a.host.closest('.slide'), fct = n => $('.fct', slide).forEach(e => e.classList.toggle('on', +e.dataset.f === n));
+    m.setDate('2026-11-23T00:00:00Z');
+    await a.ready();
+    await a.say('<span class="n">1</span> Explora la Luna en 3D');
+    await m.flyTo({lat: -22, lon: 20, R: 400}, 1.6);
+    await a.sleep(300);
+    m.southPole(1.8); await a.say('<span class="n">2</span> Elige un punto en el polo sur');
+    await a.sleep(1400);
+    await a.clickSite('mons-malapert'); m.select('mons-malapert');
+    await a.sleep(600);
+    await a.zoomTo(m.rectOf('.mq-card'), 1.1, 1.15);
+    fct(1); m.highlight(1); await a.say('<span class="n">3</span> Energía: Sol hasta el 30 nov');
+    await a.sleep(1700);
+    fct(2); m.highlight(2); await a.say('<span class="n">3</span> Enlace: la Tierra se ve 11 días');
+    await a.sleep(1700);
+    fct(3); m.highlight(3); await a.say('<span class="n">3</span> Terreno: pendiente apta');
+    await a.sleep(1700);
+    m.highlight(0); $('.fct', slide).forEach(e => e.classList.add('on')); await a.zoomOut(1);
+    await a.say('<span class="n">✓</span> Viable para 14 días', 'ok');
+  },
+  async comparar(a) {
+    const m = a.m;
+    m.setDate('2026-11-18T00:00:00Z');
+    await a.ready();
+    m.southPole(1.6);
+    await a.say('<span class="n">+</span> Suma sitios candidatos');
+    await a.sleep(1500);
+    for (const id of ['mons-mouton', 'im-2', 'mons-malapert']) { await a.clickSite(id); m.select(id); await a.sleep(350); }
+    await a.clickEl('.mq-selbar .go');
+    m.showCompare(['im-2', 'mons-malapert', 'mons-mouton']);
+    await a.sleep(1200);
+    await a.say('<span class="n">18 NOV</span> IM-2 lidera · Mons Mouton queda fuera', 'ok');
+    await a.zoomTo(union(m.rectOf('.mq-cmp .head'), m.rectOf('.mq-cmp .row:nth-child(3)')), 1.2, 1.04);
+    await a.sleep(1800);
+    await a.zoomTo(m.rectOf('.mq-cmp'), 1.1, 1.02);
+  },
+};
+async function runDemo(a) { const name = a.host.dataset.demo; try { await ROUTINES[name]?.(a); console.info('[demo]', name, ((performance.now() - a.t0) / 1000).toFixed(1) + ' s'); } catch (e) { if (e !== CANCEL) console.warn('[demo]', e); } }
+
+/* ===== Portada: la Luna real girando sobre canvas ===== */
+let globo = null;
+function startPortada(s, tl) {
+  const cv = $('canvas', s)[0]; globo = new Globo(cv, {q: 3});
+  const v = {lat: 22, lon: -165, R: 360, cx: 1700, cy: 470, gain: 0}; globo.v = v;
+  const draw = () => globo.draw(v, v.gain);
+  globo.ready.then(() => {
+    draw(); const loop = { on: true }; globo.loop = loop;
+    gsap.ticker.add(globo.tick = () => { if (loop.on) draw(); });
+    // la Luna se enciende mientras gira hasta mostrar el polo sur
+    gsap.timeline()
+      .to(v, {gain: 1, duration: 3.4, ease: 'power2.inOut'}, 0)
+      .to(v, {lon: 18, lat: -38, duration: 4.2, ease: 'power3.out'}, 0)
+      .to(v, {R: 430, cx: 1480, cy: 500, duration: 4.2, ease: 'power3.out'}, 0)
+      .to(v, {lon: '+=40', duration: 120, ease: 'none'}, 4.2);       // giro lento de ambiente
+  });
+}
+function stopPortada() { if (globo) { gsap.ticker.remove(globo.tick); gsap.killTweensOf(globo.v); globo.loop.on = false; globo = null; } }
+
+/* ===== Entradas por lámina ===== */
+const E = { power3: 'power3.out' };
+const ENTER = {
+  s1(s) {
+    const tl = gsap.timeline({paused: true});
+    tl.call(() => startPortada(s, tl), null, 0)
+      .from($('.glow', s), {opacity: 0, duration: 3, ease: 'power2.out'}, 0)
+      .from($('.stars', s), {opacity: 0, duration: 2.4}, 0)
+      .from($('.k1', s), {y: 24, opacity: 0, duration: .8, ease: E.power3}, 1.2)
+      .fromTo($('.hero', s), {letterSpacing: '.22em'}, {letterSpacing: '.02em', duration: 2.2, ease: 'power3.out'}, 1.4)
+      .from($('.ch', s), {yPercent: 115, duration: 1, ease: 'power4.out', stagger: .08}, 1.5)
+      .from($('.tag', s), {clipPath: 'inset(0 100% 0 0)', duration: 1.1, ease: 'power3.inOut'}, 2.5)
+      .from($('.tag', s), {y: 20, opacity: 0, duration: .9, ease: E.power3}, 2.5)
+      .from($('.ret', s), {scale: 1.9, opacity: 0, rotation: -60, duration: 1.1, ease: 'power3.out'}, 3.6)
+      .from($('.polo', s), {opacity: 0, x: -20, duration: .7}, 4.0)
+      .from($('.by', s), {opacity: 0, duration: .8}, 3.2);
+    const o = {v: 0}, lat = $('#p-lat', s)[0];
+    tl.to(o, {v: 90, duration: 1.6, ease: 'power2.out', onUpdate: () => lat.textContent = '−' + o.v.toFixed(1).replace('.', ',') + '°'}, 3.6);
+    return tl;
+  },
+  s2(s) {
+    const tl = gsap.timeline({paused: true}), cnt = (el, d, at) => { const o = {v: 0}; el.textContent = 0; tl.to(o, {v: +el.dataset.to, duration: d, ease: 'power2.out', onUpdate: () => el.textContent = Math.round(o.v)}, at); };
+    tl.from($('.k1', s), {y: 24, opacity: 0, duration: .6, ease: E.power3}, 0)
+      .from($('.t1', s), {y: 50, opacity: 0, duration: .7, ease: E.power3}, .15)
+      .from($('.n1', s), {y: 60, opacity: 0, duration: .7, ease: E.power3}, .8)
+      .from($('.bdg', s), {opacity: 0, duration: .15, repeat: 6, yoyo: true}, 1.0)
+      .from($('.n2', s), {y: 60, opacity: 0, duration: .7, ease: E.power3}, 2.4)
+      .from($('.fin', s), {y: 40, opacity: 0, duration: .7, ease: E.power3}, 4.0)
+      .from($('.fin2', s), {opacity: 0, duration: .6}, 4.4);
+    cnt($('.n1 .cnt', s)[0], 1.4, 1.0); cnt($('.n2 .cnt', s)[0], 1.2, 2.6);
+    return tl;
+  },
+  s3(s) {
+    const tl = gsap.timeline({paused: true});
+    tl.from($('.k1', s), {y: 24, opacity: 0, duration: .6, ease: E.power3}, 0)
+      .from($('.t1', s), {y: 50, opacity: 0, duration: .7, ease: E.power3}, .15)
+      .from($('.fr', s), {x: 120, opacity: 0, duration: .8, ease: E.power3}, .3)
+      .from($('.r-block', s), {y: 40, opacity: 0, duration: .7, ease: E.power3}, .6);
+    return tl;
+  },
+  s4(s) {
+    const tl = gsap.timeline({paused: true});
+    tl.from($('.moon4', s), {opacity: 0, x: 120, duration: 2, ease: 'power2.out'}, 0)
+      .from($('.k1', s), {y: 24, opacity: 0, duration: .6, ease: E.power3}, 0)
+      .from($('.z1', s), {y: 30, opacity: 0, duration: .7, ease: E.power3}, .2)
+      .from($('.zen .ch', s), {yPercent: 115, duration: .9, ease: 'power4.out', stagger: .07}, .6)
+      .from($('.z2', s), {opacity: 0, duration: .7}, 1.5)
+      .from($('.eq .bx, .eq .op', s), {y: 30, opacity: 0, duration: .55, ease: E.power3, stagger: .22}, 2.0);
+    return tl;
+  },
+  s5(s) {
+    const tl = gsap.timeline({paused: true});
+    tl.from($('.k1', s), {y: 24, opacity: 0, duration: .6, ease: E.power3}, 0)
+      .from($('.t1', s), {y: 50, opacity: 0, duration: .7, ease: E.power3}, .15)
+      .from($('.fr', s), {y: 60, opacity: 0, duration: .8, ease: E.power3}, .3)
+      .from($('.fcts', s), {x: 60, opacity: 0, duration: .7, ease: E.power3, clearProps: 'transform,opacity'}, .7);
+    return tl;
+  },
+  s6(s) {
+    const tl = gsap.timeline({paused: true});
+    tl.from($('.k1', s), {y: 24, opacity: 0, duration: .6, ease: E.power3}, 0)
+      .from($('.t1', s), {y: 50, opacity: 0, duration: .7, ease: E.power3}, .15)
+      .from($('.tool', s), {x: -60, opacity: 0, duration: .6, ease: E.power3, stagger: .15}, .5)
+      .from($('.zz, .zz2', s), {y: 30, opacity: 0, duration: .6, ease: E.power3, stagger: .1}, 1.3)
+      .from($('.fr', s), {x: 120, opacity: 0, duration: .8, ease: E.power3}, .6)
+      .from($('.src', s), {opacity: 0, duration: .6}, 2);
+    return tl;
+  },
+  s7(s) {
+    const tl = gsap.timeline({paused: true});
+    tl.from($('.k1', s), {y: 24, opacity: 0, duration: .6, ease: E.power3}, 0)
+      .from($('.st', s), {x: -50, opacity: 0, duration: .6, ease: E.power3, stagger: .35}, .3)
+      .from($('.nxt', s), {y: 30, opacity: 0, duration: .7, ease: E.power3}, 2.0)
+      .from($('.qrbox', s), {y: 40, opacity: 0, duration: .8, ease: E.power3}, 2.6)
+      .from($('.qrt, .qru', s), {y: 20, opacity: 0, duration: .6, ease: E.power3, stagger: .12}, 3.0)
+      .fromTo($('.gra', s), {letterSpacing: '.2em'}, {letterSpacing: '.02em', duration: 2, ease: 'power3.out'}, 3.0)
+      .from($('.gra .ch', s), {yPercent: 115, duration: .9, ease: 'power4.out', stagger: .07}, 3.0)
+      .from($('.by7', s), {opacity: 0, duration: .7}, 3.8);
+    return tl;
+  },
+};
+const restore = s => $('*', s).forEach(e => { if (e.closest('.demo-host') || e.closest('.svg') || e.closest('.stars')) return; if (e.dataset.os !== undefined) e.setAttribute('style', e.dataset.os); });
+slides.forEach(s => $('*', s).forEach(e => e.dataset.os = e.getAttribute('style') || ''));
+// giro lento de ambiente (fuera de los pasos)
+if (!reduce) { gsap.to('#s4 .moon4', {rotation: 6, duration: 30, yoyo: true, repeat: -1, ease: 'sine.inOut'}); }
+
+/* ===== Navegación y transiciones ===== */
+const TYPE = {2: 'push', 4: 'push', 5: 'blinds'};  // índice (0-based) → tipo; por defecto iris
+const iris = document.getElementById('iris'), ring = iris.querySelector('.ring');
+const demos = new Map(); let cur = -1, tl = null, trans = null;
+function manageDemos(i) {
+  for (const k of [...demos.keys()]) if (k !== i) { demos.get(k).destroy(); demos.delete(k); }
+  if (i !== 0) stopPortada();
+  const h = slides[i].querySelector('.demo-host');
+  if (h && !demos.has(i)) { const d = new Demo(h); demos.set(i, d); runDemo(d); }
+}
+function enter(i, instant) {
+  const s = slides[i]; restore(s);
+  if (i === 0) stopPortada();
+  tl = ENTER[s.id](s); manageDemos(i);
+  location.hash = 'lamina-' + (i + 1);
+  instant || reduce ? tl.progress(1) : tl.play(0);
+}
+function show(i, instant) { if (tl) tl.progress(1); slides.forEach((x, k) => x.classList.toggle('on', k === i)); cur = i; enter(i, instant); }
+function go(i) {
+  if (i < 0 || i >= slides.length) return;
+  if (reduce || cur < 0) return show(i, reduce);
+  const p = slides[cur], n = slides[i], type = TYPE[i] || 'iris';
+  if (tl) tl.progress(1);
+  p.classList.add('on'); n.classList.add('on'); p.style.zIndex = 0; n.style.zIndex = 1; cur = i;
+  const done = () => { p.classList.remove('on'); p.style.zIndex = n.style.zIndex = ''; n.style.webkitMaskImage = n.style.maskImage = ''; gsap.set([p, n], {clearProps: 'transform,clipPath'}); iris.style.visibility = 'hidden'; };
+  enter(i, false); tl.pause(0);
+  trans = gsap.timeline({onComplete: done});
+  if (type === 'push') {
+    trans.fromTo(n, {x: 1920}, {x: 0, duration: .6, ease: 'power3.inOut'}, 0).to(p, {x: -480, duration: .6, ease: 'power3.inOut'}, 0);
+  } else if (type === 'blinds') {
+    const o = {w: 0}, set = () => { const g = `repeating-linear-gradient(to bottom,#000 0,#000 ${o.w}px,transparent ${o.w}px,transparent 135px)`; n.style.webkitMaskImage = n.style.maskImage = g; };
+    set(); trans.to(o, {w: 136, duration: .8, ease: 'power2.inOut', onUpdate: set}, 0);
+  } else {
+    trans.set(iris, {visibility: 'visible'}).fromTo(n, {clipPath: 'circle(0% at 50% 50%)'}, {clipPath: 'circle(75% at 50% 50%)', duration: .7, ease: 'power3.inOut'}, 0)
+      .fromTo(ring, {width: 0, height: 0, opacity: 1}, {width: 2400, height: 2400, opacity: 0, duration: .7, ease: 'power3.inOut'}, 0);
+  }
+  trans.call(() => tl.play(0), null, type === 'push' ? .3 : .25);
+}
+function next() { if (trans && trans.isActive()) { trans.progress(1); return; } if (tl && tl.isActive()) { tl.progress(1); return; } go(cur + 1); }
+function prev() { if (trans && trans.isActive()) trans.progress(1); if (cur > 0) show(cur - 1, true); }
+addEventListener('keydown', e => {
+  if (['ArrowRight', 'PageDown', ' ', 'Enter'].includes(e.key)) { e.preventDefault(); next(); }
+  else if (['ArrowLeft', 'PageUp'].includes(e.key)) { e.preventDefault(); prev(); }
+  else if (e.key.toLowerCase() === 'r') show(cur);
+  else if (e.key.toLowerCase() === 'f') (document.fullscreenElement ? document.exitFullscreen() : document.documentElement.requestFullscreen());
+});
+addEventListener('click', e => (e.clientX < innerWidth * .15 ? prev : next)());
+const mm = location.hash.match(/lamina-(\d+)/);
+document.fonts.ready.then(() => show(mm ? Math.min(+mm[1] - 1, slides.length - 1) : 0));
+window.__deck = { demos, get cur() { return cur; }, show };
+})();
+</script>
+</body>
+</html>

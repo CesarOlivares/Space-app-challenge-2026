@@ -1,0 +1,28 @@
+/* Sistema visual del pitch de Zenith (Fase 0). Lienzo 1920×1080.
+   Todo el deck lee de aquí: nada de tamaños, márgenes ni colores sueltos. */
+:root{
+  /* Color: un único acento; los colores de datos solo significan datos (como en la app) */
+  --bg:#05070d; --panel:#0e121c; --line:#2a3142;
+  --ink:#e8ecf4; --muted:#b4bccb;            /* muted subido a AA sobre --bg */
+  --paper:#e9e6df; --paper-ink:#0b0d14; --paper-muted:#4a4843;
+  --acc:#a78bfa; --acc-paper:#5b3fd1;
+  --sun:#ffd25a; --earth:#56b4e9; --ok:#7ee0a1; --bad:#ff9a8a;
+
+  /* Grilla: 12 columnas, margen 96, gutter 32 → columna = 112 px */
+  --m:96px; --gut:32px; --col:112px;
+  --c1:96px;  --c2:240px; --c3:384px; --c4:528px; --c5:672px; --c6:816px;
+  --c7:960px; --c8:1104px; --c9:1248px; --c10:1392px; --c11:1536px; --c12:1680px;
+  /* Vertical: línea base cada 8 px; zonas fijas */
+  --top-kick:96px;      /* etiqueta de sección */
+  --top-title:150px;    /* título */
+  --top-body:390px;     /* inicio del contenido */
+  --bottom-src:44px;    /* fuente y número de página */
+
+  /* Escala tipográfica cerrada (px) */
+  --t-hero:200px; --t-title:96px; --t-sub:56px; --t-text:32px; --t-label:26px; --t-src:22px;
+  --t-big:220px;  /* cifra protagonista */
+
+  /* Movimiento: un vocabulario */
+  --ease-out:power3.out; --ease-io:power3.inOut;
+  --d-in:.65; --d-trans:.7; --stagger:.15;
+}
