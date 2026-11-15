@@ -241,7 +241,7 @@ export class LearnView {
       const jump = e.target.closest("[data-jump]");
       if (jump) document.getElementById(jump.dataset.jump)?.scrollIntoView({ behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block: "start" });
       const card = e.target.closest("[data-example]");
-      if (card) onExample(EXAMPLES[Number(card.dataset.example)]);
+      if (card) onExample(EXAMPLES[Number(card.dataset.example)], Number(card.dataset.example));
       if (e.target.closest("[data-learn-explore]")) onGoExplore();
       if (e.target.closest("[data-learn-tour]")) onTour();
     });

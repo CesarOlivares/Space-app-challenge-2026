@@ -84,7 +84,7 @@ export class Tour {
     this.card = root.querySelector(".tour-card");
     this.q = (sel) => root.querySelector(sel);
     this.q(".tour-exit").addEventListener("click", () => this.end(false));
-    this.q(".tour-prev").addEventListener("click", () => this.go(this.index - 1));
+    this.q(".tour-prev").addEventListener("click", () => this.go(this.index - 1, -1));
     this.q(".tour-next").addEventListener("click", () => this.next());
     this.q(".tour-dots").innerHTML = this.steps.map(() => "<span></span>").join("");
     // Región viva para anunciar el cambio de paso a los lectores de pantalla.
@@ -99,7 +99,8 @@ export class Tour {
     else this.go(this.index + 1);
   }
 
-  async go(index) {
+  // dir: sentido del avance; sirve para saltar los pasos opcionales cuyo elemento no existe.
+  async go(index, dir = 1) {
     if (!this.active || index < 0 || index >= this.steps.length) return;
     const token = ++this.token || (this.token = 1);
     this.index = index;
@@ -107,8 +108,13 @@ export class Tour {
     this.card.classList.add("loading");
     try { await step.before?.(); } catch { /* el paso se muestra igual, sin recorte */ }
     this.target = null;
-    if (step.target) this.target = await this.waitFor(step.target, 2500);
+    if (step.target) this.target = await this.waitFor(step.target, step.timeout ?? 2500);
     if (!this.active || token !== this.token) return; // el usuario avanzó o salió mientras se preparaba
+    if (step.skipIfMissing && !this.target) {
+      const next = index + dir;
+      if (next < 0 || next >= this.steps.length) return dir > 0 ? this.end(true) : this.go(index, 1);
+      return this.go(next, dir);
+    }
     this.target?.scrollIntoView({ block: "nearest", inline: "nearest" });
     this.render(step);
     this.card.classList.remove("loading");
@@ -210,7 +216,7 @@ export class Tour {
       this.next();
     } else if (event.key === "ArrowLeft") {
       event.preventDefault();
-      this.go(this.index - 1);
+      this.go(this.index - 1, -1);
     } else if (event.key === "Tab") {
       const items = [...this.card.querySelectorAll("button:not([hidden])")];
       if (!items.length) return;

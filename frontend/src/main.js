@@ -37,7 +37,7 @@ import { SiteList } from "./views/SiteList.js";
 import { notViableReason } from "./views/encoding.js";
 import { registerTerrain } from "./views/terrain/index.js";
 import { Tour } from "./tour/Tour.js";
-import { mainTour } from "./tour/steps.js";
+import { compareTour, detailTour, exampleTour, mainTour } from "./tour/steps.js";
 
 hydrateIcons();
 
@@ -251,6 +251,7 @@ const card = new SiteCard(document.getElementById("sitecard"), {
 const compareStory = new CompareStory(document.getElementById("story-root"), {
   onBack: () => router.go("explorar"),
   onGoExplore: () => router.go("explorar"),
+  onTour: () => startTour(() => compareTour(), { restore: false }),
   // Comparación sugerida desde la sección 03 vacía: se elige y se calcula sin pasar por el globo.
   onSuggest: (ids) => {
     state.selected = ids.filter((id) => state.sites.has(id));
@@ -265,7 +266,7 @@ const compareStory = new CompareStory(document.getElementById("story-root"), {
 });
 const learnView = new LearnView(document.getElementById("learn-root"), {
   onGoExplore: () => router.go("explorar"),
-  onExample: (example) => runExample(example),
+  onExample: async (example, index) => { await runExample(example); startTour((ctx) => exampleTour(index, ctx), { restore: false }); },
   onTour: () => startTour(),
 });
 let comparePromise = null;
@@ -426,9 +427,16 @@ document.addEventListener("keydown", (event) => {
 
 const tour = new Tour({ lang: getLang });
 
-function startTour() {
+// `build(ctx)` arma los pasos; `restore: false` deja la app donde quedó el recorrido (p. ej. tras un ejemplo guiado).
+function startTour(build = mainTour, { restore = true } = {}) {
   if (tour.active) return;
-  const before = { section: router.current, selected: [...state.selected], drawerOpen: !drawer.hidden, legendOpen: !legendCard.hidden };
+  const before = {
+    section: router.current,
+    selected: [...state.selected],
+    drawerOpen: !drawer.hidden,
+    legendOpen: !legendCard.hidden,
+    detailOpen: state.detailOpen,
+  };
   setLegend(false);
   const ctx = {
     explore: async () => { if (router.current !== "explorar") { router.go("explorar"); await sleep(reducedMotion.matches ? 50 : 400); } },
@@ -437,11 +445,25 @@ function startTour() {
       applySelection();
     },
     drawer: (open) => setDrawer(open),
+    // Abre el detalle del sitio elegido (si no hay ninguno, elige Apollo 11) y espera a que cargue.
+    detail: async () => {
+      if (!state.selectedId && state.sites.has("apollo-11")) ctx.select(["apollo-11"]);
+      if (!state.detailOpen) openDetail();
+      await sleep(reducedMotion.matches ? 50 : 300);
+    },
+    // Despliega un pliegue del detalle (cielo, terreno).
+    fold: async (name) => {
+      const fold = document.querySelector(`#detail [data-fold="${name}"]`);
+      if (fold) fold.open = true;
+      await sleep(250);
+    },
   };
-  tour.start(mainTour(ctx), {
+  tour.start(build(ctx), {
     onEnd: async () => {
+      if (!restore) return;
       setDrawer(before.drawerOpen);
       setLegend(before.legendOpen);
+      if (!before.detailOpen && state.detailOpen) closeDetail();
       state.selected = before.selected.filter((id) => state.sites.has(id));
       applySelection();
       // Quien lo lanzó desde la portada se queda en la vista general; los demás vuelven a su sección.
@@ -450,6 +472,7 @@ function startTour() {
   });
 }
 document.getElementById("tour-btn").addEventListener("click", () => startTour());
+document.getElementById("detail-tour").addEventListener("click", () => startTour(detailTour));
 
 // --- Modo e idioma --------------------------------------------------------------
 

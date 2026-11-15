@@ -1,6 +1,6 @@
 # Auditoría y pipeline · Aprender y tutorial guiado
 
-> **Estado (15/11/2026):** P1 y P2 hechos (rama `ux/tutorial-principal`). P3 hecho en `aprender/desplegables`: tarjetas desplegables con «cómo leerlo · ejemplo real · dónde lo ves · pruébalo» para los hechos, indicadores y gráficos, índice de temas, «visto» y enlace directo `#aprender/<id>`. P4 hecho en `aprender/miniaturas`: esquema SVG anotado (llamadas ①②③ y leyenda) para los 6 gráficos y escala 0–100 para 4 indicadores (`views/learnFigures.js`). Pendiente: los criterios NASA siguen como tabla (AP5); los esquemas son ilustrativos, no datos reales.
+> **Estado (15/11/2026):** P1 y P2 hechos (rama `ux/tutorial-principal`). P3 hecho en `aprender/desplegables`: tarjetas desplegables con «cómo leerlo · ejemplo real · dónde lo ves · pruébalo» para los hechos, indicadores y gráficos, índice de temas, «visto» y enlace directo `#aprender/<id>`. P4 hecho en `aprender/miniaturas`: esquema SVG anotado (llamadas ①②③ y leyenda) para los 6 gráficos y escala 0–100 para 4 indicadores (`views/learnFigures.js`). P5 hecho en `ux/tutorial-contexto`: botón «¿Cómo leer esto?» en el detalle del sitio (6 pasos) y en la comparación (5 pasos), y mini-recorridos tras «Probar» en los 4 ejemplos guiados. P6: resultados en §7. Pendiente: los criterios NASA siguen como tabla (AP5); los esquemas son ilustrativos, no datos reales.
 
 Fecha: 15/11/2026 · Recorrido: portada → Aprender (04) completo → vista general → ficha de Apollo 11 → detalle → comparación.
 
@@ -148,3 +148,32 @@ Dependencias: P2 y P5 necesitan P1; P3 necesita P0; P4 puede empezar cuando P3 d
 - Cambios al modelo o a los textos de criterios NASA (siguen en `docs/modelo/`).
 - Video o narración de audio.
 - Gamificación (puntos, insignias): el «visto» es solo una ayuda de orientación.
+
+---
+
+## 7. Resultados de la auditoría de cierre (P6) · 15/11/2026
+
+Verificado en el navegador del repositorio (servidor local, API real). «No verificado» significa que no se probó, no que falle.
+
+| Punto del checklist (§5) | Estado | Nota |
+|---|---|---|
+| Un usuario nuevo completa el recorrido principal y sabe fecha, viable, elegir 2 sitios, capas | Verificado | 12 pasos recorridos de punta a punta; la selección y el engranaje se preparan y restauran. No se probó con un usuario real. |
+| Cada tarjeta de Aprender tiene capas y su «Pruébalo» abre el estado correcto | Verificado en parte | 15 tarjetas con «cómo leerlo»; «Protección» y «¿Cambia el ganador?» no traen ejemplo/«pruébalo» según su contenido. «Pruébalo» probado en Terreno (abre IM-1 el 15/12/2026). |
+| Ninguna afirmación que el modelo no calcule | Revisado | Cifras tomadas de `docs/modelo/05-puntaje.md`; los esquemas lo declaran ilustrativo. **Pendiente de revisión por quien lleva el modelo.** Hay una diferencia a conciliar: Aprender dice que el relieve LOLA cubre «al sur de 80° S» y el modelo dice 75° S. |
+| ES y EN completos | Verificado en parte | Tutorial, tarjetas, esquemas y recorridos están en ES y EN; probado EN en Aprender, esquemas y el tutorial desde móvil. |
+| Teclado | Verificado | ← → Esc en el tour; Tab queda dentro del globo de texto; Enter/Espacio despliegan tarjetas (son `button`). |
+| Lector de pantalla | **No verificado** | El tour usa `role="dialog"`, `aria-modal`, región `aria-live` y devuelve el foco al abrir; no se probó con un lector real. |
+| 375 px sin scroll horizontal | Verificado en parte | Tutorial y Aprender sin scroll horizontal; el globo de texto pasa a hoja inferior. No se revisó cada paso. |
+| `prefers-reduced-motion` | **No verificado** | Hay reglas que anulan transiciones del recorte y del despliegue; no se probó con la preferencia activa. |
+| Sin CDN, contraste AA | Sin CDN verificado · contraste **no medido** | Todo es inline o local. El contraste usa los colores del sistema, sin medición. |
+| Salir del tour deja la app como estaba | Verificado | Recorrido principal y detalle restauran sección, selección, engranaje y detalle. Los recorridos de ejemplo y de comparación **no** restauran a propósito (el usuario quiere quedarse ahí). |
+
+### Hallazgos nuevos
+
+| # | Sev. | Qué pasa | Propuesta |
+|---|---|---|---|
+| N1 | M | El recorrido del detalle deja abiertos los pliegues «Cielo» y «Terreno». | Cerrar al terminar los que el tour abrió. |
+| N2 | M | Pendiente de medir y conciliar 75° S frente a 80° S en los textos de Aprender y en el modelo. | Que lo confirme quien lleva el modelo y se corrija un lado. |
+| N3 | L | En los pasos con el globo (`#globe`) el recorte cubre casi toda la pantalla; solo se ven las esquinas. | Dejar ese paso sin recorte (centrado). |
+| N4 | L | Los pasos de recorrido señalan elementos por selector CSS; si cambia el HTML del detalle o la comparación, el paso opcional se salta y uno obligatorio cae centrado. | Revisar `src/tour/steps.js` al cambiar esas vistas. |
+| N5 | L | «Cómo decide la NASA» sigue como tabla (AP5). | Siguiente iteración. |

@@ -93,3 +93,7 @@
 .tour-invite b { display: block; color: var(--ink); }
 
 @media (prefers-reduced-motion: reduce) { .tour-hole { transition: none; } }
+
+/* Botones «¿Cómo leer esto?» del detalle y de la comparación. */
+.detail-header .detail-howread { width: auto; height: 28px; padding: 0 10px; margin-left: auto; font-size: var(--fs-small); white-space: nowrap; }
+.story-howread { justify-self: start; }
