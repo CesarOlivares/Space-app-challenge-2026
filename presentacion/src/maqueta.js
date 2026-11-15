@@ -1,4 +1,4 @@
-// Maqueta liviana de la interfaz de Zenit: globo en canvas 2D (sin WebGL) + componentes HTML con datos reales.
+// Maqueta liviana de la interfaz de Zenith: globo en canvas 2D (sin WebGL) + componentes HTML con datos reales.
 // Uso: const m = new Maqueta(host); await m.ready(); m.setDate('2026-11-23'); m.select('mons-malapert') ...
 (() => {
 const W = 1600, H = 900, D = window.ZENITH_DATA;
@@ -28,7 +28,7 @@ class Maqueta {
     root.innerHTML = `
       <div class="stars"></div>
       <canvas width="${W}" height="${H}"></canvas>
-      <div class="mq-nav"><span class="brand">ZENIT</span><ul><li>Inicio</li><li class="on">Explorar</li><li>Comparar</li><li>Aprender</li></ul><div class="lang"><b class="on">ES</b><b>EN</b></div></div>
+      <div class="mq-nav"><span class="brand">ZENITH</span><ul><li>Inicio</li><li class="on">Explorar</li><li>Comparar</li><li>Aprender</li></ul><div class="lang"><b class="on">ES</b><b>EN</b></div></div>
       <div class="mq-datebar glass"><span class="step prev">‹</span><span class="date"></span><span class="step next">›</span><span class="status"></span></div>
       <div class="mq-legend glass"><span><svg width="18" height="18" viewBox="0 0 20 20"><circle cx="10" cy="10" r="7" fill="none" stroke="#56b4e9" stroke-opacity=".3" stroke-width="2.6"/><circle cx="10" cy="10" r="7" fill="none" stroke="#56b4e9" stroke-width="2.6" stroke-dasharray="28 44" transform="rotate(-90 10 10)"/></svg>Arco: puntaje</span><span><svg width="18" height="18" viewBox="0 0 20 20"><circle cx="10" cy="10" r="7" fill="none" stroke="#56b4e9" stroke-width="2.6"/></svg>Celeste: viable</span><span><svg width="18" height="18" viewBox="0 0 20 20"><circle cx="10" cy="10" r="6" fill="none" stroke="#8a9099" stroke-width="2.4" stroke-dasharray="2.2 2.4"/></svg>Gris punteado: no viable</span></div>
       <div class="mq-card glass"></div>

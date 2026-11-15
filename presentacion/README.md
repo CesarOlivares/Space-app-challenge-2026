@@ -1,4 +1,4 @@
-# Pitch de Zenit
+# Pitch de Zenith
 
 Presentación de 7 láminas (2 minutos) para el NASA Space Apps Challenge 2026. Página HTML 1920×1080 animada con GSAP; las demos son una maqueta liviana de la interfaz con datos reales del backend (sin WebGL, sin la app incrustada).
 
