@@ -111,6 +111,19 @@ export function fetchTerrainPatch(ref, size = 25, date = null, windowDays = 14) 
   return request(`/api/sites/${encodeURIComponent(ref)}/patch`, { params });
 }
 
+/**
+ * Disponibilidad de un sitio: qué fechas de aterrizaje de un año cumplen todos los requisitos.
+ * @param {string} ref - Site id or "lat,lon" coordinates.
+ * @param {Date} date - Primera fecha de aterrizaje (UTC).
+ * @param {import("./views/SettingsPanel.js").DEFAULT_CONFIG} config - Scoring configuration.
+ * @returns {Promise<Object>}
+ */
+export function fetchAvailability(ref, date, config, { days = 365, stepHours = 24 } = {}) {
+  return request(`/api/sites/${encodeURIComponent(ref)}/availability`, {
+    params: { date: isoUtc(date), days, step_hours: stepHours, ...configParams(config) },
+  });
+}
+
 export function fetchBestDates(ref, date, config, { days, stepHours }) {
   return request(`/api/sites/${encodeURIComponent(ref)}/best-dates`, {
     params: { date: isoUtc(date), days, step_hours: stepHours, limit: 5, ...configParams(config) },

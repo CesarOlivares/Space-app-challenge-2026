@@ -92,6 +92,16 @@ Un sitio no viable (Sol o Tierra no visibles al aterrizar, o pendiente medida so
 
 Ejemplo real del modelo para un aterrizaje el 15/12/2026: en IM-2 el Sol está a +2,2°, pero el relieve lo tapa, así que el sitio no es viable con terreno y sí lo sería con horizonte esférico. Ese día, tres de los seis sitios polares cambian de veredicto al considerar el relieve con el margen de 2° para la Tierra (cinco con margen 0°).
 
+### Disponibilidad
+
+`GET /api/sites/{ref}/availability` evalúa una fecha de aterrizaje cada `step_hours` (24 h por defecto) durante `days` (365) y devuelve cuáles cumplen todos los requisitos y cuál falla en las demás ("sun": sin luz al aterrizar o que no dura la estancia; "earth": sin Tierra al aterrizar; "slope": pendiente sobre el límite). Es la parte de superficie de la **disponibilidad de misión** de la NASA (CASSA): lanzamiento, trayectoria y órbita no se modelan. Máximo 400 fechas por consulta.
+
+Ejemplo del 20-11-2026: Mons Malapert cumple en el 15 % de las fechas del año (casi todas las fallas son por luz) e IM-2 en el 18 %; coincide con lo que dice la NASA de que cada región ofrece pocas oportunidades.
+
+### Sensibilidad a los pesos
+
+La comparación prueba 2.000 combinaciones de pesos al azar (distribución de Dirichlet uniforme, semilla fija) y cuenta en cuántas gana cada sitio viable. Usa solo los criterios con dato en **todos** los sitios comparados y se calcula en el navegador con los puntajes recibidos. Sirve porque los pesos de la NASA no se publican: si el ganador cambia con los pesos, la conclusión es frágil. Los umbrales de la frase ("no depende", "depende en parte", "no hay ganador claro") son 90 % y 60 %, orientativos.
+
 ## Supuestos del equipo, pendientes de respaldar
 
 - [x] **Límite de pendiente.** Resuelto el 14-11-2026: el valor por defecto pasó de 15° a 8° (Wueller et al.; Peña-Asensio usan ≤ 5°). Los 8°/5° del HLS (HLS-R-0071) son inclinación del **vehículo**, no pendiente del terreno. Con 8° sobre el DEM 3 × 3, IM-1 (11,8°), Mons Mouton (9,4°) y Shackleton (10,2°) pasan a no viables. Pendiente: medirla a escala de la elipse de aterrizaje (100 m, 3σ) en vez de 360 m.

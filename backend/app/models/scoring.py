@@ -519,3 +519,34 @@ def best_dates(ephemeris: Ephemeris, site: Site, start: datetime, days: float, s
     ]
     ranked = sorted(candidates, key=lambda r: (not r.viable, -round(r.total, 1), r.landing))
     return count, ranked[:limit]
+
+
+def failing_requirements(result: SiteEvaluation) -> tuple[str, ...]:
+    """Requisitos duros que no cumple una evaluación: "sun", "earth" y/o "slope".
+
+    "sun": el Sol no está a la vista al aterrizar o no dura toda la estancia.
+    "earth": la Tierra no está a la vista al aterrizar.
+    "slope": la pendiente medida supera el límite (sin dato de pendiente no falla).
+    """
+    failing = []
+    if not result.sun.visible or not result.sun_through_stay:
+        failing.append("sun")
+    if not result.earth.visible:
+        failing.append("earth")
+    if result.slope_ok is False:
+        failing.append("slope")
+    return tuple(failing)
+
+
+def availability(ephemeris: Ephemeris, site: Site, start: datetime, days: float, step_hours: float,
+                 config: ScoringConfig = ScoringConfig()) -> list[SiteEvaluation]:
+    """Evalúa una fecha de aterrizaje cada `step_hours` durante `days`, en orden cronológico.
+
+    Responde "¿cuántas de las fechas posibles cumplen todos los requisitos?": la disponibilidad de
+    misión (solo la parte de superficie; lanzamiento y órbita quedan fuera).
+    """
+    count = int(days * 24 / step_hours) + 1
+    if count > MAX_CANDIDATES:
+        raise ValueError(f"demasiadas fechas a evaluar ({count}); máximo {MAX_CANDIDATES}: "
+                         "reduce 'days' o aumenta 'step_hours'")
+    return [evaluate(ephemeris, site, start + timedelta(hours=i * step_hours), config) for i in range(count)]

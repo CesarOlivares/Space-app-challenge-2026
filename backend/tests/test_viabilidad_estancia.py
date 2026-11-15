@@ -73,3 +73,31 @@ def test_api_expone_estancia_y_criterios_faltantes(client):
     assert by_id["apollo-11"]["missing_criteria"] == ["terrain"]
     assert by_id["mons-malapert"]["missing_criteria"] == []
     assert isinstance(by_id["apollo-11"]["sun_through_stay"], bool)
+
+
+def test_disponibilidad_es_coherente_con_viable(ephemeris, catalog):
+    from app.models.scoring import availability, failing_requirements
+
+    results = availability(ephemeris, catalog["apollo-11"], LANDING, 30, 24)
+    assert len(results) == 31
+    for r in results:
+        assert (not failing_requirements(r)) == r.viable
+    assert [r.landing for r in results] == sorted(r.landing for r in results)
+
+
+def test_disponibilidad_limita_las_fechas(ephemeris, catalog):
+    from app.models.scoring import availability
+
+    with pytest.raises(ValueError):
+        availability(ephemeris, catalog["apollo-11"], LANDING, 365, 0.5)
+
+
+def test_api_disponibilidad(client):
+    data = client.get("/api/sites/apollo-11/availability",
+                      params={"date": "2026-01-01T00:00:00Z", "days": 60}).json()
+    assert data["evaluated"] == len(data["dates"]) == 61
+    assert data["available"] == sum(d["available"] for d in data["dates"])
+    assert data["available_fraction"] == round(data["available"] / 61, 4)
+    assert set(data["failing_counts"]) == {"sun", "earth", "slope"}
+    assert all((not d["available"]) == bool(d["failing"]) for d in data["dates"])
+    assert client.get("/api/sites/apollo-11/availability", params={"days": 400, "step_hours": 6}).status_code == 422

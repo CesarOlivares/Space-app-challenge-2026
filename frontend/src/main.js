@@ -5,6 +5,7 @@
 // el botón Comparar). La configuración vive en el panel del engranaje.
 
 import {
+  fetchAvailability,
   fetchBestDates,
   fetchComparison,
   fetchCustomScores,
@@ -255,6 +256,9 @@ const compareStory = new CompareStory(document.getElementById("story-root"), {
     applySelection();
     loadCompare();
   },
+  // Datos pesados del detalle técnico: se piden con la fecha y la configuración con que se comparó.
+  loadTimeline: (r) => fetchTimeline(siteRef(r.site.id), new Date(r.date), state.config),
+  loadAvailability: (r) => fetchAvailability(siteRef(r.site.id), new Date(r.date), state.config),
 });
 const learnView = new LearnView(document.getElementById("learn-root"), {
   onGoExplore: () => router.go("explorar"),

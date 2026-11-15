@@ -3,15 +3,18 @@
 // Izquierda: veredicto en lenguaje llano y el porqué (decisores, curiosos y educadores).
 // Derecha: un tablero con una fila por indicador (puntaje global, comunicación, energía, terreno,
 // protección) y una barra por sitio. Solo compiten los sitios viables; lo que no tiene datos se
-// dice "sin datos" en vez de pintar un cero. El detalle técnico va plegado.
+// dice "sin datos" en vez de pintar un cero. El detalle técnico va plegado: requisitos con su margen,
+// horizonte con las trayectorias del Sol y la Tierra, línea de tiempo, calendario de un año y la tabla.
 
 import { escapeHtml, formatDuration, formatUtc, num } from "../format.js";
 import { icon } from "../icons.js";
-import { getLang, siteName } from "../i18n.js";
+import { getLang, siteName, t } from "../i18n.js";
+import { availabilitySvg } from "./AvailabilityView.js";
 import { renderCompareTable } from "./CompareView.js";
+import { longestDark, weightSensitivity } from "./decision.js";
 import { notViableReason } from "./encoding.js";
-import { renderRadarChart } from "./RadarChartView.js";
 import { renderSky } from "./SkyView.js";
+import { renderTimeline } from "./TimelineView.js";
 
 const SERIES_COLORS = ["#56b4e9", "#e69f00", "#46c878", "#cc79a7"];
 
@@ -77,6 +80,58 @@ const TXT = {
     dSky: "{v} % de cielo",
     subScore: "Puntaje {v}/100",
     subTerrainScore: "Puntaje {v}/100 · fuente: {src}",
+    techReq: "Requisitos y margen",
+    techReqHint: "Cada requisito con su umbral, el margen sobre él y de dónde sale. Los primeros deciden si el sitio es viable; los de referencia, no.",
+    secReq: "Requisitos: deciden si el sitio es viable",
+    secRef: "Referencias: orientan, pero no deciden",
+    colCriterion: "Criterio",
+    colThreshold: "Umbral y fuente",
+    rSun: "Luz continua", rSunSub: "desde el aterrizaje",
+    rEarth: "Tierra a la vista", rEarthSub: "al aterrizar",
+    rSlope: "Pendiente del suelo", rSlopeSub: "DEM LOLA, ventana de ~360 m",
+    rEarthShare: "Tierra visible", rEarthShareSub: "% de la ventana",
+    rSunShare: "Iluminación media", rSunShareSub: "% de la ventana con Sol",
+    rDark: "Noche más larga", rDarkSub: "sin Sol en la ventana; importa si la misión sigue de noche",
+    thrSun: "≥ {v}",
+    thrSunSrc: "Luz durante toda la estancia de {v}",
+    thrEarth: "Sí",
+    thrEarthSrc: "Enlace directo; margen de antena de {m}°",
+    thrSlope: "≤ {v}°",
+    thrSlopeSrc: "Filtro de terreno de Wueller et al., meta 5°. El 8° del HLS es de orientación del vehículo",
+    thrShare50: "≥ 50 %",
+    thrEarthShareSrc: "Criterio preliminar de Gracy y Lee (LPSC 2024)",
+    thrShare33: "≥ 33 %",
+    thrSunShareSrc: "Criterio preliminar de Gracy y Lee (LPSC 2024)",
+    thrDark: "≤ 50 h",
+    thrDarkSrc: "Lo que aguanta la batería de VIPER en hibernación; no es un requisito del módulo",
+    yes: "Sí", no: "No",
+    meets: "cumple", fails: "no cumple",
+    mMargin: "margen {v}",
+    mMissing: "faltan {v}",
+    mExceeds: "excede por {v}",
+    atLeast: "≥ {v}",
+    wholeWindow: "toda la ventana",
+    techSky: "Horizonte y trayectorias del Sol y la Tierra",
+    techSkyHint: "Horizontal: dirección (N, E, S, O). Vertical: altura sobre el horizonte. La silueta gris es el relieve; las líneas son por dónde pasan el Sol y la Tierra en la ventana (un punto por día). Un cuerpo solo se ve si está por encima de la silueta.",
+    techTimeline: "Luz y enlace durante la ventana",
+    techTimelineHint: "Arriba, franjas con el Sol y con la Tierra a la vista; abajo, su altura hora a hora. Una franja cortada es una noche o un corte de enlace. Pasa el cursor para ver los valores.",
+    techAvail: "Disponibilidad a lo largo de un año",
+    techAvailHint: "Cada rayita es una fecha de aterrizaje. Verde: cumple todos los requisitos. Otro color: el primero que falla. Es solo la parte de superficie: lanzamiento y órbita no se modelan.",
+    availLoading: "Calculando un año de fechas…",
+    availError: "No se pudo calcular: {message}",
+    availKpi: "{pct} % de las fechas ({n} de {total})",
+    availFail: "Falla por luz en {sun} fechas · por Tierra en {earth} · por pendiente en {slope}",
+    availOk: "cumple todo", availSun: "falla la luz", availEarth: "falla la Tierra", availSlope: "falla la pendiente",
+    figLoading: "Cargando…",
+    figError: "No se pudo cargar: {message}",
+    sensTitle: "¿Cambia el ganador si cambian los pesos?",
+    sensLine: "{name} gana en el {pct} % de las combinaciones de pesos probadas.",
+    sensCriteria: "Se probaron {n} combinaciones al azar de {criteria}, sin preferir ninguna. Solo compiten los sitios viables.",
+    sensCurrent: "Con los pesos actuales ({w}) gana {name}.",
+    sensCurrentWhy: " Terreno y protección no cuentan en ellos.",
+    sensRobust: "La conclusión no depende de los pesos.",
+    sensMixed: "La conclusión depende en parte de los pesos.",
+    sensOpen: "No hay un ganador claro: depende de los pesos.",
     mTotal: "Puntaje global",
     mCommunication: "Comunicaciones",
     mEnergy: "Energía",
@@ -107,10 +162,6 @@ const TXT = {
     notViableTag: "no viable",
     viableTag: "viable",
     technical: "Detalle técnico",
-    radar: "Huella de misión",
-    horizon: "Perfil del horizonte",
-    horizonHint: "Altura del relieve alrededor del sitio: más alto = más sombra y menos cielo.",
-    sky: "Cielo en el aterrizaje",
     data: "Tabla completa",
   },
   en: {
@@ -170,6 +221,58 @@ const TXT = {
     dSky: "{v} % of sky",
     subScore: "Score {v}/100",
     subTerrainScore: "Score {v}/100 · source: {src}",
+    techReq: "Requirements and margin",
+    techReqHint: "Each requirement with its threshold, the margin over it and where it comes from. The first group decides viability; the reference rows do not.",
+    secReq: "Requirements: they decide whether the site is viable",
+    secRef: "References: they guide, but do not decide",
+    colCriterion: "Criterion",
+    colThreshold: "Threshold and source",
+    rSun: "Continuous light", rSunSub: "from landing",
+    rEarth: "Earth in view", rEarthSub: "at landing",
+    rSlope: "Ground slope", rSlopeSub: "LOLA DEM, ~360 m window",
+    rEarthShare: "Earth visible", rEarthShareSub: "% of the window",
+    rSunShare: "Mean illumination", rSunShareSub: "% of the window with Sun",
+    rDark: "Longest night", rDarkSub: "without Sun in the window; matters if the mission continues at night",
+    thrSun: "≥ {v}",
+    thrSunSrc: "Light for the whole {v} stay",
+    thrEarth: "Yes",
+    thrEarthSrc: "Direct link; antenna margin of {m}°",
+    thrSlope: "≤ {v}°",
+    thrSlopeSrc: "Wueller et al. terrain filter, goal 5°. The HLS 8° is a vehicle-orientation limit",
+    thrShare50: "≥ 50 %",
+    thrEarthShareSrc: "Preliminary criterion by Gracy and Lee (LPSC 2024)",
+    thrShare33: "≥ 33 %",
+    thrSunShareSrc: "Preliminary criterion by Gracy and Lee (LPSC 2024)",
+    thrDark: "≤ 50 h",
+    thrDarkSrc: "What the VIPER battery lasts in hibernation; not a lander requirement",
+    yes: "Yes", no: "No",
+    meets: "meets", fails: "does not meet",
+    mMargin: "margin {v}",
+    mMissing: "short by {v}",
+    mExceeds: "over by {v}",
+    atLeast: "≥ {v}",
+    wholeWindow: "the whole window",
+    techSky: "Horizon and Sun and Earth paths",
+    techSkyHint: "Horizontal: direction (N, E, S, W). Vertical: height above the horizon. The grey silhouette is the terrain; the lines are where the Sun and Earth travel during the window (one dot per day). A body is only visible above the silhouette.",
+    techTimeline: "Light and link over the window",
+    techTimelineHint: "Top: bands with the Sun and Earth in view; below: their height hour by hour. A broken band is a night or a link outage. Hover to read the values.",
+    techAvail: "Availability over a year",
+    techAvailHint: "Each tick is a landing date. Green: meets every requirement. Another color: the first one that fails. This is only the surface part: launch and orbit are not modelled.",
+    availLoading: "Computing a year of dates…",
+    availError: "Could not compute: {message}",
+    availKpi: "{pct} % of dates ({n} of {total})",
+    availFail: "Light fails on {sun} dates · Earth on {earth} · slope on {slope}",
+    availOk: "meets everything", availSun: "light fails", availEarth: "Earth fails", availSlope: "slope fails",
+    figLoading: "Loading…",
+    figError: "Could not load: {message}",
+    sensTitle: "Does the winner change if the weights change?",
+    sensLine: "{name} wins in {pct} % of the weight combinations tried.",
+    sensCriteria: "{n} random combinations of {criteria} were tried, favoring none. Only viable sites compete.",
+    sensCurrent: "With the current weights ({w}), {name} wins.",
+    sensCurrentWhy: " Terrain and protection do not count in them.",
+    sensRobust: "The conclusion does not depend on the weights.",
+    sensMixed: "The conclusion depends partly on the weights.",
+    sensOpen: "There is no clear winner: it depends on the weights.",
     mTotal: "Overall score",
     mCommunication: "Communications",
     mEnergy: "Energy",
@@ -200,10 +303,6 @@ const TXT = {
     notViableTag: "not viable",
     viableTag: "viable",
     technical: "Technical detail",
-    radar: "Mission footprint",
-    horizon: "Horizon profile",
-    horizonHint: "Height of the terrain around the site: higher = more shadow and less sky.",
-    sky: "Sky at landing",
     data: "Full table",
   },
 };
@@ -410,8 +509,12 @@ function buildExplanation(results) {
 // ---------------------------------------------------------------------------------------------
 
 export class CompareStory {
-  constructor(root, { onBack, onGoExplore, onSuggest }) {
+  // `loadTimeline(result)` y `loadAvailability(result)` piden al servidor los datos pesados del detalle
+  // técnico; solo se llaman cuando el usuario lo abre.
+  constructor(root, { onBack, onGoExplore, onSuggest, loadTimeline = null, loadAvailability = null }) {
     this.root = root;
+    this.loadTimeline = loadTimeline;
+    this.loadAvailability = loadAvailability;
     this.results = null;
     root.addEventListener("click", (e) => {
       if (e.target.closest("[data-story-back]")) onBack();
@@ -512,10 +615,11 @@ export class CompareStory {
     }).join("");
 
     const glossary = METRICS.map((m) => `<li><b>${escapeHtml(tr(m.label))}.</b> ${escapeHtml(tr(m.goal))}</li>`).join("");
+    const sensBlock = this.#sensitivityHtml(results);
     const asideBlock = exp.aside.length ? `<h2>${tr("alsoDiffers")}</h2><ul class="why aside">${exp.aside.join("")}</ul>` : "";
     const whyBlock = (exp.reasons.length
       ? `<h2>${tr("why")}</h2><ul class="why">${exp.reasons.join("")}</ul>`
-      : exp.next.length ? `<h2>${tr("nextTitle")}</h2><ul class="why next">${exp.next.join("")}</ul>` : "") + asideBlock;
+      : exp.next.length ? `<h2>${tr("nextTitle")}</h2><ul class="why next">${exp.next.join("")}</ul>` : "") + asideBlock + sensBlock;
 
     this.root.innerHTML = `
       <div class="story">
@@ -548,38 +652,207 @@ export class CompareStory {
     requestAnimationFrame(() => requestAnimationFrame(() => story.classList.add("go")));
   }
 
+  // ¿Cambia el ganador si cambian los pesos? Se calcula aquí con los puntajes que ya tenemos.
+  #sensitivityHtml(results) {
+    const sens = weightSensitivity(results);
+    if (!sens) return "";
+    const ranked = sens.shares.map((share, i) => ({ share, i })).filter((x) => x.share != null).sort((a, b) => b.share - a.share);
+    const top = ranked[0];
+    const verdict = top.share >= 0.9 ? "sensRobust" : top.share >= 0.6 ? "sensMixed" : "sensOpen";
+    const dict = TXT[getLang()] ?? TXT.es;
+    const names = sens.criteria.map((c) => dict[{ energy: "wEnergy", communication: "wCommunication", terrain: "wTerrain", protection: "wProtection" }[c]]);
+    const criteria = names.length > 1 ? `${names.slice(0, -1).join(", ")} ${getLang() === "en" ? "and" : "y"} ${names.at(-1)}` : names[0];
+    const bars = ranked.map(({ share, i }) => `
+      <div class="sens-row">
+        <span class="s-dot" style="--c:${SERIES_COLORS[i % SERIES_COLORS.length]}"></span>
+        <span class="sens-name">${escapeHtml(shortName(results[i].site))}</span>
+        <span class="meter"><i style="--w:${Math.max(2, share * 100)}%"></i></span>
+        <b>${Math.round(share * 100)} %</b>
+      </div>`).join("");
+    // Si con los pesos actuales gana otro sitio, se dice: la diferencia es justamente lo que informa la prueba.
+    const current = results.map((r, i) => ({ r, i })).filter((x) => x.r.viable).sort((a, b) => b.r.scores.total - a.r.scores.total)[0];
+    const currentNote = current && current.i !== top.i
+      ? `<p class="sens-current">${tr("sensCurrent", { name: `<strong>${escapeHtml(shortName(current.r.site))}</strong>` })}${
+        sens.criteria.some((c) => c === "terrain" || c === "protection") && !(results[0].config.weight_terrain > 0) && !(results[0].config.weight_protection > 0)
+          ? tr("sensCurrentWhy") : ""}</p>` : "";
+    return `<section class="sens">
+      <h2>${tr("sensTitle")}</h2>
+      <p class="sens-line"><strong>${escapeHtml(shortName(results[top.i].site))}</strong> ${tr("sensLine", { name: "", pct: Math.round(top.share * 100) }).trim()}</p>
+      ${bars}
+      ${currentNote}
+      <p class="sens-verdict" title="90 % / 60 %">${tr(verdict)}</p>
+      <p class="hint">${tr("sensCriteria", { n: num(sens.samples), criteria })}</p>
+    </section>`;
+  }
+
+  // ---- Detalle técnico (se dibuja al abrirlo) ----
+
   #drawTechnical(details) {
     details.dataset.drawn = "1";
     const results = this.results;
-    const horizon = this.#horizonSvg(results);
+    const dot = (i) => `<span class="s-dot" style="--c:${SERIES_COLORS[i % SERIES_COLORS.length]}"></span>`;
+    const perSite = (cls) => results.map((r, i) =>
+      `<div class="x-site">${dot(i)}<b>${escapeHtml(shortName(r.site))}</b><div class="${cls}" data-i="${i}">${tr("figLoading")}</div></div>`).join("");
+
     details.querySelector(".tech-body").innerHTML = `
-      <div class="extras-grid">
-        <figure><figcaption>${tr("radar")}</figcaption><div class="x-radar"></div></figure>
-        ${horizon ? `<figure><figcaption>${tr("horizon")}</figcaption>${horizon}<p class="hint">${tr("horizonHint")}</p></figure>` : ""}
-        <figure class="x-wide"><figcaption>${tr("sky")}</figcaption><div class="x-skies">${results.map((r, i) =>
-          `<div><span class="s-dot" style="--c:${SERIES_COLORS[i % SERIES_COLORS.length]}"></span>${escapeHtml(shortName(r.site))}<div class="x-sky" data-i="${i}"></div></div>`).join("")}</div></figure>
-      </div>
-      <h3>${tr("data")}</h3>
-      ${renderCompareTable(results)}`;
-    renderRadarChart(details.querySelector(".x-radar"), results.map((r) => ({ name: shortName(r.site), scores: r.scores })), { size: 240 });
-    results.forEach((r, i) => renderSky(details.querySelector(`.x-sky[data-i="${i}"]`), r, null, { height: 90, compact: true }));
+      <section class="x-block">
+        <h3>${tr("techReq")}</h3>
+        <p class="hint">${tr("techReqHint")}</p>
+        ${this.#requirementsHtml(results)}
+      </section>
+      <section class="x-block">
+        <h3>${tr("techSky")}</h3>
+        <p class="hint">${tr("techSkyHint")}</p>
+        <div class="x-sites">${perSite("x-sky")}</div>
+      </section>
+      <section class="x-block">
+        <h3>${tr("techTimeline")}</h3>
+        <p class="hint">${tr("techTimelineHint")}</p>
+        <div class="x-sites">${perSite("x-timeline")}</div>
+      </section>
+      <section class="x-block">
+        <h3>${tr("techAvail")}</h3>
+        <p class="hint">${tr("techAvailHint")}</p>
+        <ul class="av-legend">${["ok", "sun", "earth", "slope"].map((k) => `<li><i class="av-sw av-${k}"></i>${tr({ ok: "availOk", sun: "availSun", earth: "availEarth", slope: "availSlope" }[k])}</li>`).join("")}</ul>
+        <div class="x-sites x-avail">${perSite("x-avail-cell")}</div>
+      </section>
+      <section class="x-block">
+        <h3>${tr("data")}</h3>
+        ${renderCompareTable(results)}
+      </section>`;
+
+    this.#fillFigures(details, results);
   }
 
-  // Perfil de elevación del horizonte (36 acimuts) de cada sitio, si el servidor lo entrega.
-  #horizonSvg(results) {
-    const profiles = results.map((r) => r.topography?.horizon_shield_profile_deg);
-    if (profiles.some((p) => !p?.length)) return "";
-    const W = 560;
-    const H = 150;
-    const max = Math.max(8, ...profiles.flat());
-    const lines = profiles.map((p, i) => {
-      const pts = p.map((v, k) => `${((k / (p.length - 1)) * W).toFixed(1)},${(H - 18 - (Math.max(0, v) / max) * (H - 34)).toFixed(1)}`);
-      const color = SERIES_COLORS[i % SERIES_COLORS.length];
-      return `<polygon points="0,${H - 18} ${pts.join(" ")} ${W},${H - 18}" fill="${color}" fill-opacity=".14"/>
-        <polyline points="${pts.join(" ")}" fill="none" stroke="${color}" stroke-width="2"/>`;
-    }).join("");
-    const ticks = [0, 90, 180, 270, 360].map((a) => `<text x="${(a / 360) * W}" y="${H - 3}" text-anchor="${a === 0 ? "start" : a === 360 ? "end" : "middle"}">${a}°</text>`).join("");
-    return `<svg class="hz" viewBox="0 0 ${W} ${H}" role="img" aria-label="${tr("horizon")}">
-      <line x1="0" y1="${H - 18}" x2="${W}" y2="${H - 18}" stroke="currentColor" opacity=".3"/>${lines}${ticks}</svg>`;
+  // Los gráficos que necesitan datos del servidor se llenan cuando llegan, cada uno por su cuenta.
+  #fillFigures(details, results) {
+    const stale = () => this.results !== results || !details.isConnected;
+    const fail = (node, error) => { if (node) node.textContent = tr("figError", { message: error.message }); };
+
+    results.forEach((r, i) => {
+      const skyNode = details.querySelector(`.x-sky[data-i="${i}"]`);
+      const timelineNode = details.querySelector(`.x-timeline[data-i="${i}"]`);
+      if (this.loadTimeline) {
+        this.loadTimeline(r).then((timeline) => {
+          if (stale()) return;
+          renderSky(skyNode, r, timeline, { height: 150 });
+          renderTimeline(timelineNode, timeline);
+        }).catch((error) => { if (!stale()) { fail(skyNode, error); fail(timelineNode, error); } });
+      } else {
+        renderSky(skyNode, r, null, { height: 150 });
+        timelineNode.closest(".x-site").remove();
+      }
+
+      const availNode = details.querySelector(`.x-avail-cell[data-i="${i}"]`);
+      if (!this.loadAvailability) return availNode.closest(".x-site").remove();
+      availNode.textContent = tr("availLoading");
+      this.loadAvailability(r).then((data) => {
+        if (!stale()) availNode.innerHTML = this.#availabilityHtml(data);
+      }).catch((error) => { if (!stale()) availNode.textContent = tr("availError", { message: error.message }); });
+    });
+  }
+
+  #availabilityHtml(data) {
+    const fmt = new Intl.DateTimeFormat(t("locale"), { day: "numeric", month: "short", year: "numeric", timeZone: "UTC" });
+    const reasonKey = { sun: "availSun", earth: "availEarth", slope: "availSlope" };
+    const describe = (day) => `${fmt.format(new Date(day.date))} · ${day.available ? tr("availOk")
+      : day.failing.map((k) => tr(reasonKey[k])).join(", ")}`;
+    const counts = data.failing_counts;
+    return `
+      <p class="av-kpi"><b>${tr("availKpi", { pct: num(data.available_fraction * 100, 0), n: data.available, total: data.evaluated })}</b></p>
+      ${availabilitySvg(data, describe, tr("techAvail"))}
+      <p class="hint">${tr("availFail", { sun: counts.sun, earth: counts.earth, slope: counts.slope })}</p>`;
+  }
+
+  // Tabla de requisitos: valor, margen y cumple/no cumple por sitio, con su umbral y su fuente.
+  #requirementsHtml(results) {
+    const cfg = results[0].config;
+    const stay = cfg.stay_days ?? 6.5;
+    const maxSlope = cfg.max_slope_deg ?? 8;
+    const earthMargin = cfg.earth_margin_deg ?? 2;
+    const stayHours = Math.min(stay, cfg.window_days) * 24;
+    const mark = (ok) => (ok == null ? "" : `<span class="mark" aria-hidden="true">${ok ? "✓" : "✕"}</span><span class="sr-only"> (${tr(ok ? "meets" : "fails")})</span>`);
+    const cell = (value, ok, margin = "") => ({ value, ok, margin });
+    const margin = (diff, atLeastType, unit) => {
+      if (Math.abs(diff) < 1e-9) return tr("mMargin", { v: unit(0) });
+      if (diff >= 0) return tr("mMargin", { v: unit(diff) });
+      return tr(atLeastType ? "mMissing" : "mExceeds", { v: unit(-diff) });
+    };
+    const hours = (h) => formatDuration(h);
+
+    const rows = [
+      {
+        kind: "req", label: "rSun", sub: "rSunSub",
+        thr: tr("thrSun", { v: formatDuration(stayHours) }), src: tr("thrSunSrc", { v: formatDuration(stayHours) }),
+        url: "https://www.nasa.gov/wp-content/uploads/2024/02/15-2024-architecture-workshop-white-paper-lunar-site-selection.pdf",
+        cell: (r) => {
+          const h = sunHours(r);
+          const whole = r.sun.visible && r.sun.hours_until_set == null;
+          return cell(whole ? tr("atLeast", { v: hours(h) }) : hours(h), r.sun.visible && r.sun_through_stay !== false,
+            margin(h - stayHours, true, hours));
+        },
+      },
+      {
+        kind: "req", label: "rEarth", sub: "rEarthSub",
+        thr: tr("thrEarth"), src: tr("thrEarthSrc", { m: num(earthMargin, 1) }),
+        cell: (r) => cell(`${tr(r.earth.visible ? "yes" : "no")} · ${num(r.earth.elevation_deg, 1)}°`, r.earth.visible),
+      },
+      {
+        kind: "req", label: "rSlope", sub: "rSlopeSub",
+        thr: tr("thrSlope", { v: num(maxSlope, 1) }), src: tr("thrSlopeSrc"),
+        cell: (r) => {
+          const slope = r.topography?.slope_deg;
+          if (slope == null) return cell(tr("noData"), null);
+          return cell(`${num(slope, 1)}°`, slope <= maxSlope, margin(maxSlope - slope, false, (v) => `${num(v, 1)}°`));
+        },
+      },
+      {
+        kind: "ref", label: "rEarthShare", sub: "rEarthShareSub",
+        thr: tr("thrShare50"), src: tr("thrEarthShareSrc"),
+        cell: (r) => {
+          const share = earthShare(r);
+          return cell(`${share} %`, share >= 50, margin(share - 50, true, (v) => `${num(v, 0)} %`));
+        },
+      },
+      {
+        kind: "ref", label: "rSunShare", sub: "rSunShareSub",
+        thr: tr("thrShare33"), src: tr("thrSunShareSrc"),
+        cell: (r) => {
+          const share = pct(r.sun.visible_fraction);
+          return cell(`${share} %`, share >= 33, margin(share - 33, true, (v) => `${num(v, 0)} %`));
+        },
+      },
+      {
+        kind: "ref", label: "rDark", sub: "rDarkSub",
+        thr: tr("thrDark"), src: tr("thrDarkSrc"),
+        url: "https://ntrs.nasa.gov/api/citations/20230004239/downloads/SSR2023-VIPER-Planning-Ennico.pdf",
+        cell: (r) => {
+          const dark = longestDark(r);
+          const text = dark.atLeast && dark.hours > 0 ? tr("atLeast", { v: hours(dark.hours) }) : hours(dark.hours);
+          return cell(text, dark.hours <= 50, margin(50 - dark.hours, false, hours));
+        },
+      },
+    ];
+
+    const sections = [["req", "secReq"], ["ref", "secRef"]];
+    const cols = results.length + 2;
+    const body = sections.map(([kind, title]) => `
+      <tr class="sec"><th colspan="${cols}" scope="colgroup">${tr(title)}</th></tr>
+      ${rows.filter((row) => row.kind === kind).map((row) => `
+        <tr>
+          <th scope="row">${tr(row.label)}<small>${tr(row.sub)}</small></th>
+          <td class="thr"><b>${escapeHtml(row.thr)}</b><small>${row.url
+            ? `<a href="${row.url}" target="_blank" rel="noopener">${escapeHtml(row.src)}</a>` : escapeHtml(row.src)}</small></td>
+          ${results.map((r) => {
+            const c = row.cell(r);
+            const state = c.ok == null ? "na" : c.ok ? "ok" : "bad";
+            return `<td class="req ${state}"><b>${escapeHtml(c.value)}</b>${mark(c.ok)}${c.margin ? `<small>${escapeHtml(c.margin)}</small>` : ""}</td>`;
+          }).join("")}
+        </tr>`).join("")}`).join("");
+
+    const head = results.map((r, i) => `<th scope="col">${`<span class="s-dot" style="--c:${SERIES_COLORS[i % SERIES_COLORS.length]}"></span>`}${escapeHtml(shortName(r.site))}</th>`).join("");
+    return `<div class="compare-scroll"><table class="req-table">
+      <thead><tr><th scope="col">${tr("colCriterion")}</th><th scope="col">${tr("colThreshold")}</th>${head}</tr></thead>
+      <tbody>${body}</tbody></table></div>`;
   }
 }

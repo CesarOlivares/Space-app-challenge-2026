@@ -96,13 +96,13 @@ Prioridades: **P0** = el resultado hoy puede llevar a una conclusión equivocada
 
 | # | Tarea | Frente | Hecho cuando |
 |---|---|---|---|
-| 1.1 | **Tabla de requisitos con margen** como primera vista del "Detalle técnico": luz continua, Tierra visible, pendiente, noche más larga, con valor, umbral, margen, cumple y fuente | Frontend + UX | Un decision maker ve en 10 s qué requisito falla y por cuánto |
-| 1.2 | **Máscara de horizonte con trayectorias del Sol y la Tierra** durante la estancia, con el aterrizaje marcado; fusiona "Perfil del horizonte" y "Cielo en el aterrizaje" | Backend (trayectorias en `/sky`) + Frontend | Eje vertical en grados; se ve cuándo cruza cada cuerpo bajo el relieve |
-| 1.3 | **Línea de tiempo de luz y enlace** por sitio durante la estancia (reutiliza `/timeline` y `TimelineView`) | Frontend | Se leen la luz continua, la noche más larga y los cortes de enlace |
-| 1.4 | **Calendario de disponibilidad**: 12 meses × sitio, cada día coloreado por "cumple todo" o por el requisito que falla (reutiliza `/best-dates` o un nuevo `/availability`) | Backend + Frontend | KPI "% de días con aterrizaje posible" por sitio |
-| 1.5 | **Sensibilidad a los pesos**: muestreo de pesos (p. ej. 1.000 combinaciones de Dirichlet) y % de veces que cada sitio queda primero | Backend + Frontend | Frase del tipo "Malapert gana en el 87 % de las combinaciones de pesos" |
-| 1.6 | Quitar el radar "Huella de misión" | Frontend | Eliminado, con la tabla 1.1 en su lugar |
-| 1.7 | Tabla completa: sin filas duplicadas, con columnas de unidad, umbral y fuente | Frontend | Cada fila dice de dónde sale |
+| 1.1 | **Tabla de requisitos con margen** como primera vista del "Detalle técnico": luz continua, Tierra visible, pendiente, noche más larga, con valor, umbral, margen, cumple y fuente | Frontend + UX | **Hecho el 14-11.** Tres requisitos (luz, Tierra, pendiente) y tres referencias (Tierra visible, iluminación media, noche más larga) |
+| 1.2 | **Máscara de horizonte con trayectorias del Sol y la Tierra** durante la estancia, con el aterrizaje marcado; fusiona "Perfil del horizonte" y "Cielo en el aterrizaje" | Backend (trayectorias en `/sky`) + Frontend | **Hecho el 14-11** reutilizando `/timeline` y `renderSky`. Falta marcar la estancia de 6,5 días sobre la trayectoria |
+| 1.3 | **Línea de tiempo de luz y enlace** por sitio durante la estancia (reutiliza `/timeline` y `TimelineView`) | Frontend | **Hecho el 14-11** |
+| 1.4 | **Calendario de disponibilidad**: 12 meses × sitio, cada día coloreado por "cumple todo" o por el requisito que falla (reutiliza `/best-dates` o un nuevo `/availability`) | Backend + Frontend | **Hecho el 14-11** con el endpoint nuevo `/api/sites/{ref}/availability`; KPI "% de las fechas". Un año por sitio tarda ~1 s |
+| 1.5 | **Sensibilidad a los pesos**: muestreo de pesos (p. ej. 1.000 combinaciones de Dirichlet) y % de veces que cada sitio queda primero | Backend + Frontend | **Hecho el 14-11** solo en el frontend (los puntajes ya están en el cliente): 2.000 combinaciones con semilla fija, sobre los criterios con dato en todos los sitios |
+| 1.6 | Quitar el radar "Huella de misión" | Frontend | **Hecho el 14-11**: módulo, textos y estilos eliminados |
+| 1.7 | Tabla completa: sin filas duplicadas, con columnas de unidad, umbral y fuente | Frontend | **Hecho el 14-11**: secciones, columna "Origen" y sin la fila repetida. Los umbrales viven en la tabla de requisitos |
 
 ### P2 · Didáctica y pulido
 
