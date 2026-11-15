@@ -199,8 +199,8 @@ export function detailTour(ctx) {
       skipIfMissing: true,
       title: T("Los indicadores", "The indicators"),
       body: T(
-        "Barras de 0 a 100 (más es mejor) para energía, comunicación, terreno, protección y el puntaje global. «Sin datos» significa que no hay relieve medido, no que valga cero.",
-        "Bars from 0 to 100 (higher is better) for energy, communication, terrain, protection and the overall score. “No data” means no measured terrain, not a zero.",
+        "Barras de 0 a 100 (más es mejor) para energía, comunicación, terreno y el puntaje global. «Sin datos» significa que no hay relieve medido, no que valga cero.",
+        "Bars from 0 to 100 (higher is better) for energy, communication, terrain and the overall score. “No data” means no measured terrain, not a zero.",
       ),
       read: T("Un sitio no viable muestra su puntaje solo como referencia.", "A non-viable site shows its score for reference only."),
     },

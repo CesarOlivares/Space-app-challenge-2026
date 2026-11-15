@@ -1,15 +1,14 @@
 # Zenith — Team Integration Guide & Long-Term Roadmap
 
-## 1. Executive Overview & The 4-Pillar Mission Architecture
+## 1. Executive Overview & The 3-Pillar Mission Architecture
 
-**Zenith** is a full-stack mission-planning platform (FastAPI + Python domain models + Vanilla JS ES Modules & Three.js) designed to evaluate candidate lunar landing sites and launch/landing epochs across four coupled aerospace subsystems:
+**Zenith** is a full-stack mission-planning platform (FastAPI + Python domain models + Vanilla JS ES Modules & Three.js) designed to evaluate candidate lunar landing sites and launch/landing epochs across three coupled aerospace subsystems:
 
 1. **Solar Autonomy (`E` — Energy):** Evaluates solar power generation and continuous illumination windows (`scoring.py`, `windows.py`, `ephemeris.py`) using JPL DE440s ephemerides and panel orientation models (`"tiempo"`, `"horizontal"`, `"vertical"`).
 2. **Communication Stability (`C` — Direct-to-Earth):** Evaluates line-of-sight visibility and link reliability with Earth stations over the mission window, accounting for lunar libration and local horizon obstructions.
 3. **Topography & Landing Safety (`T` — Terrain):** Evaluates local surface slope, RMS surface roughness, and elevation (`terrain.py`, `sites.json`) against spacecraft mechanical tip-over limits (`max_slope_deg`).
-4. **Asteroid & Meteoroid Safety (`A` — Ballistic Shielding):** Evaluates natural topographical sky-shielding against grazing micrometeoroids, impactor flux, and secondary ejecta hazards.
 
-Rather than treating these four subsystems as isolated spreadsheets, Zenith couples them through shared physical terrain and horizon models (`terrain.py` and `horizon.py`) and unifies them into a single mission score $P \in [0, 100]$ and an instantaneous landing viability gate (`viable`).
+Rather than treating these subsystems as isolated spreadsheets, Zenith couples them through shared physical terrain and horizon models (`terrain.py` and `horizon.py`) and unifies them into a single mission score $P \in [0, 100]$ and a landing viability gate (`viable`).
 
 ---
 
@@ -37,16 +36,7 @@ All subsystems share the same lunar reference frame (**Mean Earth / Polar Axis**
   $$\text{effective\_margin\_deg} = \text{margin\_deg} + k_{\text{rf}} \cdot \text{roughness\_m}$$
   where $k_{\text{rf}}$ is a mission-specific RF roughness sensitivity factor (in deg/m) passed to `horizon_for(site, margin_deg=effective_margin_deg)`.
 
-### 2.3 Linking Topography with Asteroid / Meteoroid Safety (`A`)
-
-* **Natural Ballistic Shielding (Sky View Factor — $\text{SVF}$):**
-  Surrounding topography from `TerrainHorizon` ($h(\text{az})$ for $\text{az} \in [0^\circ, 360^\circ)$) blocks a fraction of the celestial hemisphere, shielding the lander or habitat from grazing micrometeoroid flux and low-angle secondary impact ejecta:
-  $$\text{SVF} = \frac{1}{360}\sum_{\text{az}=0}^{359} \cos^2\left(\max(0^\circ, h(\text{az}))\right)$$
-  A lower $\text{SVF}$ provides higher natural ballistic shielding ($1 - \text{SVF}$).
-* **Regolith Block & Ejecta Proxy:**
-  Local RMS surface roughness (`TerrainMetrics.roughness_m`) correlates with fresh rocky crater rims and secondary ejecta boulder fields, enabling the Asteroid/Hazard module to penalize rough landing ellipses without requiring an external boulder catalog.
-
-### 2.4 Topography & Mechanical Touchdown Safety (`T`)
+### 2.3 Topography & Mechanical Touchdown Safety (`T`)
 
 `compute_terrain_score(terrain, max_slope_deg=15.0)` in `backend/app/models/scoring.py` evaluates mechanical touchdown safety against lander tip-over limits (`slope_deg <= max_slope_deg`) using three spacecraft presets exposed in `frontend/src/views/SettingsPanel.js`:
 
@@ -84,20 +74,20 @@ Current `TerrainMetrics` fields (`@dataclass(frozen=True)`):
 
 ### 3.2 Unified Scoring & Viability (`scoring.py`)
 
-Currently, `scoring.py` evaluates `E`, `C`, and `T` via `ScoringConfig` and `evaluate()`. With the Asteroid/Meteoroid Safety (`A`) subsystem integrated, the unified 4-pillar formula is:
+Currently, `scoring.py` evaluates `E`, `C`, and `T` via `ScoringConfig` and `evaluate()`. The unified 3-pillar formula is:
 
-$$P = \frac{w_E E + w_C C + w_T T + w_A A}{w_E + w_C + w_T + w_A}$$
+$$P = \frac{w_E E + w_C C + w_T T}{w_E + w_C + w_T}$$
 
-$$\text{viable} = \text{sun\_up\_at\_landing} \;\land\; \text{earth\_up\_at\_landing} \;\land\; \text{slope\_ok} \;\land\; \text{hazard\_ok}$$
+$$\text{viable} = \text{sun\_up\_at\_landing} \;\land\; \text{sun\_through\_stay} \;\land\; \text{earth\_up\_at\_landing} \;\land\; \text{slope\_ok}$$
 
 Current `SiteEvaluation` fields returned by `evaluate()`:
 * `energy: float`, `communication: float`, `terrain_score: float`, `total: float`
 * `slope_deg: float`, `roughness_m: float`, `elevation_m: float`, `slope_ok: bool`, `terrain: TerrainMetrics`
-* `viable: bool` (`sun.visible and earth.visible and slope_ok`)
+* `viable: bool` (`sun.visible and sun_through_stay and earth.visible and slope_ok`)
 
 ### 3.3 REST API JSON Contracts (`scores.py`, `sites.py`, `serializers.py`)
 
-Endpoints `GET /api/scores`, `GET /api/sites/{site_ref}/sky`, and `POST /api/compare` accept `weight_terrain` and `weight_protection` (default `0.0`: informative only) and `max_slope_deg` (default `15.0`) and return:
+Endpoints `GET /api/scores`, `GET /api/sites/{site_ref}/sky`, and `POST /api/compare` accept `weight_terrain` (default `0.0`: informative only) and `max_slope_deg` (default `8.0`) and return:
 
 ```json
 {
@@ -130,7 +120,7 @@ Endpoints `GET /api/scores`, `GET /api/sites/{site_ref}/sky`, and `POST /api/com
 
 ### Phase 1 — Unified Multi-Physics Domain Extensions (`terrain.py`, `horizon.py`, `scoring.py`)
 * Add `aspect_deg` (steepest-descent azimuth from the $3 \times 3$ LOLA DEM plane fit) and `sky_view_factor` ($\text{SVF} \in [0.0, 1.0]$ computed from `HorizonMask`) to `TerrainMetrics`.
-* Expose plug-and-play scoring hooks in `scoring.py` so the Energy (`E`), Communications (`C`), and Asteroid Safety (`A`) modules can register sub-score evaluators and custom `viable` constraints without duplicating ephemeris or DEM lookups.
+* Expose plug-and-play scoring hooks in `scoring.py` so the Energy (`E`), Communications (`C`), and Terrain (`T`) modules can register sub-score evaluators and custom `viable` constraints without duplicating ephemeris or DEM lookups.
 
 ### Phase 2 — Multi-Scale 3D Relief Visualization (`GlobeView.js`, `TerrainPatchView.js`, `sites.py`)
 * **Global 3D Relief (`GlobeView.js`):** Integrate LRO LOLA DEM `displacementMap` and `normalMap` into the Three.js lunar sphere with an interactive vertical exaggeration toggle (`1x | 3x | 5x`) so crater rims and polar massifs cast real-time relief perception under subsolar directional lighting.
@@ -139,7 +129,7 @@ Endpoints `GET /api/scores`, `GET /api/sites/{site_ref}/sky`, and `POST /api/com
 ### Phase 3 — Digestible "Mission Control" UX/UI (`DetailPanel.js`, `SiteList.js`, `CompareView.js`)
 * **Executive `GO / NO-GO` Readiness Banner:** Place an instant visual verdict at the top of `DetailPanel.js` with explicit failure reason badges (e.g., *"NO-GO: Local slope 11.4° exceeds Crewed HLS limit of 5.0°"*).
 * **Human-Readable Semantic Labels:** Pair every raw metric with an engineering interpretation (e.g., `3.2° — Flat Terrain (Safe for HLS, CLPS & Rover)`, `0.7 m RMS — Low boulder hazard`).
-* **4-Axis Mission Footprint Radar Chart:** Add a lightweight pure-SVG radar chart in `DetailPanel.js` and `CompareView.js` plotting `Energy (E)`, `Comms (C)`, `Terrain (T)`, and `Asteroid Safety (A)` simultaneously.
+* **3-Axis Mission Footprint Chart:** Lightweight chart in `DetailPanel.js` and `CompareView.js` plotting `Energy (E)`, `Comms (C)`, and `Terrain (T)` simultaneously.
 
 ### Phase 4 — Performance Optimization & Judge Demo Polish
 * Precompute binary `.npz` polar/global terrain grids for sub-10 ms cold-start queries across arbitrary coordinates.

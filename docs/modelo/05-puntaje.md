@@ -73,19 +73,15 @@ La elevación, pendiente y rugosidad se obtienen de datos medidos por el altíme
 
 $T$ (*landing ease*) combina 65 % pendiente, 25 % rugosidad y 10 % de azimuts con horizonte bajo 18°. Esas constantes son **supuestos del equipo**: por eso $T$ pesa 0 por defecto y se muestra como información técnica.
 
-### Protección (A)
-
-Índice experimental de cuánto cielo tapa el relieve ([03 · Horizonte](03-horizonte.md)). Solo existe con horizonte por terreno en sitios polares ($\le -75^\circ$ S); en sitios sin máscara de relieve vale `null`, no 0 (la API devuelve `scores.asteroid = null` y `topography.relief_data = false`). No tiene fuente publicada ni figura entre los criterios oficiales de la NASA: pesa 0 por defecto.
-
 ### Puntaje global
 
 $$
-P = \frac{w_E\,E + w_C\,C + w_T\,T + w_A\,A}{w_E + w_C + w_T + w_A}
+P = \frac{w_E\,E + w_C\,C + w_T\,T}{w_E + w_C + w_T}
 $$
 
-Por defecto $w_E = w_C = 0{,}5$ y $w_T = w_A = 0$, así que $P = (E + C)/2$: lo que pide el desafío y lo que está validado contra Horizons. La NASA usa figuras de mérito ponderadas pero **no publica los pesos**, así que cualquier reparto es una decisión del equipo; por eso los pesos son configurables y la interfaz muestra siempre los que se usaron.
+Por defecto $w_E = w_C = 0{,}5$ y $w_T = 0$, así que $P = (E + C)/2$: lo que pide el desafío y lo que está validado contra Horizons. La NASA usa figuras de mérito ponderadas pero **no publica los pesos**, así que cualquier reparto es una decisión del equipo; por eso los pesos son configurables y la interfaz muestra siempre los que se usaron. El criterio exploratorio de protección contra impactos ($A$) fue eliminado del sistema por falta de sustento en la literatura oficial y ausencia de datos relevantes.
 
-Un término sin dato (`null`) se excluye junto con su peso. Cuando un criterio **con peso > 0** falta en un sitio, la API lo lista en `missing_criteria` (p. ej. `["protection"]` para Apollo 11 si $w_A > 0$): su $P$ se calculó con menos criterios y **no es comparable** con el de un sitio que los tiene todos. La comparación lo avisa y marca el total como parcial. Con la integración del Global DEM, el criterio de terreno $T$ está disponible para todos los sitios.
+Un término sin dato (`null`) se excluye junto con su peso. Cuando un criterio **con peso > 0** falta en un sitio, la API lo lista en `missing_criteria`: su $P$ se calcula con menos criterios y **no es comparable** con el de un sitio que los tiene todos. La comparación lo avisa y marca el total como parcial. Con la integración del Global DEM, el criterio de terreno $T$ está disponible para todos los sitios del catálogo.
 
 Un sitio no viable (Sol o Tierra no visibles al aterrizar, sol que no cubre la estancia de 6,5 días, o pendiente medida sobre el límite) conserva su P, pero la interfaz lo presenta como **referencial** y la comparación no lo declara ganador.
 
@@ -106,7 +102,7 @@ La comparación prueba 2.000 combinaciones de pesos al azar (distribución de Di
 ## Supuestos del equipo, pendientes de respaldar
 
 - [x] **Límite de pendiente.** Resuelto el 14-11-2026: el valor por defecto pasó de 15° a 8° (Wueller et al.; Peña-Asensio usan ≤ 5°). Los 8°/5° del HLS (HLS-R-0071) son inclinación del **vehículo**, no pendiente del terreno. Con 8° sobre el DEM 3 × 3, IM-1 (11,8°), Mons Mouton (9,4°) y Shackleton (10,2°) pasan a no viables. Pendiente: medirla a escala de la elipse de aterrizaje (100 m, 3σ) en vez de 360 m.
-- [ ] **Constantes de T y A.** Sin fuente; mientras no la tengan, peso 0.
+- [x] **Constantes de T y eliminación de A.** Resuelto el 15-11-2026: el criterio experimental de protección A fue eliminado del modelo y la arquitectura se simplificó a los 3 pilares clave (E, C, T). $w_T = 0$ por defecto para mantener consistencia con los requisitos principales.
 
 - [ ] **Ventana de 14 días.** ¿Corresponde a la duración típica de misiones CLPS (IM-1, IM-2 y Blue Ghost duraron días a ~2 semanas)? Citar las duraciones planificadas.
 - [ ] **50 % aprovechamiento + 50 % continuidad.** Justificar por qué importa la continuidad (baterías, supervivencia a la noche lunar) o proponer otro reparto.

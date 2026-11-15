@@ -72,7 +72,6 @@ def test_sin_dato_no_cambia_el_puntaje_ni_la_viabilidad(ephemeris, catalog):
     if _get_global_dem() is None:
         assert base.terrain_score is None
         assert base.slope_ok is None
-        assert base.asteroid_protection_score is None
         assert base.total == pytest.approx((base.energy + base.communication) / 2)
         assert con_peso.total == pytest.approx(base.total)
         assert base.viable == (base.sun.visible and base.earth.visible)
@@ -80,14 +79,12 @@ def test_sin_dato_no_cambia_el_puntaje_ni_la_viabilidad(ephemeris, catalog):
     else:
         assert base.terrain_score is not None
         assert base.slope_ok is True
-        assert base.asteroid_protection_score is None
         assert base.viable is True
 
 
-def test_terreno_y_proteccion_no_pesan_por_defecto(dem, ephemeris, catalog):
+def test_terreno_no_pesa_por_defecto(dem, ephemeris, catalog):
     result = evaluate(ephemeris, catalog["im-2"], LANDING)
     assert result.terrain_score is not None
-    assert result.asteroid_protection_score is not None
     assert result.total == pytest.approx((result.energy + result.communication) / 2)
 
 
@@ -97,13 +94,11 @@ def test_api_entrega_nulos_sin_dato(ephemeris):
     apollo = next(s for s in scores if s["site_id"] == "apollo-11")
     if _get_global_dem() is None:
         assert apollo["scores"]["terrain"] is None
-        assert apollo["scores"]["asteroid"] is None
         assert apollo["topography"]["slope_deg"] is None
         assert apollo["topography"]["source"] == "unavailable"
         assert "slope_ok" not in apollo["topography"]
     else:
         assert apollo["scores"]["terrain"] is not None
-        assert apollo["scores"]["asteroid"] is None
         assert apollo["topography"]["slope_deg"] is not None
         assert apollo["topography"]["source"] == "lola_global"
 
@@ -122,7 +117,6 @@ def test_parche_fuera_del_dem_esta_vacio():
 def test_grilla_de_riesgo_sin_valores_inventados():
     _build_risk_grid.cache_clear()
     cells = _build_risk_grid(15.0)["cells"]
-    assert all(c["asteroid_protection"] is None for c in cells)
     if _get_global_dem() is None:
         assert all(c["slope_deg"] is None for c in cells if c["lat"] > -75)
     else:

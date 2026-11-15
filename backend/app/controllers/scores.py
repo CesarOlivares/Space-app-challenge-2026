@@ -164,10 +164,9 @@ def scores_matrix(
 def _build_risk_grid(max_slope_deg: float = MAX_SLOPE_DEG) -> dict:
     """Builds and caches a 72x36 global grid for the on-globe heatmap overlays.
 
-    Slope and Landing Ease are measured: cells without polar DEM coverage carry None.
+    Slope and Landing Ease are derived from LOLA Global DEM and polar LOLA DEM.
     Solar exposure and Earth line-of-sight are coarse geometric estimates (latitude,
-    sub-Earth point), refined with measured relief where the DEM exists. There is no
-    asteroid protection layer: it needs a terrain horizon per cell, which a 5° grid cannot give.
+    sub-Earth point), refined with measured relief in the polar regions.
     """
     cols, rows = 72, 36
     lon_step = 360.0 / cols
@@ -246,7 +245,6 @@ def _build_risk_grid(max_slope_deg: float = MAX_SLOPE_DEG) -> dict:
                 "elevation_m": None if metrics.elevation_m is None else round(metrics.elevation_m, 1),
                 "slope_deg": None if metrics.slope_deg is None else round(metrics.slope_deg, 2),
                 "landing_ease": None if landing_ease is None else round(landing_ease, 1),
-                "asteroid_protection": None,
                 "solar_exposure": round(float(np.clip(solar_exp, 0.0, 100.0)), 1),
                 "earth_comm": round(float(np.clip(earth_comm, 0.0, 100.0)), 1),
                 "suitability": round(float(np.clip(suitability, 0.0, 100.0)), 1),

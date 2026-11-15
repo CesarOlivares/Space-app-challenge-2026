@@ -182,7 +182,6 @@ function showTooltip(id, x, y, zone = null, point = null) {
   const { total, energy, communication } = score.scores;
   const topo = score.topography ?? {};
   const ease = score.scores?.landing_ease ?? topo.landing_ease_score ?? score.scores?.terrain;
-  const shield = score.scores?.asteroid_protection ?? topo.asteroid_protection_score ?? score.scores?.asteroid;
   const verdict = score.viable ? t("verdict.viable") : t("verdict.notViableBecause", { reason: notViableReason(score) });
 
   const lines = [
@@ -193,9 +192,6 @@ function showTooltip(id, x, y, zone = null, point = null) {
   if (ease != null && topo.slope_deg != null) {
     lines.push(["span", t("tip.terrain", { score: Math.round(ease), slope: num(topo.slope_deg, 1), label: slopeWord(topo.slope_deg) })]);
   }
-  lines.push(["span", shield == null
-    ? t("tip.protectionNone")
-    : t("tip.protection", { score: Math.round(shield), pct: num(topo.solid_angle_shielded_pct ?? 0, 0) })]);
   placeTooltip(lines, x, y);
 }
 

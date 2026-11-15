@@ -15,10 +15,10 @@ Se muestrea la posición del Sol y la Tierra durante la ventana de misión
   La Tierra cuenta como visible con su centro a `earth_margin_deg` sobre el
   horizonte (2° por defecto: margen de antena de NASA/TM-20220013310 §5.8.3,
   que además cubre el disco completo, de ~0,95° de radio).
-- Global P = (wE·E + wC·C) / (wE + wC)
+- Global P = (wE·E + wC·C + wT·T) / (wE + wC + wT)
 
-Terreno (T) y protección (A) se calculan y se muestran, pero por defecto pesan 0:
-sus constantes no tienen fuente publicada. T solo existe donde hay DEM polar.
+Terreno (T) se calcula a escala global mediante LOLA Global DEM y DEM polar.
+Por defecto pesa 0 para mantener el modelo enfocado en la energía y la comunicación.
 
 Todos los puntajes van de 0 a 100. El sitio es viable solo si al aterrizar
 el Sol y la Tierra están sobre el horizonte y, si hay dato de pendiente, esta
@@ -52,10 +52,9 @@ EARTH_MARGIN_DEG = 2.0
 # del HLS y las 13 regiones de 2022 tienen sitios con ~6,5 días de luz continua (NASA, 19-08-2022).
 STAY_DAYS = 6.5
 # Pendiente máxima: 8° es el filtro de terreno de Wueller et al. (DEM de 20 m) y coincide con el umbral
-# de orientación del HLS (HLS-R-0071), que es del vehículo y no una pendiente del terreno. Nuestra pendiente sale del DEM de 120 m (base ~360 m), más suave
-# que a escala del módulo: con el mismo umbral, el veredicto es optimista.
+# de orientación del HLS (HLS-R-0071), que es del vehículo y no una pendiente del terreno.
 MAX_SLOPE_DEG = 8.0
-CRITERIA = ("energy", "communication", "terrain", "protection")
+CRITERIA = ("energy", "communication", "terrain")
 
 
 @dataclass(frozen=True)
@@ -82,7 +81,6 @@ class ScoringConfig:
     weight_energy: float = 0.5
     weight_communication: float = 0.5
     weight_terrain: float = 0.0
-    weight_protection: float = 0.0
     max_slope_deg: float = MAX_SLOPE_DEG
     stay_days: float = STAY_DAYS
     panel: str = "tiempo"
@@ -100,10 +98,9 @@ class ScoringConfig:
             self.weight_energy < 0
             or self.weight_communication < 0
             or self.weight_terrain < 0
-            or self.weight_protection < 0
         ):
             raise ValueError("weights cannot be negative")
-        if self.weight_energy + self.weight_communication + self.weight_terrain + self.weight_protection == 0:
+        if self.weight_energy + self.weight_communication + self.weight_terrain == 0:
             raise ValueError("at least one weight must be greater than zero")
 
     @property
@@ -155,15 +152,9 @@ class SiteEvaluation:
     terrain: TerrainMetrics
     total: float
     viable: bool
-    # None sin dato de pendiente (fuera del DEM polar): T no entra al puntaje.
     landing_ease_score: float | None = None
-    # None cuando no hay relieve real alrededor del sitio (horizonte esférico): "sin datos", no "0".
-    asteroid_protection_score: float | None = None
-    asteroid_score: float | None = None
     has_relief_data: bool = False
     sky_view_factor: float = 1.0
-    solid_angle_shielded_pct: float | None = None
-    horizon_shield_profile_deg: tuple[float, ...] = ()
     # ¿Hay Sol continuo durante toda la estancia (config.stay_days) desde el aterrizaje?
     sun_through_stay: bool = False
     # Criterios con peso > 0 que no tienen dato en este sitio: el total se calculó sin ellos y no
@@ -278,33 +269,6 @@ def compute_tilt_incidence_factor(
     return max(0.0, min(1.0, cos_i))
 
 
-def compute_asteroid_protection_score(ballistic_shield_raw: float, slope_deg: float | None) -> float:
-    """Computes Evaluation B — Asteroid & Ejecta Protection Score in [0.0, 100.0].
-
-    Physical basis: Natural ballistic shielding provided by surrounding mountains
-    and crater rims against low-angle grazing meteoroid flux (NASA MEM3) and
-    secondary impact ejecta curtains (5-40 deg). Steep local slopes (> 12 deg)
-    incur a rockfall / mass-wasting penalty.
-
-    Args:
-        ballistic_shield_raw: Raw horizon shielding in [0.0, 100.0].
-        slope_deg: Local terrain slope in degrees.
-
-    Returns:
-        Asteroid & ejecta protection score rounded to 1 decimal place in [0.0, 100.0].
-    """
-    steep = slope_deg is not None and slope_deg > 12.0
-    rockfall_penalty = float(np.clip(1.0 - (slope_deg - 12.0) / 25.0, 0.3, 1.0)) if steep else 1.0
-    return round(float(np.clip(ballistic_shield_raw * rockfall_penalty, 0.0, 100.0)), 1)
-
-
-def compute_asteroid_safety_score(sky_view_factor: float, roughness_m: float) -> float:
-    """Backward-compatible proxy score for asteroid & ejecta safety in [0.0, 100.0]."""
-    shielding = max(0.0, min(1.0, (1.0 - sky_view_factor) * 5.0))
-    smoothness = max(0.0, 1.0 - roughness_m / 4.0)
-    return round(100.0 * (0.4 * shielding + 0.6 * smoothness), 1)
-
-
 def weighted_general_score(
     component_scores: dict[str, float],
     component_weights: dict[str, float],
@@ -339,12 +303,11 @@ def total_score(
     communication: float,
     config: ScoringConfig,
     terrain_score: float | None = None,
-    protection_score: float | None = None,
 ) -> float:
     """Computes the weighted overall landing site score P in [0.0, 100.0].
 
     Formula:
-        P = (w_E * E + w_C * C + w_T * T_land + w_A * A_shield) / (w_E + w_C + w_T + w_A)
+        P = (w_E * E + w_C * C + w_T * T_land) / (w_E + w_C + w_T)
 
     Delegates to `weighted_general_score` so additional scoring pillars can be
     integrated without duplicating normalization logic.
@@ -354,7 +317,6 @@ def total_score(
         communication: Communication score (C) in [0, 100].
         config: Scoring configuration with component weights.
         terrain_score: Optional Evaluation A Landing Ease score in [0, 100].
-        protection_score: Optional Evaluation B Asteroid Protection score in [0, 100].
 
     Returns:
         Weighted overall score in [0.0, 100.0], or 0.0 if total weight is zero.
@@ -367,12 +329,9 @@ def total_score(
         "energy": config.weight_energy,
         "communication": config.weight_communication,
         "terrain": config.weight_terrain,
-        "protection": config.weight_protection,
     }
     if terrain_score is not None:
         scores_map["terrain"] = terrain_score
-    if protection_score is not None:
-        scores_map["protection"] = protection_score
     return weighted_general_score(scores_map, weights_map)
 
 
@@ -436,32 +395,22 @@ def evaluate(
     resolved_terrain = terrain or getattr(site, "terrain", None) or evaluate_terrain(site.lat, site.lon)
     base_horizon = horizon_for(site, 0.0)
     svf = base_horizon.sky_view_factor()
-    shielded_pct = base_horizon.solid_angle_shielded_pct()
     approach_pct = base_horizon.approach_clearance_pct(18.0)
-    ballistic_raw = base_horizon.ballistic_shield_raw(15.0)
-    profile_36 = tuple(base_horizon.horizon_profile_36())
 
     t_score = compute_landing_ease_score(resolved_terrain, config.max_slope_deg, approach_pct)
-    # Sin máscara de horizonte con relieve (solo hay DEM al sur de 80° S) el blindaje no se puede
-    # estimar: A queda sin datos y el puntaje global se renormaliza sin él.
     has_relief = base_horizon.kind == "terreno"
-    a_score = compute_asteroid_protection_score(ballistic_raw, resolved_terrain.slope_deg) if has_relief else None
-    if not has_relief:
-        shielded_pct = None
-        profile_36 = ()
     slope_ok = resolved_terrain.slope_deg <= config.max_slope_deg if resolved_terrain.available else None
     overall = total_score(
         energy,
         communication,
         config,
         terrain_score=t_score,
-        protection_score=a_score,
     )
     # Viable: Sol y Tierra a la vista al aterrizar, luz continua durante toda la estancia y
     # pendiente bajo el límite (si hay dato de pendiente).
     sun_through_stay = bool(continuous_hours(sun, window_h) >= config.stay_hours)
     viable = bool(sun.visible and earth.visible and sun_through_stay and slope_ok is not False)
-    available = {"energy": True, "communication": True, "terrain": t_score is not None, "protection": a_score is not None}
+    available = {"energy": True, "communication": True, "terrain": t_score is not None}
     missing = tuple(c for c in CRITERIA if config.weight(c) > 0 and not available[c])
 
     return SiteEvaluation(
@@ -481,12 +430,8 @@ def evaluate(
         total=overall,
         viable=viable,
         landing_ease_score=t_score,
-        asteroid_protection_score=a_score,
-        asteroid_score=a_score,
         has_relief_data=has_relief,
         sky_view_factor=svf,
-        solid_angle_shielded_pct=shielded_pct,
-        horizon_shield_profile_deg=profile_36,
         sun_through_stay=sun_through_stay,
         missing_criteria=missing,
     )

@@ -180,11 +180,6 @@ export class DetailPanel {
     if (topo.dem_missing) provenance.push(`<p class="slope-warning" role="alert">${t("detail.demMissing")}</p>`);
     else if (hasSlope && topo.relief_data === false) provenance.push(`<p class="caption">${t("detail.horizonAssumed")}</p>`);
     const dataNotes = provenance.join("");
-    const noProtection = (sky.scores.asteroid_protection ?? sky.scores.asteroid) == null;
-    const protectionBar = noProtection
-      ? `<div class="bar nodata-bar" title="${escapeHtml(t("detail.protectionNone"))}"><span>${t("detail.protection")}</span><span class="track"></span><b>${t("detail.noData")}</b></div>`
-      : scoreBarRaw(t("detail.protection"), sky.scores.asteroid_protection ?? sky.scores.asteroid,
-        t("detail.protectionHint", { pct: num(topo.solid_angle_shielded_pct ?? 0, 1) }));
     const terrainBar = ease == null
       ? `<div class="bar nodata-bar" title="${escapeHtml(t("detail.terrainNone"))}"><span>${t("detail.terrain")}</span><span class="track"></span><b>${t("detail.noData")}</b></div>`
       : scoreBarRaw(t("detail.terrain"), ease, t("detail.terrainHint"));
@@ -214,7 +209,6 @@ export class DetailPanel {
       ${scoreBar("detail.energy", sky.scores.energy, "detail.energyHint")}
       ${scoreBar("detail.communication", sky.scores.communication, "detail.communicationHint")}
       ${terrainBar}
-      ${protectionBar}
       ${scoreBar("detail.total", sky.scores.total, "detail.totalHint")}
       ${sky.viable ? "" : `<p class="caption">${t("detail.refNote")}</p>`}
       ${dataNotes}

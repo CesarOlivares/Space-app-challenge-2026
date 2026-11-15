@@ -35,7 +35,6 @@ const CRITERIA = [
   ["energy", (r) => r.scores.energy],
   ["communication", (r) => r.scores.communication],
   ["terrain", (r) => r.scores.terrain],
-  ["protection", (r) => r.scores.asteroid],
 ];
 
 // Generador pseudoaleatorio con semilla (mulberry32): el mismo resultado en cada visita.

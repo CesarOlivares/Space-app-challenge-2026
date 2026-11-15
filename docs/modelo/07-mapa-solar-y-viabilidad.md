@@ -152,14 +152,13 @@ Si **cualquiera** de estas tres condiciones falla en el instante $t_0$, el sitio
 ### 4.2 Factores Ponderados (*Soft Constraints* $\rightarrow$ Índice de Calidad $P \in [0, 100]$)
 Si el candidato supera las tres líneas rojas, se pondera su excelencia operativa:
 
-$$P = \frac{w_E \cdot E + w_C \cdot C + w_T \cdot T + w_A \cdot A}{w_E + w_C + w_T + w_A}$$
+$$P = \frac{w_E \cdot E + w_C \cdot C + w_T \cdot T}{w_E + w_C + w_T}$$
 
 | Factor | Símbolo | Qué mide | Criterio de Excelencia (100 pts) | Criterio Pobre (0 pts) |
 | :--- | :---: | :--- | :--- | :--- |
 | **Energía Solar** | $E$ | Luz continua acumulada y orientación | Sol ininterrumpido durante toda la ventana ($14\text{ d}$). | Menos de 12 horas de luz o atardecer inmediato. |
 | **Comunicaciones** | $C$ | Fracción de tiempo con enlace a Tierra | Tierra siempre visible ($100\%$ de la misión). | Tierra oculta por el horizonte lunar. |
 | **Seguridad de Terreno** | $T$ | Facilidad de asentamiento y corredor | Pendiente $\le 2^\circ$, baja rugosidad y aproximación libre. | Pendiente cercana a $\beta_{\text{máx}}$ o terreno escarpado. |
-| **Protección / Crestas** | $A$ | Apantallamiento contra eyecciones y micrometeoritos | Paredes de cráter o crestas que bloquean trayectorias balísticas bajas. | Planicie abierta $360^\circ$ sin protección lateral. |
 
 ---
 
