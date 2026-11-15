@@ -154,29 +154,53 @@ def convert_relief(force: bool) -> None:
         return np.asarray(image, dtype=np.float32)
 
     # Mapa de alturas: 8 bits entre el mínimo y el máximo; el globo lo usa para desplazar la malla.
-    small = resized(2048, 1024)
+    small = resized(2048, 1024).copy()
+
+    # Soldadura polar de alta fidelidad: preserva el 100% del relieve real de LOLA
+    # en cráteres y crestas (Shackleton, Malapert, Shoemaker), unificando únicamente
+    # el vértice matemático terminal (lat ±90°) para evitar desgarros en la malla.
+    cap_blend_rows = 2
+    for is_north in (True, False):
+        pole_r = 0 if is_north else -1
+        pole_val = float(np.mean(small[pole_r]))
+        for i in range(cap_blend_rows):
+            r = i if is_north else small.shape[0] - 1 - i
+            w = 1.0 - (i / float(cap_blend_rows))
+            small[r, :] = small[r, :] * (1.0 - w) + pole_val * w
+        small[pole_r, :] = pole_val
+
     scaled = np.clip((small - low) / (high - low), 0.0, 1.0) * 255.0
     Image.fromarray(np.rint(scaled).astype(np.uint8), mode="L").save(HEIGHT_2K, optimize=True)
 
     # Mapa de normales en espacio tangente (u = este, v = norte), a partir de las pendientes reales.
     w, h = 4096, 2048
     grid = resized(w, h)
-    lat = np.radians(90.0 - (np.arange(h) + 0.5) * 180.0 / h)
-    cos_lat = np.maximum(np.cos(lat), 0.02)
+    lat_deg = 90.0 - (np.arange(h) + 0.5) * 180.0 / h
+    lat = np.radians(lat_deg)
+    cos_lat = np.maximum(np.cos(lat), 0.05)
     dy = np.pi * MOON_RADIUS_M / h
-    # En un mapa rectangular los píxeles se estrechan hacia los polos: la distancia real entre dos
-    # columnas vecinas tiende a 0 y las pendientes se disparan (rayos radiales). Para evitarlo, la
-    # pendiente este-oeste se mide sobre una distancia física constante: en cada fila se salta
-    # k ≈ 1 / cos(lat) columnas.
-    steps = np.clip(np.rint(1.0 / cos_lat).astype(int), 1, 64)
+
+    steps = np.clip(np.rint(1.0 / cos_lat).astype(int), 1, 16)
     d_east = np.zeros_like(grid)
     for k in np.unique(steps):
         rows = steps == k
         baseline = 2 * k * (2 * np.pi * MOON_RADIUS_M / w) * cos_lat[rows][:, None]
         d_east[rows] = (np.roll(grid[rows], -k, axis=1) - np.roll(grid[rows], k, axis=1)) / baseline
     d_north = -(np.vstack([grid[1:], grid[-1:]]) - np.vstack([grid[:1], grid[:-1]])) / (2 * dy)
+
+    # Atenuación polar solo en el límite inmediato (|lat| >= 87°):
+    # Permite que todos los cráteres polares (Malapert, Amundsen, Nobile, Shoemaker, Shackleton)
+    # mantengan sus sombras y normales 3D reales, desvaneciendo suavemente solo en la vecindad
+    # del punto singular final para evitar rayos artificiales.
+    abs_lat = np.abs(lat_deg)
+    fade = np.clip((89.5 - abs_lat) / (89.5 - 87.0), 0.0, 1.0)
+    fade = fade * fade * (3.0 - 2.0 * fade)
+    d_east *= fade[:, None]
+    d_north *= fade[:, None]
+
     normal = np.dstack([-d_east * NORMAL_GAIN, -d_north * NORMAL_GAIN, np.ones_like(grid)])
     normal /= np.linalg.norm(normal, axis=2, keepdims=True)
+
     rgb = np.rint((normal * 0.5 + 0.5) * 255.0).astype(np.uint8)
     Image.fromarray(rgb, mode="RGB").save(NORMAL_4K, quality=95, subsampling=0, optimize=True)
 

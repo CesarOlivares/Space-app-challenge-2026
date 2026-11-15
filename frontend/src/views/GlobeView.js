@@ -64,6 +64,57 @@ function lolaColorRamp(t) {
 }
 
 /**
+ * Smooths polar singularities in equirectangular overlay textures.
+ * In a 3D sphere mesh, rows py=0 (North) and py=h-1 (South) converge into single
+ * geometric points. Longitudinal variance in these rows creates pie-slice pinching
+ * artifacts (pole pinch). This calculates the zonal average of the polar tip and
+ * blends the extreme polar rows into a uniform, continuous polar cap.
+ *
+ * @param {Uint8ClampedArray} px - RGBA pixel buffer.
+ * @param {number} w - Image width in pixels.
+ * @param {number} h - Image height in pixels.
+ * @param {number} [capRows=4] - Number of polar rows to blend.
+ */
+function smoothPolarCaps(px, w, h, capRows = 4) {
+  for (const isNorth of [true, false]) {
+    const tipRow = isNorth ? 0 : h - 1;
+    let sumR = 0, sumG = 0, sumB = 0, sumA = 0, count = 0;
+
+    for (let x = 0; x < w; x++) {
+      const idx = (tipRow * w + x) * 4;
+      if (px[idx + 3] > 0) {
+        sumR += px[idx];
+        sumG += px[idx + 1];
+        sumB += px[idx + 2];
+        sumA += px[idx + 3];
+        count++;
+      }
+    }
+
+    if (count === 0) continue;
+    const avgR = sumR / count;
+    const avgG = sumG / count;
+    const avgB = sumB / count;
+    const avgA = sumA / count;
+
+    for (let r = 0; r < capRows; r++) {
+      const py = isNorth ? r : h - 1 - r;
+      // Cosine taper: 1.0 at tip row (r=0), transitioning smoothly to 0 at edge of cap
+      const weight = Math.cos((r / capRows) * (Math.PI / 2));
+
+      for (let x = 0; x < w; x++) {
+        const idx = (py * w + x) * 4;
+        if (px[idx + 3] === 0) continue;
+        px[idx]     = Math.round(px[idx]     * (1 - weight) + avgR * weight);
+        px[idx + 1] = Math.round(px[idx + 1] * (1 - weight) + avgG * weight);
+        px[idx + 2] = Math.round(px[idx + 2] * (1 - weight) + avgB * weight);
+        px[idx + 3] = Math.round(px[idx + 3] * (1 - weight) + avgA * weight);
+      }
+    }
+  }
+}
+
+/**
  * Generates a LOLA hypsometric color CanvasTexture from an elevation grayscale image.
  * @param {HTMLImageElement} img - Loaded ldem_3_8bit.jpg elevation image.
  * @returns {THREE.CanvasTexture}
@@ -82,6 +133,8 @@ function buildLolaTexture(img) {
     px[i + 1] = g;
     px[i + 2] = b;
   }
+  // Cap polar singularity to avoid radial pinches while preserving real elevation colors
+  smoothPolarCaps(px, canvas.width, canvas.height, 2);
   ctx.putImageData(imgData, 0, 0);
   const tex = new THREE.CanvasTexture(canvas);
   tex.colorSpace = THREE.SRGBColorSpace;
@@ -404,6 +457,9 @@ function buildRiskOverlayTexture(grid, mode, field = null, maxSlopeDeg = 15.0) {
     }
   }
 
+  // Only seal the single terminal tip row (capRows=1) to prevent Three.js pole-pinch artifacts
+  // while preserving 100% of real candidate suitability/risk values across Mons Malapert, Shackleton, etc.
+  smoothPolarCaps(px, w, h, 1);
   ctx.putImageData(img, 0, 0);
   const tex = new THREE.CanvasTexture(canvas);
   tex.colorSpace = THREE.SRGBColorSpace;
