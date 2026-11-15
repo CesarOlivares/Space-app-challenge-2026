@@ -172,8 +172,8 @@ Verificado en el navegador del repositorio (servidor local, API real). «No veri
 
 | # | Sev. | Qué pasa | Propuesta |
 |---|---|---|---|
-| N1 | M | El recorrido del detalle deja abiertos los pliegues «Cielo» y «Terreno». | Cerrar al terminar los que el tour abrió. |
+| N1 | M | ~~El recorrido del detalle deja abiertos los pliegues «Cielo» y «Terreno».~~ **Corregido:** el tour cierra al terminar solo los pliegues que abrió. | — |
 | N2 | M | Pendiente de medir y conciliar 75° S frente a 80° S en los textos de Aprender y en el modelo. | Que lo confirme quien lleva el modelo y se corrija un lado. |
-| N3 | L | En los pasos con el globo (`#globe`) el recorte cubre casi toda la pantalla; solo se ven las esquinas. | Dejar ese paso sin recorte (centrado). |
+| N3 | L | ~~En el paso del globo el recorte cubre casi toda la pantalla.~~ **Corregido:** el paso usa `noDim`: sin recorte ni oscurecer, el texto va abajo y el globo queda visible. | — |
 | N4 | L | Los pasos de recorrido señalan elementos por selector CSS; si cambia el HTML del detalle o la comparación, el paso opcional se salta y uno obligatorio cae centrado. | Revisar `src/tour/steps.js` al cambiar esas vistas. |
 | N5 | L | «Cómo decide la NASA» sigue como tabla (AP5). | Siguiente iteración. |

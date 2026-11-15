@@ -97,3 +97,7 @@
 /* Botones «¿Cómo leer esto?» del detalle y de la comparación. */
 .detail-header .detail-howread { width: auto; height: 28px; padding: 0 10px; margin-left: auto; font-size: var(--fs-small); white-space: nowrap; }
 .story-howread { justify-self: start; }
+
+/* Paso sin elemento resaltado y sin oscurecer (p. ej. el globo): el texto va abajo, centrado. */
+.tour--clear .tour-card { top: auto; bottom: 24px; transform: translateX(-50%); }
+@media (max-width: 599px) { .tour--clear .tour-card { left: 8px; right: 8px; bottom: 8px; transform: none; } }

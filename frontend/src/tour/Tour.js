@@ -158,7 +158,10 @@ export class Tour {
   reposition = () => {
     if (!this.active || this.index < 0 || this.card.classList.contains("loading")) return;
     const rect = this.target && visibleRect(this.target);
-    this.el.classList.toggle("tour--free", !rect);
+    // Paso sin recorte: oscurece y centra; con `noDim` deja la pantalla clara y pone el texto abajo.
+    const noDim = Boolean(this.steps[this.index]?.noDim);
+    this.el.classList.toggle("tour--free", !rect && !noDim);
+    this.el.classList.toggle("tour--clear", !rect && noDim);
     const vw = window.innerWidth;
     const vh = window.innerHeight;
     const cardW = Math.min(this.card.offsetWidth, vw - 16);

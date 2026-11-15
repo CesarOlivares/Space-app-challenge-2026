@@ -438,6 +438,7 @@ function startTour(build = mainTour, { restore = true } = {}) {
     detailOpen: state.detailOpen,
   };
   setLegend(false);
+  const openedFolds = []; // pliegues del detalle que abrió el recorrido: se cierran al terminar
   const ctx = {
     explore: async () => { if (router.current !== "explorar") { router.go("explorar"); await sleep(reducedMotion.matches ? 50 : 400); } },
     select: (ids) => {
@@ -454,12 +455,16 @@ function startTour(build = mainTour, { restore = true } = {}) {
     // Despliega un pliegue del detalle (cielo, terreno).
     fold: async (name) => {
       const fold = document.querySelector(`#detail [data-fold="${name}"]`);
-      if (fold) fold.open = true;
+      if (fold && !fold.open) { fold.open = true; openedFolds.push(name); }
       await sleep(250);
     },
   };
   tour.start(build(ctx), {
     onEnd: async () => {
+      for (const name of openedFolds) {
+        const fold = document.querySelector(`#detail [data-fold="${name}"]`);
+        if (fold) fold.open = false;
+      }
       if (!restore) return;
       setDrawer(before.drawerOpen);
       setLegend(before.legendOpen);

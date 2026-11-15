@@ -49,7 +49,8 @@ export function mainTour(ctx) {
     },
     {
       id: "globe",
-      target: "#globe",
+      target: null,
+      noDim: true, // el globo ocupa casi toda la pantalla: sin recorte ni oscurecer, el texto va abajo
       title: T("El globo", "The globe"),
       body: T(
         "Cada mira es un sitio. Arrastra para girar la Luna, usa la rueda (o pellizca) para acercar y haz clic en una mira para ver su ficha.",
