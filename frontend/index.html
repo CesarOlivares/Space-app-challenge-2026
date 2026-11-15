@@ -76,180 +76,203 @@
       <section id="sec-explorar" class="page page--explore" hidden aria-labelledby="explore-title">
         <h1 id="explore-title" class="sr-only" tabindex="-1" data-i18n="explore.h1">Vista general</h1>
 
-        <!-- Fecha: lo único que está siempre a la vista. -->
-        <div id="datebar" class="glass">
-          <button type="button" class="step" data-shift-days="-1" data-i18n-attr="aria-label: date.prev; title: date.prev">‹</button>
-          <label class="sr-only" for="date-input" data-i18n="controls.date">Fecha de aterrizaje (UTC)</label>
-          <input id="date-input" type="datetime-local" step="3600" />
-          <button type="button" class="step" data-shift-days="1" data-i18n-attr="aria-label: date.next; title: date.next">›</button>
-          <p id="status" role="status">Conectando…</p>
-        </div>
+        <!-- Barra superior izquierda: fecha, animación y leyenda mínima siempre alineadas sin superposición. -->
+        <div class="hud-top-left">
+          <div id="datebar" class="glass">
+            <div class="datebar-row datebar-row-top">
+              <div class="datebar-nav">
+                <button type="button" class="step" data-shift-days="-1" data-i18n-attr="aria-label: date.prev; title: date.prev">‹</button>
+                <label class="sr-only" for="date-input" data-i18n="controls.date">Fecha de aterrizaje (UTC)</label>
+                <input id="date-input" type="datetime-local" step="3600" />
+                <button type="button" class="step" data-shift-days="1" data-i18n-attr="aria-label: date.next; title: date.next">›</button>
+              </div>
+              <span class="datebar-sep" aria-hidden="true"></span>
+              <p id="status" role="status">Conectando…</p>
+            </div>
+            <div class="datebar-row datebar-row-controls">
+              <div class="datebar-steps" role="group" data-i18n-attr="aria-label: controls.shiftGroup">
+                <button type="button" data-shift-days="-7" data-i18n-attr="aria-label: date.prevWeek; title: date.prevWeek">−7 d</button>
+                <button type="button" id="date-now" data-i18n="controls.now">Ahora</button>
+                <button type="button" data-shift-days="7" data-i18n-attr="aria-label: date.nextWeek; title: date.nextWeek">+7 d</button>
+              </div>
+              <span class="datebar-sep" aria-hidden="true"></span>
+              <div class="datebar-play" role="group" data-i18n-attr="aria-label: controls.playGroup">
+                <button type="button" id="play" class="datebar-pill" aria-pressed="false" data-i18n="controls.play">▶ Animar</button>
+                <select id="play-speed" class="datebar-pill" data-i18n-attr="aria-label: controls.step; title: controls.step">
+                  <option value="2">2 h</option>
+                  <option value="6" selected>6 h</option>
+                  <option value="12">12 h</option>
+                  <option value="24" data-i18n="controls.oneDay">1 día</option>
+                </select>
+              </div>
+            </div>
+          </div>
 
-        <!-- Cómo leer los puntos, siempre a la vista (el "?" abre el detalle). -->
-        <ul id="legend-mini" class="glass" data-i18n-attr="aria-label: legend.title">
-          <li><svg class="reticle-key" viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="7" fill="none" stroke="var(--viable)" stroke-opacity=".3" stroke-width="2.6"/><circle cx="10" cy="10" r="7" fill="none" stroke="var(--viable)" stroke-width="2.6" stroke-dasharray="28.6 43.98" transform="rotate(-90 10 10)"/><circle cx="10" cy="10" r="1.6" fill="var(--viable)"/></svg><span data-i18n="legmini.arc">Arco: puntaje</span></li>
-          <li><svg class="reticle-key" viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="7" fill="none" stroke="var(--viable)" stroke-opacity=".3" stroke-width="2.6"/><circle cx="10" cy="10" r="7" fill="none" stroke="var(--viable)" stroke-width="2.6" stroke-dasharray="44.0 43.98" transform="rotate(-90 10 10)"/><circle cx="10" cy="10" r="1.6" fill="var(--viable)"/></svg><span data-i18n="legmini.viable">Celeste: viable</span></li>
-          <li><svg class="reticle-key" viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="6" fill="none" stroke="var(--off)" stroke-width="2.4" stroke-dasharray="2.2 2.4"/><circle cx="10" cy="10" r="1.6" fill="var(--off)"/></svg><span data-i18n="legmini.off">Gris punteado: no viable</span></li>
-        </ul>
+          <!-- Cómo leer los puntos, siempre a la vista (el "?" abre el detalle). -->
+          <ul id="legend-mini" class="glass" data-i18n-attr="aria-label: legend.title">
+            <li><svg class="reticle-key" viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="7" fill="none" stroke="var(--viable)" stroke-opacity=".3" stroke-width="2.6"/><circle cx="10" cy="10" r="7" fill="none" stroke="var(--viable)" stroke-width="2.6" stroke-dasharray="28.6 43.98" transform="rotate(-90 10 10)"/><circle cx="10" cy="10" r="1.6" fill="var(--viable)"/></svg><span data-i18n="legmini.arc">Arco: puntaje</span></li>
+            <li><svg class="reticle-key" viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="7" fill="none" stroke="var(--viable)" stroke-opacity=".3" stroke-width="2.6"/><circle cx="10" cy="10" r="7" fill="none" stroke="var(--viable)" stroke-width="2.6" stroke-dasharray="44.0 43.98" transform="rotate(-90 10 10)"/><circle cx="10" cy="10" r="1.6" fill="var(--viable)"/></svg><span data-i18n="legmini.viable">Celeste: viable</span></li>
+            <li><svg class="reticle-key" viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="6" fill="none" stroke="var(--off)" stroke-width="2.4" stroke-dasharray="2.2 2.4"/><circle cx="10" cy="10" r="1.6" fill="var(--off)"/></svg><span data-i18n="legmini.off">Gris punteado: no viable</span></li>
+          </ul>
+        </div>
 
         <!-- Panel del engranaje: todo lo configurable. -->
         <aside id="drawer" class="drawer glass" hidden aria-labelledby="drawer-title">
           <div class="drawer-head">
             <h2 id="drawer-title" data-i18n="drawer.title">Configuración</h2>
-            <button type="button" id="drawer-close" class="icon-btn" data-i18n-attr="aria-label: drawer.close">✕</button>
-          </div>
-          <div class="drawer-body">
             <div class="segmented wide" role="group" data-i18n-attr="aria-label: controls.modeGroup">
               <button type="button" data-mode="simple" aria-pressed="true" data-i18n="controls.simple">Simple</button>
               <button type="button" data-mode="tecnico" aria-pressed="false" data-i18n="controls.technical">Técnico</button>
             </div>
+            <button type="button" id="drawer-close" class="icon-btn" data-i18n-attr="aria-label: drawer.close">✕</button>
+          </div>
 
-            <section class="group">
-              <h3 data-i18n="drawer.time">Fecha y tiempo</h3>
-              <div class="buttons" role="group" data-i18n-attr="aria-label: controls.shiftGroup">
-                <button type="button" data-shift-days="-7">−7 d</button>
-                <button type="button" data-shift-days="-1">−1 d</button>
-                <button type="button" id="date-now" data-i18n="controls.now">Ahora</button>
-                <button type="button" data-shift-days="1">+1 d</button>
-                <button type="button" data-shift-days="7">+7 d</button>
-              </div>
-              <div class="buttons play" role="group" data-i18n-attr="aria-label: controls.playGroup">
-                <button type="button" id="play" aria-pressed="false">▶ Animar</button>
-                <label class="inline"><span data-i18n="controls.step">Paso</span>
-                  <select id="play-speed">
-                    <option value="2">2 h</option>
-                    <option value="6" selected>6 h</option>
-                    <option value="12">12 h</option>
-                    <option value="24" data-i18n="controls.oneDay">1 día</option>
-                  </select>
-                </label>
-              </div>
-            </section>
+          <div class="segmented wide drawer-tabs" role="tablist" data-i18n-attr="aria-label: drawer.tabsLabel">
+            <button type="button" id="tab-btn-sites" role="tab" aria-selected="true" aria-controls="tab-sites" data-drawer-tab="sites" tabindex="0" data-i18n="drawer.tabSites">Sitios</button>
+            <button type="button" id="tab-btn-layers" role="tab" aria-selected="false" aria-controls="tab-layers" data-drawer-tab="layers" tabindex="-1" data-i18n="drawer.tabLayers">Globo y Capas</button>
+          </div>
 
-            <section class="group">
-              <h3 data-i18n="drawer.globe">Globo</h3>
-              <div class="buttons" role="group" data-i18n-attr="aria-label: controls.viewGroup">
-                <button type="button" data-view="near-side" data-i18n="controls.nearSide">Vista desde la Tierra</button>
-                <button type="button" data-view="south-pole" data-i18n="controls.southPole">Polo sur</button>
+          <div class="drawer-body">
+            <!-- Pestaña 1: Sitios -->
+            <div id="tab-sites" class="drawer-tabpanel" role="tabpanel" aria-labelledby="tab-btn-sites">
+              <section class="group pin-controls">
                 <button type="button" id="place-pin-toggle" aria-pressed="false" data-i18n="pin.place">Colocar pin en la Luna</button>
-              </div>
-              <div class="relief" id="relief" role="group" data-i18n-attr="aria-label: relief.group">
-                <label class="check"><input type="checkbox" id="relief-on" checked /> <span data-i18n="relief.show">Mostrar relieve</span></label>
-                <label class="range"><span data-i18n="relief.exaggeration">Exageración vertical</span>
-                  <span class="range-row"><input id="relief-ex" type="range" min="1" max="10" step="0.5" value="3" /><output id="relief-ex-out" for="relief-ex">×3</output></span>
-                </label>
-                <label class="range"><span data-i18n="relief.quality">Calidad de la textura</span>
-                  <select id="quality">
-                    <option value="auto" data-i18n="relief.qAuto">Automática</option>
-                    <option value="standard" data-i18n="relief.qStd">Estándar (4K)</option>
-                    <option value="high" data-i18n="relief.qHigh">Alta (8K)</option>
-                  </select>
-                </label>
-                <p class="caption" id="relief-note" hidden data-i18n="relief.missing"></p>
-              </div>
-              <div class="buttons surface-toggle" role="group" data-i18n-attr="aria-label: surface.group">
-                <button type="button" data-surface="lola" aria-pressed="false" data-i18n="surface.lola">Topografía LOLA</button>
-                <button type="button" data-surface="lroc" class="active" aria-pressed="true" data-i18n="surface.lroc">Foto LROC</button>
-              </div>
-              <div id="lola-colorbar" class="lola-colorbar" hidden data-i18n-attr="aria-label: surface.scale">
-                <div class="lola-bar"></div>
-                <div class="lola-ticks"><span>−9 km</span><span>0 km</span><span>+10 km</span></div>
-              </div>
-              <!-- Pendiente: medida solo dentro del DEM polar. Sol, señal y aptitud: estimación geométrica gruesa. -->
-              <div id="moon-layer-bar" class="buttons layer-grid" role="group" data-i18n-attr="aria-label: layer.group">
-                <button type="button" data-layer="surface" class="active" aria-pressed="true" data-i18n="layer.surface">Superficie real</button>
-                <button type="button" data-layer="risk-a" aria-pressed="false" data-i18n="layer.a">Pendiente</button>
-                <button type="button" data-layer="solar" aria-pressed="false" data-i18n="layer.solar">Mapa solar</button>
-                <button type="button" data-layer="comm" aria-pressed="false" data-i18n="layer.comm">Señal Tierra</button>
-                <button type="button" data-layer="suitability" class="btn-suitability" aria-pressed="false" data-i18n="layer.suitability">Aptitud global</button>
-              </div>
-              <div class="layer-legend caption">
-                <p data-i18n="layers.note"></p>
-                <p><span class="swatch" style="--c:#10c891"></span><span class="swatch" style="--c:#f5a519"></span><span class="swatch" style="--c:#e12d37"></span> <span data-i18n="layers.a"></span></p>
-                <p><span class="swatch" style="--c:#facc15"></span><span class="swatch" style="--c:#f97316"></span><span class="swatch" style="--c:#3b82f6"></span> <span data-i18n="layers.solar"></span></p>
-                <p><span class="swatch" style="--c:#22c55e"></span><span class="swatch" style="--c:#eab308"></span><span class="swatch" style="--c:#e11d48"></span> <span data-i18n="layers.comm"></span></p>
-                <p><span class="swatch" style="--c:#34d399"></span><span class="swatch" style="--c:#0ea5e9"></span><span class="swatch" style="--c:#f59e0b"></span> <span data-i18n="layers.suitability"></span></p>
-              </div>
-            </section>
+                <p class="caption pin-hint" id="place-pin-hint" hidden data-i18n="pin.modeHint">Modo activo: haz clic en la Luna (o Shift+clic) para evaluar un punto.</p>
+                <details class="custom">
+                  <summary data-i18n="custom.summary">Agregar coordenadas</summary>
+                  <form id="custom-site" novalidate>
+                    <div class="fields">
+                      <label><span data-i18n="custom.lat">Latitud</span><input name="lat" type="number" step="any" min="-90" max="90" placeholder="-89.45" required /></label>
+                      <label><span data-i18n="custom.lon">Longitud este</span><input name="lon" type="number" step="any" min="-180" max="180" placeholder="137.3" required /></label>
+                    </div>
+                    <label><span data-i18n="custom.name">Nombre (opcional)</span><input name="name" type="text" maxlength="60" data-i18n-attr="placeholder: custom.namePlaceholder" /></label>
+                    <p class="form-error" role="alert" hidden></p>
+                    <button type="submit" class="primary" data-i18n="custom.submit">Agregar al globo</button>
+                  </form>
+                </details>
+              </section>
 
-            <details class="custom tech-only">
-              <summary data-i18n="settings.summary">Ajustes del puntaje</summary>
-              <form id="settings">
-                <label><span data-i18n="settings.weight">Peso de cada criterio</span>
-                  <input name="weight" type="range" min="0" max="100" step="5" aria-describedby="weight-output" />
-                </label>
-                <output id="weight-output" class="caption"></output>
-                <label><span data-i18n="settings.terrainLabel">Peso de terreno (T)</span>
-                  <input name="weight-terrain" type="range" min="0" max="200" step="10" aria-describedby="weight-terrain-output" />
-                </label>
-                <output id="weight-terrain-output" class="caption"></output>
-                <label><span data-i18n="settings.protectionLabel">Peso de protección (A)</span>
-                  <input name="weight-protection" type="range" min="0" max="200" step="10" aria-describedby="weight-protection-output" />
-                </label>
-                <output id="weight-protection-output" class="caption"></output>
-                <label><span data-i18n="settings.maxSlope">Pendiente máxima segura (°)</span>
-                  <input name="max-slope" type="range" min="3" max="25" step="0.5" aria-describedby="max-slope-output" />
-                </label>
-                <output id="max-slope-output" class="caption"></output>
-                <div class="slope-presets" role="group" data-i18n-attr="aria-label: settings.profiles">
-                  <button type="button" data-slope-preset="8" data-i18n="settings.presetHls">HLS</button>
-                  <button type="button" data-slope-preset="10" data-i18n="settings.presetClps">CLPS</button>
-                  <button type="button" data-slope-preset="20" data-i18n="settings.presetRover">Rover</button>
+              <section class="group" id="sites-panel">
+                <div class="list-header">
+                  <div class="list-header-top">
+                    <label><input type="checkbox" id="filter-south-pole" /> <span data-i18n="list.southOnly">Solo polo sur</span></label>
+                    <button type="button" id="export-csv" class="small" data-i18n="list.csv">Exportar CSV</button>
+                  </div>
+                  <div class="list-actions">
+                    <button type="button" id="clear-selection" class="small" data-i18n="list.clearSelection">Quitar selección</button>
+                    <button type="button" id="clear-pins" class="small" data-i18n="list.clearPins">Quitar pines</button>
+                  </div>
                 </div>
-                <label><span data-i18n="settings.panels">Paneles solares</span>
-                  <select name="panel">
-                    <option value="tiempo" data-i18n="settings.panelTime"></option>
-                    <option value="horizontal" data-i18n="settings.panelHorizontal"></option>
-                    <option value="vertical" data-i18n="settings.panelVertical"></option>
-                  </select>
-                </label>
-                <div class="fields">
-                  <label><span data-i18n="settings.window">Ventana (días)</span><input name="window" type="number" min="1" max="30" step="1" /></label>
-                  <label><span data-i18n="settings.stay">Estancia con luz (días)</span><input name="stay" type="number" min="0.5" max="30" step="0.5" /></label>
-                  <label><span data-i18n="settings.sunMargin">Sol mínimo (°)</span><input name="sun-margin" type="number" min="0" max="20" step="0.5" /></label>
-                  <label><span data-i18n="settings.earthMargin">Tierra mínima (°)</span><input name="earth-margin" type="number" min="0" max="20" step="0.5" /></label>
-                </div>
-                <p class="caption" data-i18n="settings.marginHelp"></p>
-                <button type="button" data-action="reset" data-i18n="settings.reset">Restablecer</button>
-              </form>
-            </details>
+                <p class="list-hint simple-only" data-i18n="list.hintSimple"></p>
+                <p class="list-hint tech-only" data-i18n="list.hint"></p>
+                <ol id="site-list"></ol>
+              </section>
 
-            <details class="custom" id="sites-panel">
-              <summary data-i18n="list.title">Sitios</summary>
-              <div class="list-header">
-                <label><input type="checkbox" id="filter-south-pole" /> <span data-i18n="list.southOnly">Solo polo sur</span></label>
-                <button type="button" id="clear-selection" class="small" data-i18n="list.clearSelection">Quitar selección</button>
-                <button type="button" id="clear-pins" class="small" data-i18n="list.clearPins">Quitar pines</button>
-                <button type="button" id="export-csv" class="small" data-i18n="list.csv">Exportar CSV</button>
-              </div>
-              <p class="list-hint" data-i18n="list.hint"></p>
-              <ol id="site-list"></ol>
-            </details>
-
-            <details class="custom">
-              <summary data-i18n="custom.summary">Agregar coordenadas</summary>
-              <form id="custom-site" novalidate>
-                <div class="fields">
-                  <label><span data-i18n="custom.lat">Latitud</span><input name="lat" type="number" step="any" min="-90" max="90" placeholder="-89.45" required /></label>
-                  <label><span data-i18n="custom.lon">Longitud este</span><input name="lon" type="number" step="any" min="-180" max="180" placeholder="137.3" required /></label>
-                </div>
-                <label><span data-i18n="custom.name">Nombre (opcional)</span><input name="name" type="text" maxlength="60" data-i18n-attr="placeholder: custom.namePlaceholder" /></label>
-                <p class="form-error" role="alert" hidden></p>
-                <button type="submit" class="primary" data-i18n="custom.submit">Agregar al globo</button>
-              </form>
-            </details>
-
-            <a class="btn learn-link" href="#aprender" data-i18n="learn.more">Aprender más</a>
-
-            <div class="buttons">
-              <button type="button" id="copy-link" data-i18n="controls.copyLink">Copiar enlace</button>
+              <details class="custom tech-only" id="settings-details">
+                <summary data-i18n="settings.summary">Ajustes del puntaje</summary>
+                <form id="settings">
+                  <label><span data-i18n="settings.weight">Peso de cada criterio</span>
+                    <input name="weight" type="range" min="0" max="100" step="5" aria-describedby="weight-output" />
+                  </label>
+                  <output id="weight-output" class="caption"></output>
+                  <label><span data-i18n="settings.terrainLabel">Peso de terreno (T)</span>
+                    <input name="weight-terrain" type="range" min="0" max="200" step="10" aria-describedby="weight-terrain-output" />
+                  </label>
+                  <output id="weight-terrain-output" class="caption"></output>
+                  <label><span data-i18n="settings.protectionLabel">Peso de protección (A)</span>
+                    <input name="weight-protection" type="range" min="0" max="200" step="10" aria-describedby="weight-protection-output" />
+                  </label>
+                  <output id="weight-protection-output" class="caption"></output>
+                  <label><span data-i18n="settings.maxSlope">Pendiente máxima segura (°)</span>
+                    <input name="max-slope" type="range" min="3" max="25" step="0.5" aria-describedby="max-slope-output" />
+                  </label>
+                  <output id="max-slope-output" class="caption"></output>
+                  <div class="slope-presets" role="group" data-i18n-attr="aria-label: settings.profiles">
+                    <button type="button" data-slope-preset="8" data-i18n="settings.presetHls">HLS</button>
+                    <button type="button" data-slope-preset="10" data-i18n="settings.presetClps">CLPS</button>
+                    <button type="button" data-slope-preset="20" data-i18n="settings.presetRover">Rover</button>
+                  </div>
+                  <label><span data-i18n="settings.panels">Paneles solares</span>
+                    <select name="panel">
+                      <option value="tiempo" data-i18n="settings.panelTime"></option>
+                      <option value="horizontal" data-i18n="settings.panelHorizontal"></option>
+                      <option value="vertical" data-i18n="settings.panelVertical"></option>
+                    </select>
+                  </label>
+                  <div class="fields">
+                    <label><span data-i18n="settings.window">Ventana (días)</span><input name="window" type="number" min="1" max="30" step="1" /></label>
+                    <label><span data-i18n="settings.stay">Estancia con luz (días)</span><input name="stay" type="number" min="0.5" max="30" step="0.5" /></label>
+                    <label><span data-i18n="settings.sunMargin">Sol mínimo (°)</span><input name="sun-margin" type="number" min="0" max="20" step="0.5" /></label>
+                    <label><span data-i18n="settings.earthMargin">Tierra mínima (°)</span><input name="earth-margin" type="number" min="0" max="20" step="0.5" /></label>
+                  </div>
+                  <p class="caption" data-i18n="settings.marginHelp"></p>
+                  <button type="button" data-action="reset" data-i18n="settings.reset">Restablecer</button>
+                </form>
+              </details>
             </div>
 
+            <!-- Pestaña 2: Globo y Capas -->
+            <div id="tab-layers" class="drawer-tabpanel" role="tabpanel" aria-labelledby="tab-btn-layers" hidden>
+              <section class="group">
+                <h3 data-i18n="drawer.globe">Globo</h3>
+                <div class="buttons" role="group" data-i18n-attr="aria-label: controls.viewGroup">
+                  <button type="button" data-view="near-side" data-i18n="controls.nearSide">Vista desde la Tierra</button>
+                  <button type="button" data-view="south-pole" data-i18n="controls.southPole">Polo sur</button>
+                </div>
+                <div class="buttons surface-toggle" role="group" data-i18n-attr="aria-label: surface.group">
+                  <button type="button" data-surface="lola" aria-pressed="false" data-i18n="surface.lola">Topografía LOLA</button>
+                  <button type="button" data-surface="lroc" class="active" aria-pressed="true" data-i18n="surface.lroc">Foto LROC</button>
+                </div>
+                <div id="lola-colorbar" class="lola-colorbar" hidden data-i18n-attr="aria-label: surface.scale">
+                  <div class="lola-bar"></div>
+                  <div class="lola-ticks"><span>−9 km</span><span>0 km</span><span>+10 km</span></div>
+                </div>
+                <div class="group-head-row">
+                  <h3 data-i18n="layer.group">Capas del globo lunar</h3>
+                  <div class="info-popover-wrap" id="layers-info-wrap">
+                    <button type="button" id="layers-info-btn" class="info-btn" aria-expanded="false" aria-controls="layers-info-popover" data-i18n-attr="aria-label: layers.infoAria; title: layers.infoAria">ⓘ</button>
+                    <div id="layers-info-popover" class="info-popover" role="region" hidden>
+                      <p class="caption" data-i18n="layers.note"></p>
+                    </div>
+                  </div>
+                </div>
+                <div id="moon-layer-bar" class="buttons layer-grid" role="group" data-i18n-attr="aria-label: layer.group">
+                  <button type="button" data-layer="surface" class="active" aria-pressed="true" data-i18n="layer.surface">Superficie real</button>
+                  <button type="button" data-layer="risk-a" aria-pressed="false" data-i18n="layer.a">Pendiente</button>
+                  <button type="button" data-layer="solar" aria-pressed="false" data-i18n="layer.solar">Mapa solar</button>
+                  <button type="button" data-layer="comm" aria-pressed="false" data-i18n="layer.comm">Señal Tierra</button>
+                  <button type="button" data-layer="suitability" class="btn-suitability" aria-pressed="false" data-i18n="layer.suitability">Aptitud global</button>
+                </div>
+                <div id="active-layer-legend" class="layer-legend-inline caption" aria-live="polite"></div>
+                <div class="relief" id="relief" role="group" data-i18n-attr="aria-label: relief.group">
+                  <label class="check"><input type="checkbox" id="relief-on" checked /> <span data-i18n="relief.show">Mostrar relieve</span></label>
+                  <label class="range tech-only"><span data-i18n="relief.exaggeration">Exageración vertical</span>
+                    <span class="range-row"><input id="relief-ex" type="range" min="1" max="10" step="0.5" value="3" /><output id="relief-ex-out" for="relief-ex">×3</output></span>
+                  </label>
+                  <label class="range tech-only"><span data-i18n="relief.quality">Calidad de la textura</span>
+                    <select id="quality">
+                      <option value="auto" data-i18n="relief.qAuto">Automática</option>
+                      <option value="standard" data-i18n="relief.qStd">Estándar (4K)</option>
+                      <option value="high" data-i18n="relief.qHigh">Alta (8K)</option>
+                    </select>
+                  </label>
+                  <p class="caption" id="relief-note" hidden data-i18n="relief.missing"></p>
+                </div>
+              </section>
+            </div>
+
+          </div>
+
+          <footer class="drawer-footer">
+            <div class="drawer-footer-actions">
+              <a class="btn learn-link" href="#aprender" data-i18n="learn.more">Aprender más</a>
+              <button type="button" id="copy-link" data-i18n="controls.copyLink">Copiar enlace</button>
+            </div>
             <details class="custom credits">
               <summary data-i18n="credits.title">Créditos y fuentes</summary>
               <p class="caption" data-i18n="credits.body"></p>
             </details>
-          </div>
+          </footer>
         </aside>
 
         <!-- Detalle completo del sitio: se abre desde la ficha. -->

@@ -215,12 +215,14 @@ const globe = new GlobeView(document.getElementById("globe"), {
 });
 
 const placePinToggle = document.getElementById("place-pin-toggle");
+const placePinHint = document.getElementById("place-pin-hint");
 if (placePinToggle) {
   placePinToggle.addEventListener("click", () => {
     const next = !globe.placeMode;
     globe.setPlaceMode(next);
     placePinToggle.classList.toggle("active", next);
     placePinToggle.setAttribute("aria-pressed", String(next));
+    if (placePinHint) placePinHint.hidden = !next;
   });
 }
 
@@ -296,6 +298,8 @@ const settings = new SettingsPanel(document.getElementById("settings"), {
   onChange: (config) => {
     state.config = config;
     loadDate(state.date);
+    if (globe.layerMode !== "surface") ensureRiskGrid();
+    renderActiveLayerLegend();
   },
 });
 
@@ -341,6 +345,94 @@ async function enterExplore() {
   entering = false;
 }
 
+// --- Panel del engranaje y leyenda ---------------------------------------------------
+
+const drawerTabButtons = [...document.querySelectorAll("[data-drawer-tab]")];
+const drawerTabPanels = {
+  sites: document.getElementById("tab-sites"),
+  layers: document.getElementById("tab-layers"),
+};
+const layersInfoWrap = document.getElementById("layers-info-wrap");
+const layersInfoBtn = document.getElementById("layers-info-btn");
+const layersInfoPopover = document.getElementById("layers-info-popover");
+let activeDrawerTab = "sites";
+
+function setLayersInfo(open) {
+  if (!layersInfoBtn || !layersInfoPopover) return;
+  layersInfoPopover.hidden = !open;
+  layersInfoBtn.setAttribute("aria-expanded", String(open));
+}
+
+function visibleDrawerTabButtons() {
+  return drawerTabButtons;
+}
+
+function setDrawerTab(tab, { focus = false } = {}) {
+  const next = tab in drawerTabPanels ? tab : "sites";
+  activeDrawerTab = next;
+  for (const btn of drawerTabButtons) {
+    const selected = btn.dataset.drawerTab === next;
+    btn.setAttribute("aria-selected", String(selected));
+    btn.tabIndex = selected ? 0 : -1;
+    if (selected && focus) btn.focus();
+  }
+  for (const [name, panel] of Object.entries(drawerTabPanels)) {
+    if (panel) panel.hidden = name !== next;
+  }
+  if (next !== "layers") setLayersInfo(false);
+  const body = drawer?.querySelector(".drawer-body");
+  if (body) body.scrollTop = 0;
+}
+
+const drawerTabList = document.querySelector(".drawer-tabs[role='tablist']");
+if (drawerTabList) {
+  drawerTabList.addEventListener("click", (e) => {
+    const btn = e.target.closest("[data-drawer-tab]");
+    if (btn) setDrawerTab(btn.dataset.drawerTab);
+  });
+  drawerTabList.addEventListener("keydown", (e) => {
+    if (!["ArrowLeft", "ArrowRight", "Home", "End"].includes(e.key)) return;
+    const tabs = visibleDrawerTabButtons();
+    const idx = tabs.indexOf(document.activeElement);
+    if (idx < 0 || !tabs.length) return;
+    e.preventDefault();
+    let nextIdx = idx;
+    if (e.key === "ArrowRight") nextIdx = (idx + 1) % tabs.length;
+    else if (e.key === "ArrowLeft") nextIdx = (idx - 1 + tabs.length) % tabs.length;
+    else if (e.key === "Home") nextIdx = 0;
+    else if (e.key === "End") nextIdx = tabs.length - 1;
+    setDrawerTab(tabs[nextIdx].dataset.drawerTab, { focus: true });
+  });
+}
+
+layersInfoBtn?.addEventListener("click", (e) => {
+  e.stopPropagation();
+  setLayersInfo(layersInfoPopover.hidden);
+});
+document.addEventListener("click", (e) => {
+  if (layersInfoPopover && !layersInfoPopover.hidden && layersInfoWrap && !layersInfoWrap.contains(e.target)) {
+    setLayersInfo(false);
+  }
+});
+
+function setDrawer(open) {
+  drawer.hidden = !open;
+  gear.setAttribute("aria-expanded", open);
+  document.body.classList.toggle("drawer-open", open);
+  if (!open) setLayersInfo(false);
+}
+
+function setLegend(open) {
+  legendCard.hidden = !open;
+  legendToggle.setAttribute("aria-expanded", open);
+}
+
+gear.addEventListener("click", () => setDrawer(drawer.hidden));
+document.getElementById("drawer-close").addEventListener("click", () => {
+  setDrawer(false);
+  gear.focus();
+});
+
 // Tres partes: portada, vista general y comparación. En la comparación se pausa el globo.
 const router = createRouter({
   // Quien ya vio la portada abre directo en la vista general; "Inicio" (#intro) siempre la muestra.
@@ -368,26 +460,95 @@ const router = createRouter({
   },
 });
 
-// --- Panel del engranaje y leyenda ---------------------------------------------------
+// Moon Layer Switcher pill bar (Surface / Slope / Solar / Earth Signal / Suitability)
+const activeLayerLegend = document.getElementById("active-layer-legend");
 
-function setDrawer(open) {
-  drawer.hidden = !open;
-  gear.setAttribute("aria-expanded", open);
-  document.body.classList.toggle("drawer-open", open);
+function legendItemsForLayer(layer, maxSlopeDeg) {
+  const slope = Number(maxSlopeDeg ?? 8);
+  const maxSlope = Number.isInteger(slope) ? String(slope) : num(slope, 1);
+  switch (layer) {
+    case "risk-a":
+      return {
+        title: t("layers.legTitleSlope", { max: maxSlope }),
+        gradient: "linear-gradient(to right, #10c891 0%, #f5c518 50%, #e12d37 100%)",
+        items: [
+          ["#10c891", t("layers.legFlat")],
+          ["#f5c518", t("layers.legMod", { max: maxSlope })],
+          ["#e12d37", t("layers.legSteep", { max: maxSlope })],
+        ],
+      };
+    case "solar":
+      return {
+        title: t("layers.legTitleSolar"),
+        gradient: "linear-gradient(to right, #1e293b 0%, #3b82f6 33%, #f97316 67%, #facc15 100%)",
+        items: [
+          ["#1e293b", t("layers.legSunCold")],
+          ["#3b82f6", t("layers.legSunLow")],
+          ["#f97316", t("layers.legSunMed")],
+          ["#facc15", t("layers.legSunHigh")],
+        ],
+      };
+    case "comm":
+      return {
+        title: t("layers.legTitleComm"),
+        gradient: "linear-gradient(to right, #1e293b 0%, #eab308 50%, #22c55e 100%)",
+        items: [
+          ["#1e293b", t("layers.legCommNone")],
+          ["#eab308", t("layers.legCommInterm")],
+          ["#22c55e", t("layers.legCommDirect")],
+        ],
+      };
+    case "suitability":
+      return {
+        title: t("layers.legTitleSuit"),
+        gradient: "linear-gradient(to right, #1e293b 0%, #dc2626 25%, #ea8a18 50%, #0ea5e9 75%, #34d399 100%)",
+        items: [
+          ["#1e293b", t("layers.legSuitBlocked")],
+          ["#dc2626", `>${maxSlope}°`],
+          ["#ea8a18", t("layers.legSuitLim")],
+          ["#0ea5e9", t("layers.legSuitGood")],
+          ["#34d399", t("layers.legSuitOpt")],
+        ],
+      };
+    default:
+      return null;
+  }
 }
 
-function setLegend(open) {
-  legendCard.hidden = !open;
-  legendToggle.setAttribute("aria-expanded", open);
+function renderActiveLayerLegend() {
+  if (!activeLayerLegend) return;
+  const layer = globe.layerMode ?? "surface";
+  const surface = globe.surfaceMode ?? "lroc";
+  activeLayerLegend.dataset.layer = layer;
+  const spec = legendItemsForLayer(layer, state.config.maxSlopeDeg);
+  if (!spec) {
+    const msg = document.createElement("span");
+    msg.className = "leg-surface";
+    msg.textContent = t(surface === "lola" ? "layers.legendSurfaceLola" : "layers.legendSurfaceLroc");
+    activeLayerLegend.replaceChildren(msg);
+    return;
+  }
+  const head = document.createElement("div");
+  head.className = "leg-head";
+  head.textContent = spec.title;
+
+  const bar = document.createElement("div");
+  bar.className = "leg-bar";
+  bar.setAttribute("aria-hidden", "true");
+  bar.style.background = spec.gradient;
+
+  const ticks = document.createElement("div");
+  ticks.className = "leg-ticks";
+  ticks.style.setProperty("--cols", String(spec.items.length));
+  for (const [, label] of spec.items) {
+    const tick = document.createElement("span");
+    tick.className = "leg-tick";
+    tick.textContent = label;
+    ticks.append(tick);
+  }
+  activeLayerLegend.replaceChildren(head, bar, ticks);
 }
 
-gear.addEventListener("click", () => setDrawer(drawer.hidden));
-document.getElementById("drawer-close").addEventListener("click", () => {
-  setDrawer(false);
-  gear.focus();
-});
-
-// Moon Layer Switcher pill bar (Surface / Risk A / Risk B / Safe Havens)
 let riskGridLoadedForSlope = null;
 async function ensureRiskGrid() {
   const slope = state.config.maxSlopeDeg ?? 8;
@@ -406,17 +567,26 @@ if (layerBar) {
   layerBar.addEventListener("click", async (e) => {
     const btn = e.target.closest("button[data-layer]");
     if (!btn) return;
+    setDrawerTab("layers");
     const layer = btn.dataset.layer;
     for (const b of layerBar.querySelectorAll("button[data-layer]")) {
-      b.setAttribute("aria-pressed", String(b === btn));
+      const active = b === btn;
+      b.classList.toggle("active", active);
+      b.setAttribute("aria-pressed", String(active));
     }
     if (layer !== "surface") await ensureRiskGrid();
     globe.setLayerMode(layer);
+    renderActiveLayerLegend();
   });
 }
 legendToggle.addEventListener("click", () => setLegend(legendCard.hidden));
 document.addEventListener("keydown", (event) => {
   if (event.key !== "Escape") return;
+  if (layersInfoPopover && !layersInfoPopover.hidden) {
+    setLayersInfo(false);
+    layersInfoBtn?.focus();
+    return;
+  }
   if (!drawer.hidden) setDrawer(false);
   if (!legendCard.hidden) setLegend(false);
 });
@@ -434,6 +604,7 @@ function startTour(build = mainTour, { restore = true } = {}) {
     section: router.current,
     selected: [...state.selected],
     drawerOpen: !drawer.hidden,
+    drawerTab: activeDrawerTab,
     legendOpen: !legendCard.hidden,
     detailOpen: state.detailOpen,
   };
@@ -446,6 +617,7 @@ function startTour(build = mainTour, { restore = true } = {}) {
       applySelection();
     },
     drawer: (open) => setDrawer(open),
+    drawerTab: (tab) => setDrawerTab(tab),
     // Abre el detalle del sitio elegido (si no hay ninguno, elige Apollo 11) y espera a que cargue.
     detail: async () => {
       if (!state.selectedId && state.sites.has("apollo-11")) ctx.select(["apollo-11"]);
@@ -466,6 +638,7 @@ function startTour(build = mainTour, { restore = true } = {}) {
         if (fold) fold.open = false;
       }
       if (!restore) return;
+      setDrawerTab(before.drawerTab);
       setDrawer(before.drawerOpen);
       setLegend(before.legendOpen);
       if (!before.detailOpen && state.detailOpen) closeDetail();
@@ -510,6 +683,7 @@ onLangChange(() => {
   renderSelection();
   compareStory.refresh();
   learnView.render();
+  renderActiveLayerLegend();
   if (state.selectedId) loadActive();
 });
 
@@ -666,13 +840,14 @@ async function findBestDates(id) {
   }
 }
 
-// --- 3D Relief Exaggeration, LOLA Surface Layer & Demo Presets --------------
+// --- 3D Relief Exaggeration & LOLA Surface Layer ---------------------------
 
 const surfaceButtons = [...document.querySelectorAll("[data-surface]")];
 const lolaColorbar = document.getElementById("lola-colorbar");
 for (const button of surfaceButtons) {
   button.addEventListener("click", () => {
     const mode = button.dataset.surface;
+    setDrawerTab("layers");
     globe.setSurfaceMode(mode);
     if (lolaColorbar) lolaColorbar.hidden = mode !== "lola";
     for (const b of surfaceButtons) {
@@ -680,19 +855,7 @@ for (const button of surfaceButtons) {
       b.classList.toggle("active", active);
       b.setAttribute("aria-pressed", String(active));
     }
-  });
-}
-
-const reliefButtons = [...document.querySelectorAll("[data-relief]")];
-for (const button of reliefButtons) {
-  button.addEventListener("click", () => {
-    const factor = Number(button.dataset.relief);
-    globe.setReliefExaggeration(factor);
-    for (const b of reliefButtons) {
-      const active = b === button;
-      b.classList.toggle("active", active);
-      b.setAttribute("aria-pressed", String(active));
-    }
+    renderActiveLayerLegend();
   });
 }
 
@@ -946,6 +1109,8 @@ async function start() {
   applyMode(fromUrl.mode ?? stored.get("mode") ?? "simple");
   state.config = { ...DEFAULT_CONFIG, ...fromUrl.config };
   settings.setConfig(state.config);
+  setDrawerTab("sites");
+  renderActiveLayerLegend();
   if (fromUrl.date) controls.setDate(fromUrl.date);
 
   try {

@@ -96,11 +96,11 @@ export class SiteList {
           <span class="dot" style="background:${color}"></span>
           <span class="name">
             ${escape(siteName(site))}
-            <small>${t(`category.${site.category}`)} · ${num(site.lat, 2)}°, ${num(site.lon, 2)}°${slopeText}</small>
+            <small><span class="cat-badge">${t(`category.${site.category}`)}</span><span class="tech-only"> · ${num(site.lat, 2)}°, ${num(site.lon, 2)}°${slopeText}</span></small>
           </span>
           <span class="score">${Math.round(total)}</span>
           ${removePinBtn}
-          <span class="sub">${t("list.energyShort")} ${Math.round(energy)} · ${t("list.commShort")} ${Math.round(communication)}${easeText}${shieldText} ${status}</span>
+          <span class="sub"><span class="sub-tech tech-only">${t("list.energyShort")} ${Math.round(energy)} · ${t("list.commShort")} ${Math.round(communication)}${easeText}${shieldText}</span>${status}</span>
         </li>`;
     }).join("");
   }
