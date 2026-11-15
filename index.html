@@ -887,9 +887,10 @@ if (!reduce) { gsap.to('#s4 .moon4', {rotation: 6, duration: 30, yoyo: true, rep
 const TYPE = {2: 'push', 4: 'push', 5: 'blinds'};  // índice (0-based) → tipo; por defecto iris
 const iris = document.getElementById('iris'), ring = iris.querySelector('.ring');
 const demos = new Map(); let cur = -1, tl = null, trans = null, steps = [], step = 0;
+let keep = -1;   // lámina saliente: su demo sigue visible hasta que termina la transición
+function dropOthers(i) { for (const k of [...demos.keys()]) if (k !== i && k !== keep) { demos.get(k).destroy(); demos.delete(k); } if (i !== 0 && keep !== 0) stopPortada(); }
 function manageDemos(i) {
-  for (const k of [...demos.keys()]) if (k !== i) { demos.get(k).destroy(); demos.delete(k); }
-  if (i !== 0) stopPortada();
+  dropOthers(i);
   const h = slides[i].querySelector('.demo-host');
   if (h && !demos.has(i)) { const d = new Demo(h); demos.set(i, d); runDemo(d); }
 }
@@ -902,12 +903,12 @@ function enter(i, instant) {
 }
 function show(i, instant) { if (tl) tl.progress(1); slides.forEach((x, k) => x.classList.toggle('on', k === i)); cur = i; enter(i, instant); }
 function go(i) {
-  if (i < 0 || i >= slides.length) return;
+  if (i < 0 || i >= slides.length || i === cur) return;
   if (reduce || cur < 0) return show(i, reduce);
   const p = slides[cur], n = slides[i], type = TYPE[i] || 'iris';
   if (tl) tl.progress(1);
-  p.classList.add('on'); n.classList.add('on'); p.style.zIndex = 0; n.style.zIndex = 1; cur = i;
-  const done = () => { p.classList.remove('on'); p.style.zIndex = n.style.zIndex = ''; n.style.webkitMaskImage = n.style.maskImage = ''; gsap.set([p, n], {clearProps: 'transform,clipPath'}); iris.style.visibility = 'hidden'; };
+  keep = cur; p.classList.add('on'); n.classList.add('on'); p.style.zIndex = 0; n.style.zIndex = 1; cur = i;
+  const done = () => { keep = -1; dropOthers(cur); p.classList.remove('on'); p.style.zIndex = n.style.zIndex = ''; n.style.webkitMaskImage = n.style.maskImage = ''; gsap.set([p, n], {clearProps: 'transform,clipPath'}); iris.style.visibility = 'hidden'; };
   enter(i, false); tl.pause(0);
   trans = gsap.timeline({onComplete: done});
   if (type === 'push') {
@@ -933,7 +934,8 @@ addEventListener('keydown', e => {
 addEventListener('click', e => (e.clientX < innerWidth * .15 ? prev : next)());
 const mm = location.hash.match(/lamina-(\d+)/);
 document.fonts.ready.then(() => show(mm ? Math.min(+mm[1] - 1, slides.length - 1) : 0));
-window.__deck = { demos, get cur() { return cur; }, show, next };
+window.__deck = { demos, get cur() { return cur; }, show, next, go };
+if (/captura/.test(location.search)) { const st = document.createElement('style'); st.textContent = '#hint{display:none!important}*{animation:none!important;transition:none!important}.loading{display:none!important}'; document.head.appendChild(st); }
 })();
 </script>
 </body>
