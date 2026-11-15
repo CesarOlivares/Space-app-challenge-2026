@@ -17,7 +17,7 @@ Caso probado: Mons Mouton frente a Mons Malapert, 20 nov 2026 23:00 UTC, ventana
 | ¿Cumple cada sitio los requisitos duros de la misión? | **Parcial** | "Viable" solo mira Sol y Tierra visibles **en el instante** del aterrizaje y pendiente ≤ 15°. La NASA exige luz durante **toda** la estancia (~6,5 días) y orientación del HLS de 0–8° (meta 5°). Un sitio puede salir "viable" y perder el Sol a las 20 h. |
 | ¿Cuánto margen tengo sobre cada requisito? | **No** | No se muestra ningún umbral junto al valor (p. ej. 9,4° frente al límite de 8°). Sin el límite, el número no dice si es aceptable. |
 | ¿Qué tan seguido puedo aterrizar ahí? (disponibilidad) | **No** | Es el criterio central de la NASA (CASSA). La app evalúa una sola fecha. El backend ya tiene `/timeline` y `/best-dates`, pero la comparación no los usa. |
-| ¿Por qué gana uno? | **Engañoso** | El "puntaje global" usa por defecto **50 % energía + 50 % comunicación; terreno y protección pesan 0**. La interfaz decía "20 % energía, 20 % comunicación, 40 % terreno, 20 % protección" (corregido el 14-11: ahora el texto sale de los pesos reales). Aun así, "¿Por qué?" sigue listando el terreno como razón aunque no cuente en el total. |
+| ¿Por qué gana uno? | **Engañoso** | El "puntaje global" usa por defecto **50 % energía + 50 % comunicación; terreno pesa 0** (el criterio de protección ante impactos fue eliminado del modelo). La interfaz decía antiguamente "20 % energía, 20 % comunicación, 40 % terreno, 20 % protección" (corregido: ahora el texto sale de los pesos reales). |
 | ¿Es robusta la conclusión si cambio los pesos? | **No** | No hay análisis de sensibilidad. Con pesos no publicados por la NASA, esta es la forma honesta de mostrar el resultado. |
 | ¿Qué tan confiable es cada dato? | **No** | No se muestra la resolución del DEM, el radio de la pendiente ni la incertidumbre. Solo 6 de 22 sitios tienen datos de terreno (sección 2). |
 
@@ -32,12 +32,12 @@ Caso probado: Mons Mouton frente a Mons Malapert, 20 nov 2026 23:00 UTC, ventana
 
 ---
 
-## 2. Datos de terreno y protección: ¿qué sitios los tienen?
+## 2. Datos de terreno: ¿qué sitios los tienen?
 
 Estado de datos tras la integración del modelo de elevación global:
 - **Terreno (elevación, pendiente, rugosidad):** **Los 22 sitios del catálogo** (y cualquier coordenada personalizada del globo) cuentan con datos de elevación y cálculo de pendiente medidos directamente con el **LOLA Global DEM** (`ldem_16.tif`, 16 px/grado, ~1,89 km/px) de NASA PDS / SVS, complementado por el **DEM Polar LOLA** (`LDEM_75S_120M`, 120 m/px) al sur de 75° S.
-- **Protección ante impactos (A):** Sigue disponible exclusivamente para los sitios al sur de 80° S con máscara de horizonte 360° calculada por trazado de rayos. Para los demás sitios vale `null` (marcado en `missing_criteria` si $w_A > 0$).
-- **Comparabilidad:** Al contar todos los sitios con métricas de terreno reales ($T$), la comparación del criterio de aterrizaje es consistente globalmente. $w_T = 0$ y $w_A = 0$ por defecto para mantener la ponderación alineada con los requisitos oficiales validados.
+- **Protección ante impactos (A):** **Eliminado del sistema.** No figura en la literatura oficial de selección de sitios de la NASA, carecía de base científica rigurosa y no aportaba datos útiles a la misión. El modelo se simplificó a los 3 pilares clave: Energía, Comunicación y Terreno.
+- **Comparabilidad:** Al contar todos los sitios con métricas de terreno reales ($T$), la comparación del criterio de aterrizaje es consistente globalmente. $w_T = 0$ por defecto para mantener la ponderación alineada con los requisitos oficiales validados.
 
 ---
 
@@ -56,7 +56,7 @@ Estado de datos tras la integración del modelo de elevación global:
 | **Disponibilidad de misión** | % de fechas de aterrizaje en un año que cumplen **todos** los requisitos a la vez | La NASA mantiene varias regiones porque cada una ofrece pocas fechas | [LPSC 2026 #1901](https://www.hou.usra.edu/meetings/lpsc2026/pdf/1901.pdf); [Lawrence y George 2025](https://ntrs.nasa.gov/api/citations/20250008952/downloads/A4SiteSelectionWorkshopLSSW.pdf) |
 | **Distancia a una PSR** | Distancia a la región de sombra permanente más cercana (valor científico: hielo) | ≤ 2 km (radio de exploración) | Wueller; Gracy y Lee, en [regiones-artemis.md](modelo/investigacion/regiones-artemis.md) |
 
-La "protección ante impactos" (% de cielo tapado) **no aparece como criterio** en los documentos de selección de la NASA revisados. Es una idea propia del equipo y debe presentarse así: como métrica exploratoria, separada de los requisitos.
+El criterio exploratorio de protección ante impactos fue descartado del modelo y del sistema, manteniendo exclusivamente los criterios avalados por la literatura técnica.
 
 ### Gráficos
 
@@ -85,7 +85,7 @@ Prioridades: **P0** = el resultado hoy puede llevar a una conclusión equivocada
 | 0.4 | Viabilidad = luz **durante toda la estancia** (parámetro `stay_days`, por defecto 6,5 días), no solo en el instante del aterrizaje | Backend + Modelo | **Hecho el 14-11**: `viable` es falso si el Sol se pone antes; `sun_through_stay` en la API; tests en `test_viabilidad_estancia.py` |
 | 0.5 | Umbral de pendiente de 8° (Wueller; coincide con el umbral de orientación del HLS, que no es pendiente del terreno), configurable; era 15° | Backend + Modelo | **Hecho el 14-11**: por defecto 8°, con la salvedad de que el DEM de 120 m lo hace optimista |
 | 0.6 | Cobertura de terreno: pendiente global LOLA GDR **o** marcar el total como "no comparable" cuando los sitios tienen distintos criterios | Modelo + Backend | **Hecho el 15-11**: Integrado LOLA Global DEM 16 px/grado (`ldem_16.tif`); todos los 22 sitios tienen elevación y pendiente reales. Aviso `missing_criteria` activo si falta protección |
-| 0.7 | Separar la "protección ante impactos" como métrica exploratoria, con la nota "criterio del equipo, no de la NASA" | UX + Frontend | **Hecho el 14-11** en la fila de la comparación; falta el glosario |
+| 0.7 | Eliminar la "protección ante impactos" por falta de sustento oficial y datos | UX + Modelo + Frontend | **Completado el 15-11**: Criterio eliminado totalmente de modelos, API, vistas y comparativas; simplificado a 3 pilares clave (Energía, Comunicación, Terreno) |
 
 ### P1 · Herramienta de decisión
 

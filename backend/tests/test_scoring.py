@@ -41,7 +41,7 @@ def test_pesos_del_puntaje_global():
     {"weight_energy": -1},
     {"weight_terrain": -1},
     {"max_slope_deg": 2.0},
-    {"weight_energy": 0, "weight_communication": 0, "weight_terrain": 0, "weight_protection": 0},
+    {"weight_energy": 0, "weight_communication": 0, "weight_terrain": 0},
 ])
 def test_configuracion_invalida(kwargs):
     with pytest.raises(ValueError):

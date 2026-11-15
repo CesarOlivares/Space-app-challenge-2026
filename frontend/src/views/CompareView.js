@@ -14,7 +14,6 @@ const ROWS = [
   { label: "detail.energy", value: (r) => r.scores.energy, show: (v) => Math.round(v), better: "max", src: "compare.src.energy" },
   { label: "detail.communication", value: (r) => r.scores.communication, show: (v) => Math.round(v), better: "max", src: "compare.src.energy" },
   { label: "compare.terrain", value: (r) => r.scores.terrain ?? null, show: orNoData((v) => Math.round(v)), better: "max", src: "compare.src.terrain" },
-  { label: "compare.protection", value: (r) => r.scores.asteroid ?? null, show: orNoData((v) => Math.round(v)), better: "max", src: "compare.src.protection" },
   { label: "compare.slope", value: (r) => r.topography?.slope_deg ?? null, show: orNoData((v) => `${num(v, 1)}°`), better: "min", section: "compare.secPhysical", src: "compare.src.slope" },
   { label: "compare.elevation", value: (r) => r.topography?.elevation_m ?? null, show: orNoData((v) => `${num(Math.round(v))} m`), src: "compare.src.elevation" },
   { label: "compare.sunElevation", value: (r) => r.sun.elevation_deg, show: (v) => formatDegrees(v), src: "compare.src.ephemeris" },

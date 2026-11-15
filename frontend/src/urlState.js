@@ -6,7 +6,6 @@ import { DEFAULT_CONFIG } from "./views/SettingsPanel.js";
 const CONFIG_KEYS = {
   weightEnergy: ["we", (v) => Number(v) / 100, (v) => Math.round(v * 100)],
   weightTerrain: ["wt", (v) => Number(v) / 100, (v) => Math.round(v * 100)],
-  weightProtection: ["wa", (v) => Number(v) / 100, (v) => Math.round(v * 100)],
   maxSlopeDeg: ["ms", Number, (v) => v],
   stayDays: ["stay", Number, (v) => v],
   windowDays: ["win", Number, (v) => v],

@@ -31,7 +31,7 @@ def test_scores_de_todo_el_catalogo(client):
     first = data["scores"][0]
     assert set(first) == {"site_id", "date", "viable", "sun_through_stay", "missing_criteria",
                           "scores", "topography", "sun", "earth"}
-    assert {"energy", "communication", "terrain", "asteroid", "total", "landing_ease", "asteroid_protection"} == set(first["scores"])
+    assert {"energy", "communication", "terrain", "total", "landing_ease"} == set(first["scores"])
     assert set(first["sun"]) == {"azimuth_deg", "elevation_deg", "visible"}
 
 
@@ -121,7 +121,7 @@ def test_compare(client):
     ("get", "/api/sites/95,0/sky", {}, 422),
     ("get", "/api/sites/0,abc/sky", {}, 404),
     ("get", "/api/scores", {"params": {"date": "ayer"}}, 422),
-    ("get", "/api/scores", {"params": {"weight_energy": 0, "weight_communication": 0, "weight_terrain": 0, "weight_protection": 0}}, 422),
+    ("get", "/api/scores", {"params": {"weight_energy": 0, "weight_communication": 0, "weight_terrain": 0}}, 422),
     ("get", "/api/scores", {"params": {"window_days": 100}}, 422),
     ("get", "/api/sites/im-2/timeline", {"params": {"days": 60, "step_hours": 0.25}}, 422),
     ("post", "/api/compare", {"json": {"scenarios": [{"site": "im-2", "date": DATE}]}}, 422),
@@ -204,24 +204,16 @@ def test_gzip_compression(client):
     assert res.headers.get("Content-Encoding") == "gzip"
 
 
-def test_proteccion_sin_relieve_es_sin_datos_y_no_cero(client):
-    # Solo hay DEM alrededor de los sitios del polo sur: en el resto A es null, no 0.
+def test_relieve_polar_marca_relief_data_true(client):
     scores = {s["site_id"]: s for s in client.get("/api/scores", params={"date": DATE}).json()["scores"]}
     equatorial = scores["apollo-11"]
-    assert equatorial["scores"]["asteroid"] is None
-    assert equatorial["scores"]["asteroid_protection"] is None
     assert equatorial["topography"]["relief_data"] is False
-    assert "solid_angle_shielded_pct" not in equatorial["topography"]
     polar = scores["shackleton-ridge"]
     assert polar["topography"]["relief_data"] is True
-    assert polar["scores"]["asteroid"] is not None
 
 
-def test_total_sin_relieve_se_renormaliza_sin_proteccion(client):
-    # Sin máscara de relieve de 150 km, el blindaje A es null. Con peso_terreno=0 por defecto,
-    # el puntaje P se renormaliza a (0,5·E + 0,5·C) / 1.
+def test_total_con_pesos_por_defecto_es_promedio_energia_comunicacion(client):
     s = {x["site_id"]: x for x in client.get("/api/scores", params={"date": DATE}).json()["scores"]}["apollo-11"]["scores"]
-    assert s["asteroid"] is None
     expected = (0.5 * s["energy"] + 0.5 * s["communication"]) / 1.0
     assert s["total"] == pytest.approx(expected, abs=0.1)
 
@@ -253,12 +245,10 @@ def test_risk_grid_endpoint(client):
     assert data["rows"] == 36
     assert len(data["cells"]) == 72 * 36
     first = data["cells"][0]
-    assert {"lat", "lon", "elevation_m", "slope_deg", "landing_ease", "asteroid_protection", "solar_exposure", "earth_comm", "suitability"} <= set(first.keys())
+    assert {"lat", "lon", "elevation_m", "slope_deg", "landing_ease", "solar_exposure", "earth_comm", "suitability"} <= set(first.keys())
     assert 0.0 <= first["solar_exposure"] <= 100.0
     assert 0.0 <= first["earth_comm"] <= 100.0
     assert 0.0 <= first["suitability"] <= 100.0
-    # Terreno medido: dentro del DEM polar o global; asteroides queda en null sin máscara 3D.
-    assert all(c["asteroid_protection"] is None for c in data["cells"])
     from app.models.terrain import _get_global_dem
     north = data["cells"][-1]
     if _get_global_dem() is None:
@@ -280,10 +270,9 @@ def test_matrix_respeta_la_fecha_start_y_acepta_coordenadas(client):
     assert len(data["sites"]) == 2
 
 
-def test_pesos_de_terreno_y_proteccion_tienen_maximo(client):
-    for name in ("weight_terrain", "weight_protection"):
-        res = client.get("/api/scores", params={"date": DATE, name: 1e9})
-        assert res.status_code == 422
+def test_peso_de_terreno_tiene_maximo(client):
+    res = client.get("/api/scores", params={"date": DATE, "weight_terrain": 1e9})
+    assert res.status_code == 422
 
 
 def test_aviso_si_falta_el_dem_en_un_punto_polar(client, monkeypatch):

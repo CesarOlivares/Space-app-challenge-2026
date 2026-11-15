@@ -91,13 +91,6 @@ export const DETAILS = {
     where: T("Ficha, detalle del sitio y capa «Pendiente» del globo.", "Card, site detail and the globe's “Slope” layer."),
     tryEx: 1,
   },
-  "kpi-shield": {
-    read: T(
-      "Índice experimental de cuánto cielo tapa el relieve cercano. No es un requisito de la NASA ni tiene fuente publicada: pesa 0 por defecto. Solo se calcula donde hay relieve real; en el resto dice «sin datos».",
-      "Experimental index of how much sky nearby terrain blocks. It is not a NASA requirement nor has a published source: it weighs 0 by default. It is only computed where real terrain exists; elsewhere it says “no data”.",
-    ),
-    where: T("Detalle técnico de la comparación (activable con su peso en modo Técnico).", "Comparison technical detail (can be switched on with its weight in Technical mode)."),
-  },
   "kpi-total": {
     read: T(
       "P = promedio ponderado de los indicadores; con los pesos por defecto es (Energía + Comunicación) / 2. Un sitio no viable conserva su número pero se muestra como referencial, y si a un sitio le falta un criterio con peso, su total no es comparable con el de otro que los tiene todos.",

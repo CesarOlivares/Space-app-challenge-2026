@@ -26,26 +26,20 @@ def topography_json(
     terrain: TerrainMetrics,
     slope_ok: bool | None = None,
     sky_view_factor: float | None = None,
-    solid_angle_shielded_pct: float | None = None,
     landing_ease_score: float | None = None,
-    asteroid_protection_score: float | None = None,
-    horizon_shield_profile_deg: tuple[float, ...] | list[float] | None = None,
     relief_data: bool | None = None,
     dem_missing: bool | None = None,
 ) -> dict:
-    """Serializes TerrainMetrics and dual hazard metrics into the API topography payload.
+    """Serializes TerrainMetrics into the API topography payload.
 
     Args:
         terrain: Evaluated terrain metrics for a site.
         slope_ok: Optional lander slope safety boolean against max_slope_deg.
         sky_view_factor: Optional hemispherical sky visibility factor in [0, 1].
-        solid_angle_shielded_pct: Optional percentage of upper hemisphere blocked by mountains.
         landing_ease_score: Optional Evaluation A score in [0, 100].
-        asteroid_protection_score: Optional Evaluation B score in [0, 100].
-        horizon_shield_profile_deg: Optional 36-azimuth horizon elevation profile in degrees.
 
     Returns:
-        Dictionary containing elevation, slope, roughness, aspect, SVF, shielding, and scores.
+        Dictionary containing elevation, slope, roughness, aspect, SVF, and source.
     """
     payload = {
         "elevation_m": _round(terrain.elevation_m, 1),
@@ -56,7 +50,6 @@ def topography_json(
         "source": terrain.source,
     }
     if relief_data is not None:
-        # False: horizonte esférico (sin DEM alrededor); protección y blindaje no se pueden estimar.
         payload["relief_data"] = relief_data
     if dem_missing:
         # El sitio queda dentro de la cobertura del DEM, pero este servidor no lo tiene: el horizonte
@@ -64,14 +57,8 @@ def topography_json(
         payload["dem_missing"] = True
     if slope_ok is not None:
         payload["slope_ok"] = slope_ok
-    if solid_angle_shielded_pct is not None:
-        payload["solid_angle_shielded_pct"] = round(solid_angle_shielded_pct, 2)
     if landing_ease_score is not None:
         payload["landing_ease_score"] = round(landing_ease_score, 1)
-    if asteroid_protection_score is not None:
-        payload["asteroid_protection_score"] = round(asteroid_protection_score, 1)
-    if horizon_shield_profile_deg is not None:
-        payload["horizon_shield_profile_deg"] = [round(float(v), 2) for v in horizon_shield_profile_deg]
     return payload
 
 
@@ -138,19 +125,14 @@ def evaluation_json(result: SiteEvaluation, detailed: bool) -> dict:
             "energy": round(result.energy, 1),
             "communication": round(result.communication, 1),
             "landing_ease": _round(result.landing_ease_score, 1),
-            "asteroid_protection": _round(result.asteroid_protection_score, 1),
             "terrain": _round(result.landing_ease_score, 1),
-            "asteroid": _round(result.asteroid_protection_score, 1),
             "total": round(result.total, 1),
         },
         "topography": topography_json(
             result.terrain,
             slope_ok=result.slope_ok,
             sky_view_factor=result.sky_view_factor,
-            solid_angle_shielded_pct=result.solid_angle_shielded_pct,
             landing_ease_score=result.landing_ease_score,
-            asteroid_protection_score=result.asteroid_protection_score,
-            horizon_shield_profile_deg=result.horizon_shield_profile_deg or None,
             relief_data=result.has_relief_data,
             dem_missing=not result.has_relief_data and PolarDEM.covers(result.site.lat) and get_dem() is None,
         ),

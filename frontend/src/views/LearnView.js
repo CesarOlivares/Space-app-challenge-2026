@@ -61,10 +61,8 @@ const TXT = {
     kEnergyX: "Horas de Sol disponibles y cuántas son seguidas desde el aterrizaje. Importa para paneles, baterías y sobrevivir la noche lunar.",
     kTerrainT: "Terreno",
     kTerrainX: "Qué tan fácil y seguro es posarse: pendiente local, rugosidad y despeje para la aproximación. Solo existe donde hay relieve real medido.",
-    kShieldT: "Protección",
-    kShieldX: "Cuánto resguarda el relieve cercano frente a impactos de micrometeoroides. Es una métrica exploratoria del equipo, no un requisito de la NASA, y solo se estima donde hay relieve real (al sur de 80° S); en el resto dice «sin datos».",
     kTotalT: "Puntaje global",
-    kTotalX: "Mezcla ponderada de los indicadores. Por defecto, 50 % energía y 50 % comunicación: terreno y protección pesan 0 hasta que los actives. Un sitio es «no viable» si al aterrizar no ve el Sol o la Tierra, si el Sol no dura toda la estancia de 6,5 días o si la pendiente supera 8°.",
+    kTotalX: "Mezcla ponderada de los indicadores. Por defecto, 50 % energía y 50 % comunicación: terreno pesa 0 hasta que lo actives. Un sitio es «no viable» si al aterrizar no ve el Sol o la Tierra, si el Sol no dura toda la estancia de 6,5 días o si la pendiente supera 8°.",
 
     chartsTitle: "Cómo leer los gráficos",
     chartsLead: "Cada gráfico responde una pregunta distinta.",
@@ -94,7 +92,7 @@ const TXT = {
     ex4x: "Compara Apollo 11 con Mons Mouton y mira qué indicador decide la diferencia.",
     limTitle: "Lo que esta herramienta no hace",
     l1: "Es una estimación preliminar para orientar decisiones, no un análisis de misión.",
-    l2: "El relieve real (LOLA, 120 m por celda) solo cubre al sur de 80° S. En otros sitios no hay pendiente ni protección: dicen «sin datos».",
+    l2: "El relieve de alta resolución (LOLA, 120 m por celda) cubre al sur de 75° S; en el resto se usa el modelo global LOLA (16 px/grado).",
     l3: "La iluminación media de los sitios polares tiene una incertidumbre de unos ±5–10 puntos porcentuales frente al mapa oficial de la NASA (PGDA).",
     l4: "Los pesos del puntaje son una decisión del equipo; en Configuración puedes cambiarlos y ver el efecto.",
     sources: "Fuentes",
@@ -152,10 +150,8 @@ const TXT = {
     kEnergyX: "Hours of Sun available and how many are unbroken from landing. It matters for panels, batteries and surviving the lunar night.",
     kTerrainT: "Terrain",
     kTerrainX: "How easy and safe it is to touch down: local slope, roughness and approach clearance. It only exists where real terrain has been measured.",
-    kShieldT: "Protection",
-    kShieldX: "How much nearby terrain shelters from micrometeoroid impacts. It is an exploratory team metric, not a NASA requirement, and is only estimated where real terrain exists (south of 80° S); elsewhere it says “no data”.",
     kTotalT: "Overall score",
-    kTotalX: "Weighted blend of the indicators. By default, 50 % energy and 50 % communication: terrain and protection weigh 0 until you turn them on. A site is “not viable” if at landing it sees neither the Sun nor Earth, if the Sun does not last the whole 6.5-day stay, or if the slope exceeds 8°.",
+    kTotalX: "Weighted blend of the indicators. By default, 50 % energy and 50 % communication: terrain weighs 0 until you turn it on. A site is “not viable” if at landing it sees neither the Sun nor Earth, if the Sun does not last the whole 6.5-day stay, or if the slope exceeds 8°.",
 
     chartsTitle: "How to read the charts",
     chartsLead: "Each chart answers a different question.",
@@ -185,7 +181,7 @@ const TXT = {
     ex4x: "Compare Apollo 11 with Mons Mouton and see which indicator decides the gap.",
     limTitle: "What this tool does not do",
     l1: "It is a preliminary estimate to guide decisions, not a mission analysis.",
-    l2: "Real terrain (LOLA, 120 m per cell) only covers south of 80° S. Elsewhere there is no slope or protection: they say “no data”.",
+    l2: "High-resolution relief (LOLA, 120 m per cell) covers south of 75° S; elsewhere the global LOLA model (16 px/deg) is used.",
     l3: "Mean illumination at the polar sites carries an uncertainty of about ±5–10 percentage points against NASA's official map (PGDA).",
     l4: "The score weights are a team decision; in Settings you can change them and see the effect.",
     sources: "Sources",
@@ -218,7 +214,7 @@ const EXAMPLES = [
 const WHY = [["why-dark", "notViable", "w1t", "w1x"], ["why-days", "time", "w2t", "w2x"], ["why-grazing", "sun", "w3t", "w3x"], ["why-earth", "earth", "w4t", "w4x"]];
 const KPIS = [
   ["kpi-comms", "kpiComms", "kCommT", "kCommX"], ["kpi-energy", "kpiEnergy", "kEnergyT", "kEnergyX"], ["kpi-terrain", "kpiTerrain", "kTerrainT", "kTerrainX"],
-  ["kpi-shield", "kpiShield", "kShieldT", "kShieldX"], ["kpi-total", "kpiTotal", "kTotalT", "kTotalX"],
+  ["kpi-total", "kpiTotal", "kTotalT", "kTotalX"],
 ];
 const STEPS = ["s1", "s2", "s3", "s4", "s5"];
 const CRITERIA = [["c1a", "c1b", "c1c"], ["c2a", "c2b", "c2c"], ["c3a", "c3b", "c3c"], ["c4a", "c4b", "c4c"], ["c5a", "c5b", "c5c"]];

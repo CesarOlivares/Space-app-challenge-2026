@@ -23,7 +23,6 @@ import { onLangChange, t } from "../i18n.js";
 export const DEFAULT_CONFIG = {
   weightEnergy: 0.5,
   weightTerrain: 0.0,
-  weightProtection: 0.0,
   maxSlopeDeg: 8.0, // HLS-R-0071: 0–8° umbral, 5° meta
   stayDays: 6.5, // luz continua exigida: estancia de ~6,5 días (NASA 2022)
   windowDays: 14,
@@ -44,7 +43,6 @@ export class SettingsPanel {
     this.form = form;
     this.weightOutput = form.querySelector("#weight-output");
     this.terrainWeightOutput = form.querySelector("#weight-terrain-output");
-    this.protectionWeightOutput = form.querySelector("#weight-protection-output");
     this.maxSlopeOutput = form.querySelector("#max-slope-output");
     this.presetButtons = [...form.querySelectorAll("[data-slope-preset]")];
     this.config = { ...DEFAULT_CONFIG };
@@ -95,7 +93,6 @@ export class SettingsPanel {
     this.config = {
       weightEnergy: number("weight", 50, 0, 100) / 100,
       weightTerrain: number("weight-terrain", 0, 0, 200) / 100,
-      weightProtection: number("weight-protection", 0, 0, 200) / 100,
       maxSlopeDeg: number("max-slope", 8.0, 3.0, 25.0),
       stayDays: number("stay", 6.5, 0.5, 30),
       windowDays: number("window", 14, 1, 30),
@@ -116,9 +113,6 @@ export class SettingsPanel {
     if (this.form.elements["weight-terrain"]) {
       this.form.elements["weight-terrain"].value = Math.round(this.config.weightTerrain * 100);
     }
-    if (this.form.elements["weight-protection"]) {
-      this.form.elements["weight-protection"].value = Math.round(this.config.weightProtection * 100);
-    }
     if (this.form.elements["max-slope"]) {
       this.form.elements["max-slope"].value = this.config.maxSlopeDeg;
     }
@@ -138,9 +132,6 @@ export class SettingsPanel {
     this.weightOutput.textContent = t("settings.weights", { energy: e, communication: 100 - e });
     if (this.terrainWeightOutput) {
       this.terrainWeightOutput.textContent = t("settings.terrainWeight", { w: num(this.config.weightTerrain, 1) });
-    }
-    if (this.protectionWeightOutput) {
-      this.protectionWeightOutput.textContent = t("settings.protectionWeight", { w: num(this.config.weightProtection, 1) });
     }
     if (this.maxSlopeOutput) {
       this.maxSlopeOutput.textContent = t("settings.slopeLimit", { slope: num(this.config.maxSlopeDeg, 1) });
@@ -167,7 +158,6 @@ export function configParams(config) {
     weight_energy: weightEnergy,
     weight_communication: Math.round((1 - weightEnergy) * 100) / 100,
     weight_terrain: config.weightTerrain ?? 0.0,
-    weight_protection: config.weightProtection ?? 0.0,
     max_slope_deg: config.maxSlopeDeg ?? 8.0,
     stay_days: config.stayDays ?? 6.5,
     panel: config.panel ?? "tiempo",

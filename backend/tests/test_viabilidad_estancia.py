@@ -58,36 +58,36 @@ def test_pendiente_sobre_8_grados_no_es_viable(ephemeris, catalog):
 def test_criterios_con_peso_y_sin_dato_se_informan(ephemeris, catalog):
     sin_relieve = catalog["apollo-11"]
     por_defecto = evaluate(ephemeris, sin_relieve, LANDING)
-    assert por_defecto.missing_criteria == ()  # terreno y protección pesan 0
-    con_terreno = evaluate(ephemeris, sin_relieve, LANDING, ScoringConfig(weight_terrain=1.0, weight_protection=0.5))
+    assert por_defecto.missing_criteria == ()  # terreno pesa 0
+    con_terreno = evaluate(ephemeris, sin_relieve, LANDING, ScoringConfig(weight_terrain=1.0))
     if _get_global_dem() is None:
-        assert con_terreno.missing_criteria == ("terrain", "protection")
+        assert con_terreno.missing_criteria == ("terrain",)
     else:
-        assert con_terreno.missing_criteria == ("protection",)
-        # Con terreno explícitamente no disponible, se informa terrain y protection
+        assert con_terreno.missing_criteria == ()
+        # Con terreno explícitamente no disponible, se informa terrain
         sin_dato = TerrainMetrics(elevation_m=None, slope_deg=None, roughness_m=None, source="unavailable")
         con_sin_dato = evaluate(
             ephemeris,
             sin_relieve,
             LANDING,
-            ScoringConfig(weight_terrain=1.0, weight_protection=0.5),
+            ScoringConfig(weight_terrain=1.0),
             terrain=sin_dato,
         )
-        assert con_sin_dato.missing_criteria == ("terrain", "protection")
+        assert con_sin_dato.missing_criteria == ("terrain",)
     polar = evaluate(ephemeris, catalog["mons-malapert"], LANDING, ScoringConfig(weight_terrain=1.0))
     assert polar.missing_criteria == ()
 
 
 @requires_dem
 def test_api_expone_estancia_y_criterios_faltantes(client):
-    data = client.get("/api/scores", params={"date": "2026-11-20T23:00:00Z", "weight_terrain": 1.0, "weight_protection": 1.0}).json()
+    data = client.get("/api/scores", params={"date": "2026-11-20T23:00:00Z", "weight_terrain": 1.0}).json()
     assert data["config"]["stay_days"] == 6.5
     assert data["config"]["max_slope_deg"] == 8.0
     by_id = {s["site_id"]: s for s in data["scores"]}
     if _get_global_dem() is None:
-        assert by_id["apollo-11"]["missing_criteria"] == ["terrain", "protection"]
+        assert by_id["apollo-11"]["missing_criteria"] == ["terrain"]
     else:
-        assert by_id["apollo-11"]["missing_criteria"] == ["protection"]
+        assert by_id["apollo-11"]["missing_criteria"] == []
     assert by_id["mons-malapert"]["missing_criteria"] == []
     assert isinstance(by_id["apollo-11"]["sun_through_stay"], bool)
 

@@ -107,8 +107,8 @@ Zenith evaluates landing site safety alongside solar illumination (`E`) and Eart
 - **Safety cap:** If `slope_deg > max_slope_deg`, `T` is capped at `min(15.0, 0.3 * S_rough)`.
 
 The overall score combines criteria according to user-defined weights:
-$$P = \frac{w_E \cdot E + w_C \cdot C + w_T \cdot T + w_A \cdot A}{w_E + w_C + w_T + w_A}$$
-By default, $w_E = 0.5$, $w_C = 0.5$, $w_T = 0.0$, and $w_A = 0.0$ (matching challenge requirements and validated against NASA ephemerides).
+$$P = \frac{w_E \cdot E + w_C \cdot C + w_T \cdot T}{w_E + w_C + w_T}$$
+By default, $w_E = 0.5$, $w_C = 0.5$, and $w_T = 0.0$ (matching challenge requirements and validated against NASA ephemerides).
 
 Landing viability (`viable === true`) requires:
 1. **Solar illumination:** Sun visible at touchdown **and** continuous sunlight throughout the surface stay duration (`stay_days`, default 6.5 terrestrial days / 156 hours, matching Artemis III surface stay profile).
@@ -125,10 +125,9 @@ REST endpoints (`GET /api/scores`, `GET /api/sites/{site_ref}/sky`, `POST /api/c
 - `stay_days` (float, default `6.5`, `gt=0, le=60`): surface stay duration for continuous solar coverage.
 - `max_slope_deg` (float, default `8.0`, `2.0 < max_slope_deg <= 45.0`): maximum allowable landing slope.
 - `weight_terrain` (float, default `0.0`, `0.0 <= weight_terrain <= 2.0`): weight for landing ease score.
-- `weight_protection` (float, default `0.0`, `0.0 <= weight_protection <= 2.0`): weight for impact & ejecta shielding.
 
 Topography and elevation can be verified against 17 NASA ground-truth landing landmarks and extreme features using `python backend/scripts/verify_elevation.py` (mean absolute error $\approx 36$ m).
 
 ## Team Integration & Long-Term Roadmap
 
-For subsystem integration contracts (Solar Autonomy `E`, Communication Stability `C`, Topography `T`, and Asteroid/Meteoroid Safety `A`), cross-module physics formulas, and our 4-phase 3D relief & Mission Control UX roadmap, see [docs/TEAM_INTEGRATION_AND_ROADMAP.md](docs/TEAM_INTEGRATION_AND_ROADMAP.md).
+For subsystem integration contracts (Solar Autonomy `E`, Communication Stability `C`, and Topography `T`), cross-module physics formulas, and our 4-phase 3D relief & Mission Control UX roadmap, see [docs/TEAM_INTEGRATION_AND_ROADMAP.md](docs/TEAM_INTEGRATION_AND_ROADMAP.md).

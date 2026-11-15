@@ -24,7 +24,6 @@ Los aceptan `/scores`, `/sky`, `/compare`, `/scores/custom` y `/scores/matrix` c
 | `weight_energy` | 0.5 | [0, 1] | Peso de la energía ($w_E$) en el puntaje global |
 | `weight_communication` | 0.5 | [0, 1] | Peso de la comunicación ($w_C$) en el puntaje global |
 | `weight_terrain` | 0.0 | [0, 2] | Peso de la facilidad de aterrizaje / topografía ($w_T$) en el puntaje global |
-| `weight_protection` | 0.0 | [0, 2] | Peso de la protección ante impactos ($w_A$) en el puntaje global |
 | `max_slope_deg` | 8.0 | (2.0, 45.0] | Pendiente máxima admisible del terreno (umbral NASA HLS-R-0071 / Wueller et al.) |
 | `stay_days` | 6.5 | (0, 60] | Estancia en superficie que la luz solar continua debe cubrir (días, perfil HLS Artemis III) |
 | `panel` | `tiempo` | `tiempo`, `horizontal`, `vertical` | Orientación de los paneles para la energía: solo tiempo de luz, paneles planos (sen de la elevación) o verticales que siguen al Sol (cos de la elevación) |
@@ -89,7 +88,7 @@ Puntajes de todo el catálogo para una fecha; alimenta el globo. Versión compac
   "date": "2026-12-15T00:00:00Z",
   "config": {
     "window_days": 14.0, "step_hours": 2.0, "sun_margin_deg": 0.0, "earth_margin_deg": 2.0,
-    "weight_energy": 0.5, "weight_communication": 0.5, "weight_terrain": 0.0, "weight_protection": 0.0,
+    "weight_energy": 0.5, "weight_communication": 0.5, "weight_terrain": 0.0,
     "max_slope_deg": 8.0, "stay_days": 6.5, "panel": "tiempo"
   },
   "scores": [
@@ -103,9 +102,7 @@ Puntajes de todo el catálogo para una fecha; alimenta el globo. Versión compac
         "energy": 37.4,
         "communication": 100.0,
         "landing_ease": 98.2,
-        "asteroid_protection": null,
         "terrain": 98.2,
-        "asteroid": null,
         "total": 68.7
       },
       "topography": {
@@ -477,7 +474,6 @@ Parámetros:
       "elevation_m": -1240.5,
       "slope_deg": 4.12,
       "landing_ease": 88.5,
-      "asteroid_protection": null,
       "solar_exposure": 52.0,
       "earth_comm": 0.0,
       "suitability": 0.0

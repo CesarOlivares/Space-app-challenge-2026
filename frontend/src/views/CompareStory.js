@@ -1,8 +1,8 @@
 // Vista de comparación (sección 03).
 //
 // Izquierda: veredicto en lenguaje llano y el porqué (decisores, curiosos y educadores).
-// Derecha: un tablero con una fila por indicador (puntaje global, comunicación, energía, terreno,
-// protección) y una barra por sitio. Solo compiten los sitios viables; lo que no tiene datos se
+// Derecha: un tablero con una fila por indicador (puntaje global, comunicación, energía, terreno)
+// y una barra por sitio. Solo compiten los sitios viables; lo que no tiene datos se
 // dice "sin datos" en vez de pintar un cero. El detalle técnico va plegado: requisitos con su margen,
 // horizonte con las trayectorias del Sol y la Tierra, línea de tiempo, calendario de un año y la tabla.
 
@@ -60,12 +60,10 @@ const TXT = {
     reasonCommunication: "Mantiene la Tierra a la vista el {a} % de la ventana (frente a {b} %): enlace directo más estable.",
     reasonEnergy: "Tiene {a} de luz continua desde el aterrizaje (frente a {b}): menos riesgo en la noche lunar.",
     reasonTerrain: "Pendiente local de {a}° frente a {b}°: menos riesgo de vuelco al aterrizar.",
-    reasonAsteroid: "El relieve cercano cubre el {a} % del cielo frente al {b} %: más resguardo ante impactos.",
     qTotal: "Mezcla {w} (más es mejor)",
     qCommunication: "¿Cuántos días hay enlace directo con la Tierra?",
     qEnergy: "¿Cuánto Sol seguido tendrá desde que aterriza?",
     qTerrain: "¿Qué tan inclinado es el suelo? (menos es mejor)",
-    qAsteroid: "¿Cuánto lo resguarda el relieve de impactos? Métrica exploratoria del equipo, no un requisito de la NASA",
     noWinner: "No hay un ganador por puntaje global: los totales se calcularon con distintos criterios. Compara fila por fila.",
     notComparable: "El total de {names} se calculó sin {criteria}, porque no hay dato en ese sitio: no es comparable con el de un sitio que sí lo tiene.",
     alsoDiffers: "También difiere, sin pesar en el total",
@@ -74,12 +72,10 @@ const TXT = {
     uEnergy: "de luz continua",
     uEnergyAll: "de luz (toda la ventana)",
     uTerrain: "de pendiente",
-    uAsteroid: "del cielo tapado por relieve",
     dPoint: "{v} punto",
     dPoints: "{v} puntos",
     dFlatter: "{v}° más plano",
     dSteeper: "{v}° más inclinado",
-    dSky: "{v} % de cielo",
     subScore: "Puntaje {v}/100",
     subTerrainScore: "Puntaje {v}/100 · fuente: {src}",
     techData: "Datos y resolución",
@@ -151,7 +147,7 @@ const TXT = {
     sensLine: "{name} gana en el {pct} % de las combinaciones de pesos probadas.",
     sensCriteria: "Se probaron {n} combinaciones al azar de {criteria}, sin preferir ninguna. Solo compiten los sitios viables.",
     sensCurrent: "Con los pesos actuales ({w}) gana {name}.",
-    sensCurrentWhy: " Terreno y protección no cuentan en ellos.",
+    sensCurrentWhy: " Terreno no cuenta en ellos.",
     sensRobust: "La conclusión no depende de los pesos.",
     sensMixed: "La conclusión depende en parte de los pesos.",
     sensOpen: "No hay un ganador claro: depende de los pesos.",
@@ -159,20 +155,16 @@ const TXT = {
     mCommunication: "Comunicaciones",
     mEnergy: "Energía",
     mTerrain: "Terreno",
-    mAsteroid: "Protección",
     gTotal: "Índice ponderado con los pesos actuales: {w}. Un criterio con peso 0 no cuenta en el total; los pesos se cambian en el engranaje.",
     wEnergy: "energía",
     wCommunication: "comunicación",
     wTerrain: "terreno",
-    wProtection: "protección",
     gCommunication: "Qué tan estable es la señal directa con la Tierra durante la misión (% de la ventana con la Tierra visible).",
     gEnergy: "Luz solar disponible: horas seguidas de Sol y su aprovechamiento.",
     gTerrain: "Qué tan fácil y seguro es posarse: pendiente, rugosidad y despeje de aproximación.",
-    gAsteroid: "Cuánto protege el relieve cercano ante impactos de micrometeoroides. Es una métrica exploratoria del equipo, no un requisito de la NASA. Solo se estima donde hay relieve real.",
     subCommunication: "Tierra visible {v} % de la ventana",
     subEnergy: "Luz continua: {v}",
     subTerrain: "Pendiente {v}° · {src}",
-    subAsteroid: "Relieve cubre {v} % del cielo",
     subTotal: "Índice ponderado, no una medida física",
     subPartial: "Total parcial: faltan criterios con peso",
     refOnly: "no viable · referencial",
@@ -223,12 +215,10 @@ const TXT = {
     reasonCommunication: "It keeps Earth in view {a} % of the window (vs {b} %): a steadier direct link.",
     reasonEnergy: "It has {a} of continuous light from landing (vs {b}): less risk through the lunar night.",
     reasonTerrain: "Local slope {a}° vs {b}°: lower risk of tipping over at touchdown.",
-    reasonAsteroid: "Nearby terrain covers {a} % of the sky vs {b} %: more shelter from impacts.",
     qTotal: "Blend of {w} (higher is better)",
     qCommunication: "How many days with a direct link to Earth?",
     qEnergy: "How much unbroken sunlight after landing?",
     qTerrain: "How steep is the ground? (lower is better)",
-    qAsteroid: "How much does the terrain shelter it from impacts? Exploratory team metric, not a NASA requirement",
     noWinner: "There is no winner by overall score: the totals were computed with different criteria. Compare row by row.",
     notComparable: "The total for {names} was computed without {criteria}, because there is no data at that site: it is not comparable with a site that has it.",
     alsoDiffers: "Also differs, not counted in the total",
@@ -237,12 +227,10 @@ const TXT = {
     uEnergy: "of continuous light",
     uEnergyAll: "of light (whole window)",
     uTerrain: "slope",
-    uAsteroid: "of the sky blocked by terrain",
     dPoint: "{v} point",
     dPoints: "{v} points",
     dFlatter: "{v}° flatter",
     dSteeper: "{v}° steeper",
-    dSky: "{v} % of sky",
     subScore: "Score {v}/100",
     subTerrainScore: "Score {v}/100 · source: {src}",
     techData: "Data and resolution",
@@ -314,7 +302,7 @@ const TXT = {
     sensLine: "{name} wins in {pct} % of the weight combinations tried.",
     sensCriteria: "{n} random combinations of {criteria} were tried, favoring none. Only viable sites compete.",
     sensCurrent: "With the current weights ({w}), {name} wins.",
-    sensCurrentWhy: " Terrain and protection do not count in them.",
+    sensCurrentWhy: " Terrain does not count in them.",
     sensRobust: "The conclusion does not depend on the weights.",
     sensMixed: "The conclusion depends partly on the weights.",
     sensOpen: "There is no clear winner: it depends on the weights.",
@@ -322,20 +310,16 @@ const TXT = {
     mCommunication: "Communications",
     mEnergy: "Energy",
     mTerrain: "Terrain",
-    mAsteroid: "Protection",
     gTotal: "Weighted index with the current weights: {w}. A criterion with weight 0 does not count toward the total; change the weights in the gear panel.",
     wEnergy: "energy",
     wCommunication: "communication",
     wTerrain: "terrain",
-    wProtection: "protection",
     gCommunication: "How steady the direct signal to Earth is during the mission (% of the window with Earth visible).",
     gEnergy: "Sunlight available: unbroken hours of Sun and how well they are used.",
     gTerrain: "How easy and safe it is to touch down: slope, roughness and approach clearance.",
-    gAsteroid: "How much nearby terrain shields against micrometeoroid impacts. It is an exploratory team metric, not a NASA requirement. Only estimated where real terrain exists.",
     subCommunication: "Earth visible {v} % of the window",
     subEnergy: "Continuous light: {v}",
     subTerrain: "Slope {v}° · {src}",
-    subAsteroid: "Terrain covers {v} % of the sky",
     subTotal: "Weighted index, not a physical measure",
     subPartial: "Partial total: weighted criteria are missing",
     refOnly: "not viable · reference only",
@@ -367,7 +351,7 @@ function weightsText(config) {
   const dict = TXT[getLang()] ?? TXT.es;
   const parts = [
     ["wEnergy", config.weight_energy], ["wCommunication", config.weight_communication],
-    ["wTerrain", config.weight_terrain], ["wProtection", config.weight_protection],
+    ["wTerrain", config.weight_terrain],
   ].filter(([, w]) => w > 0);
   const sum = parts.reduce((a, [, w]) => a + w, 0);
   const items = parts.map(([k, w]) => `${Math.round((w / sum) * 100)} % ${dict[k]}`);
@@ -405,7 +389,6 @@ const earthShare = (r) => pct(earthFraction(r));
 const earthDays = (r) => earthFraction(r) * r.config.window_days;
 const days = (d) => num(d, Math.abs(d - Math.round(d)) < 0.05 ? 0 : 1);
 const slope = (r) => r.topography?.slope_deg ?? 0;
-const shielded = (r) => r.topography?.solid_angle_shielded_pct ?? 0;
 const signed = (text, better) => `${better ? "+" : "−"}${text}`;
 
 // Cada fila responde una pregunta concreta. `show` da la cifra en unidades reales (lo que lee el
@@ -459,17 +442,6 @@ const METRICS = [
       src: tr(r.topography?.source === "lola_dem" ? "srcLola" : "srcCatalog"),
     }),
     reason: (w, o) => tr("reasonTerrain", { a: num(slope(w), 1), b: num(slope(o), 1) }),
-  },
-  {
-    key: "asteroid", weightKey: "weight_protection", label: "mAsteroid", goal: "gAsteroid", ask: "qAsteroid", icon: "kpiShield",
-    value: (r) => r.scores.asteroid ?? null, // null: sin relieve real alrededor
-    show: (r) => ({ big: `${Math.round(shielded(r))} %`, unit: tr("uAsteroid") }),
-    delta: (best, other, isBest) => {
-      const d = Math.round(shielded(best) - shielded(other));
-      return d ? signed(tr("dSky", { v: Math.abs(d) }), d > 0 === isBest) : "";
-    },
-    sub: (r) => tr("subScore", { v: Math.round(r.scores.asteroid) }),
-    reason: (w, o) => tr("reasonAsteroid", { a: Math.round(shielded(w)), b: Math.round(shielded(o)) }),
   },
 ];
 
@@ -527,7 +499,7 @@ function buildExplanation(results) {
   const aside = gaps.filter((g) => !g.counts).slice(0, 3).map(li);
 
   const missingNames = [...new Set(incomplete.flatMap((r) => r.missing_criteria))]
-    .map((c) => tr({ terrain: "mTerrain", protection: "mAsteroid" }[c] ?? "mTotal").toLowerCase());
+    .map((c) => tr({ terrain: "mTerrain" }[c] ?? "mTotal").toLowerCase());
 
   const notComparable = incomplete.length ? [tr("notComparable", {
     names: incomplete.map((r) => `<strong>${escapeHtml(shortName(r.site))}</strong>`).join(", "),
@@ -708,7 +680,7 @@ export class CompareStory {
     const top = ranked[0];
     const verdict = top.share >= 0.9 ? "sensRobust" : top.share >= 0.6 ? "sensMixed" : "sensOpen";
     const dict = TXT[getLang()] ?? TXT.es;
-    const names = sens.criteria.map((c) => dict[{ energy: "wEnergy", communication: "wCommunication", terrain: "wTerrain", protection: "wProtection" }[c]]);
+    const names = sens.criteria.map((c) => dict[{ energy: "wEnergy", communication: "wCommunication", terrain: "wTerrain" }[c]]);
     const criteria = names.length > 1 ? `${names.slice(0, -1).join(", ")} ${getLang() === "en" ? "and" : "y"} ${names.at(-1)}` : names[0];
     const bars = ranked.map(({ share, i }) => `
       <div class="sens-row">
@@ -721,7 +693,7 @@ export class CompareStory {
     const current = results.map((r, i) => ({ r, i })).filter((x) => x.r.viable).sort((a, b) => b.r.scores.total - a.r.scores.total)[0];
     const currentNote = current && current.i !== top.i
       ? `<p class="sens-current">${tr("sensCurrent", { name: `<strong>${escapeHtml(shortName(current.r.site))}</strong>` })}${
-        sens.criteria.some((c) => c === "terrain" || c === "protection") && !(results[0].config.weight_terrain > 0) && !(results[0].config.weight_protection > 0)
+        sens.criteria.some((c) => c === "terrain") && !(results[0].config.weight_terrain > 0)
           ? tr("sensCurrentWhy") : ""}</p>` : "";
     return `<section class="sens">
       <h2>${tr("sensTitle")}</h2>

@@ -258,17 +258,16 @@ function estimateSlopeFromField(field, lat, lon) {
 
 /**
  * Maps a risk score or mode to an RGBA tuple [r, g, b, a] for the on-globe heatmap.
- * @param {"risk-a"|"risk-b"|"solar"|"comm"|"suitability"|"safe-havens"} mode - Active risk visualization mode.
+ * @param {"risk-a"|"solar"|"comm"|"suitability"|"safe-havens"} mode - Active risk visualization mode.
  * @param {number|null} slopeDeg - Local slope in degrees.
  * @param {number} ease - Landing Ease score (0-100).
- * @param {number} shield - Asteroid Protection score (0-100).
  * @param {number} [solar=50] - Solar exposure percentage (0-100).
  * @param {number} [comm=100] - Earth communication line-of-sight percentage (0-100).
  * @param {number} [suit=50] - Combined 3-variable suitability score (0-100).
  * @param {number} [maxSlopeDeg=15] - Maximum safe lander slope limit in degrees.
  * @returns {[number, number, number, number]}
  */
-function riskCellColor(mode, slopeDeg, ease, shield, solar = 50, comm = 100, suit = 50, maxSlopeDeg = 15.0) {
+function riskCellColor(mode, slopeDeg, ease, solar = 50, comm = 100, suit = 50, maxSlopeDeg = 15.0) {
   if (mode === "risk-a") {
     if (slopeDeg != null) {
       if (slopeDeg <= 5.0) return [16, 200, 145, 190]; // Emerald flat (< 5°)
@@ -284,11 +283,6 @@ function riskCellColor(mode, slopeDeg, ease, shield, solar = 50, comm = 100, sui
     if (ease >= 78) return [16, 200, 145, 190];
     if (ease >= 50) return [245, 165, 25, 185];
     return [225, 45, 55, 205];
-  }
-  if (mode === "risk-b") {
-    if (shield >= 45) return [14, 165, 233, 205];
-    if (shield >= 22) return [56, 189, 248, 165];
-    return [234, 88, 12, 185];
   }
   if (mode === "solar") {
     // Thermal radiance: Dark navy (<20% cold trap) -> Blue -> Orange -> Warm Gold
@@ -427,7 +421,6 @@ function buildRiskOverlayTexture(grid, mode, field = null, maxSlopeDeg = 15.0) {
       if (mode === "risk-a" && slope == null) continue;
 
       const ease = bilerp("landing_ease", 50);
-      const shield = bilerp("asteroid_protection", 30);
       const solar = bilerp("solar_exposure", 50);
       const comm = bilerp("earth_comm", 50);
       let suit = bilerp("suitability", 50);
@@ -448,7 +441,6 @@ function buildRiskOverlayTexture(grid, mode, field = null, maxSlopeDeg = 15.0) {
         mode,
         slope,
         ease,
-        shield,
         solar,
         comm,
         suit,
