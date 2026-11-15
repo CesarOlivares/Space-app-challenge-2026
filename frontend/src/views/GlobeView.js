@@ -312,34 +312,63 @@ function riskCellColor(mode, slopeDeg, ease, shield, solar = 50, comm = 100, sui
   }
 
   // mode === "suitability" || mode === "safe-havens"
-  // 1. HARD EXCLUSION: If ANY of the 3 criteria fails, the site is NON-VIABLE:
-  const hasSignal = comm >= 15.0;
-  const hasSun = solar >= 20.0;
-  const safeSlope = slopeDeg == null || slopeDeg <= maxSlopeDeg;
-  const isViable = hasSignal && hasSun && safeSlope && suit > 15.0;
-
-  if (!isViable) {
-    if (!safeSlope) {
-      // Rojo de advertencia mecánica: riesgo de vuelco por pendiente excesiva
-      return [220, 38, 38, 225]; // #dc2626 Crimson Hazard Red
-    }
-    // Negro profundo: sin señal a Tierra (Cara Oculta) o trampa fría en sombra permanente
-    return [15, 23, 42, 235]; // #0f172a Deep Space / Slate Black
+  // 1. EXCLUSIÓN TOTAL DE LA CARA OCULTA:
+  // Si no hay enlace directo con la Tierra (Cara Oculta, comm < 15%),
+  // SIEMPRE es negro profundo (#0f172a). NUNCA rojo ni advertencia de pendiente,
+  // ya que sin línea de vista a la Tierra no hay comunicación posible sin satélites repetidores.
+  if (comm < 15.0) {
+    return [15, 23, 42, 235]; // #0f172a Deep Space / Slate Black (sin conexión DTE)
   }
 
-  // 2. GRADIENTE CONTINUO POR PUNTAJE PARA ZONAS VIABLES:
-  // Interpolación suave y continua: Ámbar (30) -> Oro (52) -> Cyan (75) -> Verde Esmeralda (95-100)
+  // 2. EXCLUSIÓN POR TRAMPA FRÍA PERMANENTE (solar < 20%):
+  if (solar < 20.0) {
+    return [15, 23, 42, 235];
+  }
+
+  // 3. EXCLUSIÓN POR PENDIENTE CRÍTICA EN ZONAS CON SEÑAL:
+  // Suavizado anti-aliasing en la transición de pendiente para evitar bordes dentados
+  const safeSlope = slopeDeg == null || slopeDeg <= maxSlopeDeg;
+  if (!safeSlope) {
+    if (slopeDeg > maxSlopeDeg + 1.5) {
+      return [220, 38, 38, 225]; // #dc2626 Rojo peligro de vuelco
+    }
+    // Banda de transición suave entre advertencia y peligro:
+    const blendFrac = (slopeDeg - maxSlopeDeg) / 1.5;
+    return colorRamp([
+      [0.0, [234, 138, 24, 205]], // Ámbar de advertencia
+      [1.0, [220, 38, 38, 225]],  // Rojo peligro
+    ], blendFrac);
+  }
+
+  // 4. TRANSICIÓN SUAVE EN EL LIMBO DE COMUNICACIÓN (15% a 22% comm):
+  // Si está cerca del borde donde se pierde la señal, fundir suavemente hacia el negro
+  const commFade = Math.min(1.0, (comm - 15.0) / 7.0);
+
+  // 5. GRADIENTE CONTINUO POR PUNTAJE PARA ZONAS VIABLES:
   const t = Math.max(0, Math.min(1, (suit - 30) / 70));
-  return colorRamp([
-    [0.00, [234, 138, 24, 185]],  // 30: Warm Amber
-    [0.32, [245, 197, 24, 205]],  // 52: Golden Yellow
-    [0.65, [14, 165, 233, 225]],  // 75: Aerospace Cyan
-    [1.00, [52, 211, 153, 245]],  // 100: Optimal Emerald Green
+  const viableColor = colorRamp([
+    [0.00, [234, 138, 24, 185]],  // 30: Ámbar cálido
+    [0.32, [245, 197, 24, 205]],  // 52: Amarillo oro
+    [0.65, [14, 165, 233, 225]],  // 75: Cyan aeroespacial
+    [1.00, [52, 211, 153, 245]],  // 100: Verde esmeralda óptimo
   ], t);
+
+  if (commFade < 1.0) {
+    const black = [15, 23, 42, 235];
+    return [
+      Math.round(black[0] * (1 - commFade) + viableColor[0] * commFade),
+      Math.round(black[1] * (1 - commFade) + viableColor[1] * commFade),
+      Math.round(black[2] * (1 - commFade) + viableColor[2] * commFade),
+      Math.round(black[3] * (1 - commFade) + viableColor[3] * commFade),
+    ];
+  }
+
+  return viableColor;
 }
 
 /**
  * Generates a smooth bilinear-interpolated RGBA CanvasTexture from the 72x36 risk grid.
+ * Rendered at high resolution (1024x512) to produce smooth, non-pixelated contour curves.
  * @param {Object} grid - Grid payload from GET /api/risk-grid.
  * @param {"risk-a"|"risk-b"|"solar"|"comm"|"suitability"|"safe-havens"} mode - Active risk layer mode.
  * @param {HeightField|null} [field] - Optional global 2K elevation heightfield for slope calculation.
@@ -348,8 +377,9 @@ function riskCellColor(mode, slopeDeg, ease, shield, solar = 50, comm = 100, sui
  */
 function buildRiskOverlayTexture(grid, mode, field = null, maxSlopeDeg = 15.0) {
   const { cols, rows, cells } = grid;
-  const w = 288;
-  const h = 144;
+  // 1024x512 canvas resolution gives ~3 samples per degree for smooth, anti-aliased curves
+  const w = 1024;
+  const h = 512;
   const canvas = document.createElement("canvas");
   canvas.width = w;
   canvas.height = h;
@@ -438,6 +468,10 @@ function buildRiskOverlayTexture(grid, mode, field = null, maxSlopeDeg = 15.0) {
   ctx.putImageData(img, 0, 0);
   const tex = new THREE.CanvasTexture(canvas);
   tex.colorSpace = THREE.SRGBColorSpace;
+  tex.minFilter = THREE.LinearFilter;
+  tex.magFilter = THREE.LinearFilter;
+  tex.wrapS = THREE.RepeatWrapping;
+  tex.wrapT = THREE.ClampToEdgeWrapping;
   return tex;
 }
 
