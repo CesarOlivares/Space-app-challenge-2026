@@ -357,3 +357,13 @@ body.compare-zoom #zoom-reticle { animation: lock 1.5s ease-out both; }
   .req-table td.req { min-width: 96px; }
   .req-table tr.sec th { position: static; }
 }
+
+/* ---------- Datos y resolución ---------- */
+
+.data-facts { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: var(--space-3); margin: var(--space-2) 0; }
+.data-facts > div { padding: var(--space-3); border: 1px solid var(--line); border-radius: 10px; }
+.data-facts dt { font-weight: 600; font-size: var(--fs-small); margin-bottom: 4px; }
+.data-facts dd { margin: 0; font-size: var(--fs-small); color: var(--ink-muted); line-height: 1.45; }
+.data-table td { color: var(--ink-muted); }
+.x-patch { min-height: 40px; }
+.x-patch canvas { max-width: 100%; height: auto; }

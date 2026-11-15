@@ -259,6 +259,7 @@ const compareStory = new CompareStory(document.getElementById("story-root"), {
   // Datos pesados del detalle técnico: se piden con la fecha y la configuración con que se comparó.
   loadTimeline: (r) => fetchTimeline(siteRef(r.site.id), new Date(r.date), state.config),
   loadAvailability: (r) => fetchAvailability(siteRef(r.site.id), new Date(r.date), state.config),
+  loadPatch: (r) => fetchTerrainPatch(siteRef(r.site.id), 25, new Date(r.date), state.config.windowDays),
 });
 const learnView = new LearnView(document.getElementById("learn-root"), {
   onGoExplore: () => router.go("explorar"),

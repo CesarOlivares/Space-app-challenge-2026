@@ -108,11 +108,11 @@ Prioridades: **P0** = el resultado hoy puede llevar a una conclusión equivocada
 
 | # | Tarea | Frente | Hecho cuando |
 |---|---|---|---|
-| 2.1 | "Cómo decide la NASA" en Aprender: los 5 pasos de CASSA, los KPI de la sección 3 y por qué no hay un puntaje único | UX + Modelo | Página con fuentes enlazadas, pensada para profesores y estudiantes |
-| 2.2 | Junto a cada gráfico, un "cómo leer este gráfico" de una línea y su referencia | UX | Todos los gráficos del detalle lo tienen |
-| 2.3 | Declarar la resolución y la fuente de cada dato (DEM de 20 m, LOLA GDR, efemérides DE440) | Frontend | Visible en la tabla de requisitos |
-| 2.4 | Mapa local de luz y pendiente alrededor del sitio, con la elipse de 100 m (reutiliza `/patch`) | Frontend | Se ve si hay terreno mejor dentro de la elipse |
-| 2.5 | Validar los valores contra PGDA (iluminación media y visibilidad de la Tierra) en los 6 sitios polares | Modelo | Diferencias documentadas en `modelo/06-validacion.md` |
+| 2.1 | "Cómo decide la NASA" en Aprender: los 5 pasos de CASSA, los KPI de la sección 3 y por qué no hay un puntaje único | UX + Modelo | **Hecho el 15-11**: sección con los 5 pasos, tabla de criterios con umbrales, "por qué no hay un puntaje único", qué parte modela la app y 4 fuentes enlazadas. También se corrigieron textos viejos de la página (pesos 20/20/40/20, pendiente de IM-1) |
+| 2.2 | Junto a cada gráfico, un "cómo leer este gráfico" de una línea y su referencia | UX | **Hecho el 15-11**: cada gráfico del detalle técnico lo trae, el panel del sitio explica sus ejes y Aprender tiene la guía completa. Glosario de protección: marcada como métrica del equipo |
+| 2.3 | Declarar la resolución y la fuente de cada dato (DEM de 20 m, LOLA GDR, efemérides DE440) | Frontend | **Hecho el 15-11**: bloque "Datos y resolución" con fuente y precisión de cada cálculo, y por sitio su horizonte, la precisión de su posición y el origen de la pendiente. Dice que la iluminación media tiene ±5–10 puntos |
+| 2.4 | Mapa local de luz y pendiente alrededor del sitio, con la elipse de 100 m (reutiliza `/patch`) | Frontend | **Hecho el 15-11 sin dibujar la elipse**: con celdas de 120 m, la elipse de ~100 m cabe en una sola celda y no se puede dibujar con sentido; el mapa lo dice. Se muestra el entorno de 3 km con pendiente, luz y aptitud |
+| 2.5 | Validar los valores contra PGDA (iluminación media y visibilidad de la Tierra) en los 6 sitios polares | Modelo | **Hecho el 15-11**: la Tierra ya estaba validada; se agregó el Sol (`test_pgda_sun.py`). Motor frente a PGDA: error medio 0,043 y máximo 0,107 (shackleton-ridge); el motor da más luz en 5 de 6 sitios. Documentado en `modelo/06-validacion.md` |
 
 ### Orden sugerido
 

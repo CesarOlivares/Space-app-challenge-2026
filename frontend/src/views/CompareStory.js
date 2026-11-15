@@ -14,6 +14,7 @@ import { renderCompareTable } from "./CompareView.js";
 import { longestDark, weightSensitivity } from "./decision.js";
 import { notViableReason } from "./encoding.js";
 import { renderSky } from "./SkyView.js";
+import { renderTerrainPatch } from "./TerrainPatchView.js";
 import { renderTimeline } from "./TimelineView.js";
 
 const SERIES_COLORS = ["#56b4e9", "#e69f00", "#46c878", "#cc79a7"];
@@ -80,6 +81,27 @@ const TXT = {
     dSky: "{v} % de cielo",
     subScore: "Puntaje {v}/100",
     subTerrainScore: "Puntaje {v}/100 · fuente: {src}",
+    techData: "Datos y resolución",
+    techDataHint: "De dónde sale cada número y con qué precisión. Sirve para saber cuánto confiar en una diferencia pequeña.",
+    dataEph: "Posición del Sol y la Tierra",
+    dataEphX: "Efemérides JPL DE440; error máximo de 0,006° frente a JPL Horizons en 240 casos.",
+    dataDem: "Relieve",
+    dataDemX: "DEM LOLA de 120 m por celda (LDEM_75S_120M), solo al sur de 80° S.",
+    dataSlope: "Pendiente",
+    dataSlopeX: "Plano ajustado a 3×3 celdas (~360 m): más suave que a escala del módulo, así que el veredicto de pendiente es optimista.",
+    dataSun: "Iluminación media",
+    dataSunX: "Frente al mapa oficial de la NASA (PGDA), ±5–10 puntos porcentuales en los sitios polares: una diferencia menor que eso no es concluyente.",
+    colSite: "Sitio", colHorizon: "Horizonte", colPosition: "Posición del sitio", colSlopeData: "Pendiente",
+    horTerrain: "Relieve real hasta {km} km, observador a {h} m",
+    horSphere: "Esférico: sin relieve alrededor",
+    posLander: "Coordenada del módulo",
+    posFeature: "Centro del rasgo: no es un punto de aterrizaje",
+    posPoi: "Punto de interés",
+    posApprox: "Aproximada",
+    slopeLola: "LOLA, 120 m",
+    techPatch: "Terreno alrededor del sitio",
+    techPatchHint: "Cada celda mide 120 m y el mapa abarca 3 km. La elipse de aterrizaje (~100 m) cabe en una sola celda: muestra el entorno, no el punto exacto. Arrastra para rotarlo.",
+    patchNone: "Sin relieve real medido alrededor de este sitio (solo hay DEM al sur de 80° S).",
     techReq: "Requisitos y margen",
     techReqHint: "Cada requisito con su umbral, el margen sobre él y de dónde sale. Los primeros deciden si el sitio es viable; los de referencia, no.",
     secReq: "Requisitos: deciden si el sitio es viable",
@@ -145,7 +167,7 @@ const TXT = {
     gCommunication: "Qué tan estable es la señal directa con la Tierra durante la misión (% de la ventana con la Tierra visible).",
     gEnergy: "Luz solar disponible: horas seguidas de Sol y su aprovechamiento.",
     gTerrain: "Qué tan fácil y seguro es posarse: pendiente, rugosidad y despeje de aproximación.",
-    gAsteroid: "Cuánto protege el relieve cercano ante impactos de micrometeoroides. Solo se estima donde hay relieve real.",
+    gAsteroid: "Cuánto protege el relieve cercano ante impactos de micrometeoroides. Es una métrica exploratoria del equipo, no un requisito de la NASA. Solo se estima donde hay relieve real.",
     subCommunication: "Tierra visible {v} % de la ventana",
     subEnergy: "Luz continua: {v}",
     subTerrain: "Pendiente {v}° · {src}",
@@ -221,6 +243,27 @@ const TXT = {
     dSky: "{v} % of sky",
     subScore: "Score {v}/100",
     subTerrainScore: "Score {v}/100 · source: {src}",
+    techData: "Data and resolution",
+    techDataHint: "Where each number comes from and how precise it is. It tells you how far to trust a small difference.",
+    dataEph: "Sun and Earth position",
+    dataEphX: "JPL DE440 ephemerides; maximum error of 0.006° against JPL Horizons over 240 cases.",
+    dataDem: "Terrain",
+    dataDemX: "LOLA DEM at 120 m per cell (LDEM_75S_120M), only south of 80° S.",
+    dataSlope: "Slope",
+    dataSlopeX: "Plane fitted to 3×3 cells (~360 m): smoother than at lander scale, so the slope verdict is optimistic.",
+    dataSun: "Mean illumination",
+    dataSunX: "Against NASA's official map (PGDA), ±5–10 percentage points at the polar sites: a smaller difference is not conclusive.",
+    colSite: "Site", colHorizon: "Horizon", colPosition: "Site position", colSlopeData: "Slope",
+    horTerrain: "Real terrain out to {km} km, observer at {h} m",
+    horSphere: "Spherical: no terrain around",
+    posLander: "Lander coordinates",
+    posFeature: "Feature center: not a landing point",
+    posPoi: "Point of interest",
+    posApprox: "Approximate",
+    slopeLola: "LOLA, 120 m",
+    techPatch: "Terrain around the site",
+    techPatchHint: "Each cell is 120 m and the map spans 3 km. The landing ellipse (~100 m) fits in a single cell: it shows the surroundings, not the exact spot. Drag to rotate.",
+    patchNone: "No real terrain measured around this site (the DEM only exists south of 80° S).",
     techReq: "Requirements and margin",
     techReqHint: "Each requirement with its threshold, the margin over it and where it comes from. The first group decides viability; the reference rows do not.",
     secReq: "Requirements: they decide whether the site is viable",
@@ -286,7 +329,7 @@ const TXT = {
     gCommunication: "How steady the direct signal to Earth is during the mission (% of the window with Earth visible).",
     gEnergy: "Sunlight available: unbroken hours of Sun and how well they are used.",
     gTerrain: "How easy and safe it is to touch down: slope, roughness and approach clearance.",
-    gAsteroid: "How much nearby terrain shields against micrometeoroid impacts. Only estimated where real terrain exists.",
+    gAsteroid: "How much nearby terrain shields against micrometeoroid impacts. It is an exploratory team metric, not a NASA requirement. Only estimated where real terrain exists.",
     subCommunication: "Earth visible {v} % of the window",
     subEnergy: "Continuous light: {v}",
     subTerrain: "Slope {v}° · {src}",
@@ -511,10 +554,11 @@ function buildExplanation(results) {
 export class CompareStory {
   // `loadTimeline(result)` y `loadAvailability(result)` piden al servidor los datos pesados del detalle
   // técnico; solo se llaman cuando el usuario lo abre.
-  constructor(root, { onBack, onGoExplore, onSuggest, loadTimeline = null, loadAvailability = null }) {
+  constructor(root, { onBack, onGoExplore, onSuggest, loadTimeline = null, loadAvailability = null, loadPatch = null }) {
     this.root = root;
     this.loadTimeline = loadTimeline;
     this.loadAvailability = loadAvailability;
+    this.loadPatch = loadPatch;
     this.results = null;
     root.addEventListener("click", (e) => {
       if (e.target.closest("[data-story-back]")) onBack();
@@ -701,6 +745,11 @@ export class CompareStory {
         ${this.#requirementsHtml(results)}
       </section>
       <section class="x-block">
+        <h3>${tr("techData")}</h3>
+        <p class="hint">${tr("techDataHint")}</p>
+        ${this.#dataHtml(results)}
+      </section>
+      <section class="x-block">
         <h3>${tr("techSky")}</h3>
         <p class="hint">${tr("techSkyHint")}</p>
         <div class="x-sites">${perSite("x-sky")}</div>
@@ -709,6 +758,11 @@ export class CompareStory {
         <h3>${tr("techTimeline")}</h3>
         <p class="hint">${tr("techTimelineHint")}</p>
         <div class="x-sites">${perSite("x-timeline")}</div>
+      </section>
+      <section class="x-block">
+        <h3>${tr("techPatch")}</h3>
+        <p class="hint">${tr("techPatchHint")}</p>
+        <div class="x-sites">${perSite("x-patch")}</div>
       </section>
       <section class="x-block">
         <h3>${tr("techAvail")}</h3>
@@ -743,6 +797,18 @@ export class CompareStory {
         timelineNode.closest(".x-site").remove();
       }
 
+      const patchNode = details.querySelector(`.x-patch[data-i="${i}"]`);
+      if (!this.loadPatch) {
+        patchNode.closest(".x-site").remove();
+      } else {
+        this.loadPatch(r).then((patch) => {
+          if (stale()) return;
+          if (!patch?.elevation_m?.length) { patchNode.textContent = tr("patchNone"); return; }
+          patchNode.textContent = "";
+          renderTerrainPatch(patchNode, patch, r.config.max_slope_deg ?? 8);
+        }).catch((error) => { if (!stale()) fail(patchNode, error); });
+      }
+
       const availNode = details.querySelector(`.x-avail-cell[data-i="${i}"]`);
       if (!this.loadAvailability) return availNode.closest(".x-site").remove();
       availNode.textContent = tr("availLoading");
@@ -762,6 +828,27 @@ export class CompareStory {
       <p class="av-kpi"><b>${tr("availKpi", { pct: num(data.available_fraction * 100, 0), n: data.available, total: data.evaluated })}</b></p>
       ${availabilitySvg(data, describe, tr("techAvail"))}
       <p class="hint">${tr("availFail", { sun: counts.sun, earth: counts.earth, slope: counts.slope })}</p>`;
+  }
+
+  // De dónde sale cada número: fuentes y resolución fijas, y por sitio el tipo de horizonte, de posición y de pendiente.
+  #dataHtml(results) {
+    const facts = [["dataEph", "dataEphX"], ["dataDem", "dataDemX"], ["dataSlope", "dataSlopeX"], ["dataSun", "dataSunX"]]
+      .map(([k, x]) => `<div><dt>${tr(k)}</dt><dd>${tr(x)}</dd></div>`).join("");
+    const position = { lander: "posLander", centro_de_rasgo: "posFeature", punto_de_interes: "posPoi", aproximada: "posApprox" };
+    const rows = results.map((r, i) => {
+      const h = r.horizon ?? {};
+      const horizon = h.kind === "terreno"
+        ? tr("horTerrain", { km: num(h.max_distance_km ?? 0, 0), h: num(h.observer_height_m ?? 0, 0) })
+        : tr("horSphere");
+      const pos = position[r.site?.precision] ? tr(position[r.site.precision]) : "";
+      const slope = r.topography?.source === "lola_dem" ? tr("slopeLola") : tr("noData");
+      return `<tr><th scope="row"><span class="s-dot" style="--c:${SERIES_COLORS[i % SERIES_COLORS.length]}"></span>${escapeHtml(shortName(r.site))}</th>
+        <td>${escapeHtml(horizon)}</td><td>${escapeHtml(pos)}</td><td>${escapeHtml(slope)}</td></tr>`;
+    }).join("");
+    return `<dl class="data-facts">${facts}</dl>
+      <div class="compare-scroll"><table class="req-table data-table">
+        <thead><tr><th scope="col">${tr("colSite")}</th><th scope="col">${tr("colHorizon")}</th><th scope="col">${tr("colPosition")}</th><th scope="col">${tr("colSlopeData")}</th></tr></thead>
+        <tbody>${rows}</tbody></table></div>`;
   }
 
   // Tabla de requisitos: valor, margen y cumple/no cumple por sitio, con su umbral y su fuente.
