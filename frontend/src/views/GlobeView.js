@@ -312,34 +312,63 @@ function riskCellColor(mode, slopeDeg, ease, shield, solar = 50, comm = 100, sui
   }
 
   // mode === "suitability" || mode === "safe-havens"
-  // 1. HARD EXCLUSION: If ANY of the 3 criteria fails, the site is NON-VIABLE:
-  const hasSignal = comm >= 15.0;
-  const hasSun = solar >= 20.0;
-  const safeSlope = slopeDeg == null || slopeDeg <= maxSlopeDeg;
-  const isViable = hasSignal && hasSun && safeSlope && suit > 15.0;
-
-  if (!isViable) {
-    if (!safeSlope) {
-      // Rojo de advertencia mecánica: riesgo de vuelco por pendiente excesiva
-      return [220, 38, 38, 225]; // #dc2626 Crimson Hazard Red
-    }
-    // Negro profundo: sin señal a Tierra (Cara Oculta) o trampa fría en sombra permanente
-    return [15, 23, 42, 235]; // #0f172a Deep Space / Slate Black
+  // 1. EXCLUSIÓN TOTAL DE LA CARA OCULTA:
+  // Si no hay enlace directo con la Tierra (Cara Oculta, comm < 15%),
+  // SIEMPRE es negro profundo (#0f172a). NUNCA rojo ni advertencia de pendiente,
+  // ya que sin línea de vista a la Tierra no hay comunicación posible sin satélites repetidores.
+  if (comm < 15.0) {
+    return [15, 23, 42, 235]; // #0f172a Deep Space / Slate Black (sin conexión DTE)
   }
 
-  // 2. GRADIENTE CONTINUO POR PUNTAJE PARA ZONAS VIABLES:
-  // Interpolación suave y continua: Ámbar (30) -> Oro (52) -> Cyan (75) -> Verde Esmeralda (95-100)
+  // 2. EXCLUSIÓN POR TRAMPA FRÍA PERMANENTE (solar < 20%):
+  if (solar < 20.0) {
+    return [15, 23, 42, 235];
+  }
+
+  // 3. EXCLUSIÓN POR PENDIENTE CRÍTICA EN ZONAS CON SEÑAL:
+  // Suavizado anti-aliasing en la transición de pendiente para evitar bordes dentados
+  const safeSlope = slopeDeg == null || slopeDeg <= maxSlopeDeg;
+  if (!safeSlope) {
+    if (slopeDeg > maxSlopeDeg + 1.5) {
+      return [220, 38, 38, 225]; // #dc2626 Rojo peligro de vuelco
+    }
+    // Banda de transición suave entre advertencia y peligro:
+    const blendFrac = (slopeDeg - maxSlopeDeg) / 1.5;
+    return colorRamp([
+      [0.0, [234, 138, 24, 205]], // Ámbar de advertencia
+      [1.0, [220, 38, 38, 225]],  // Rojo peligro
+    ], blendFrac);
+  }
+
+  // 4. TRANSICIÓN SUAVE EN EL LIMBO DE COMUNICACIÓN (15% a 22% comm):
+  // Si está cerca del borde donde se pierde la señal, fundir suavemente hacia el negro
+  const commFade = Math.min(1.0, (comm - 15.0) / 7.0);
+
+  // 5. GRADIENTE CONTINUO POR PUNTAJE PARA ZONAS VIABLES:
   const t = Math.max(0, Math.min(1, (suit - 30) / 70));
-  return colorRamp([
-    [0.00, [234, 138, 24, 185]],  // 30: Warm Amber
-    [0.32, [245, 197, 24, 205]],  // 52: Golden Yellow
-    [0.65, [14, 165, 233, 225]],  // 75: Aerospace Cyan
-    [1.00, [52, 211, 153, 245]],  // 100: Optimal Emerald Green
+  const viableColor = colorRamp([
+    [0.00, [234, 138, 24, 185]],  // 30: Ámbar cálido
+    [0.32, [245, 197, 24, 205]],  // 52: Amarillo oro
+    [0.65, [14, 165, 233, 225]],  // 75: Cyan aeroespacial
+    [1.00, [52, 211, 153, 245]],  // 100: Verde esmeralda óptimo
   ], t);
+
+  if (commFade < 1.0) {
+    const black = [15, 23, 42, 235];
+    return [
+      Math.round(black[0] * (1 - commFade) + viableColor[0] * commFade),
+      Math.round(black[1] * (1 - commFade) + viableColor[1] * commFade),
+      Math.round(black[2] * (1 - commFade) + viableColor[2] * commFade),
+      Math.round(black[3] * (1 - commFade) + viableColor[3] * commFade),
+    ];
+  }
+
+  return viableColor;
 }
 
 /**
  * Generates a smooth bilinear-interpolated RGBA CanvasTexture from the 72x36 risk grid.
+ * Rendered at high resolution (1024x512) to produce smooth, non-pixelated contour curves.
  * @param {Object} grid - Grid payload from GET /api/risk-grid.
  * @param {"risk-a"|"risk-b"|"solar"|"comm"|"suitability"|"safe-havens"} mode - Active risk layer mode.
  * @param {HeightField|null} [field] - Optional global 2K elevation heightfield for slope calculation.
@@ -348,8 +377,9 @@ function riskCellColor(mode, slopeDeg, ease, shield, solar = 50, comm = 100, sui
  */
 function buildRiskOverlayTexture(grid, mode, field = null, maxSlopeDeg = 15.0) {
   const { cols, rows, cells } = grid;
-  const w = 288;
-  const h = 144;
+  // 1024x512 canvas resolution gives ~3 samples per degree for smooth, anti-aliased curves
+  const w = 1024;
+  const h = 512;
   const canvas = document.createElement("canvas");
   canvas.width = w;
   canvas.height = h;
@@ -438,6 +468,10 @@ function buildRiskOverlayTexture(grid, mode, field = null, maxSlopeDeg = 15.0) {
   ctx.putImageData(img, 0, 0);
   const tex = new THREE.CanvasTexture(canvas);
   tex.colorSpace = THREE.SRGBColorSpace;
+  tex.minFilter = THREE.LinearFilter;
+  tex.magFilter = THREE.LinearFilter;
+  tex.wrapS = THREE.RepeatWrapping;
+  tex.wrapT = THREE.ClampToEdgeWrapping;
   return tex;
 }
 
@@ -464,6 +498,8 @@ export class GlobeView {
     this.riskGrid = null;
     this.maxSlopeDeg = 15;
     this.riskTextures = new Map();
+    this.emptyOverlayTexture = null;
+    this.overlayUniforms = null;
     this.lolaTexture = null;
     this.relief = { enabled: true, exaggeration: 3, meta: null, field: null, status: "loading" };
     this.quality = "auto"; // auto | standard | high
@@ -569,27 +605,66 @@ export class GlobeView {
 
   // ---- Moon: progressive texture (4K -> 8K) and real LOLA relief ----
 
+  #setupOverlayShader(material) {
+    material.customProgramCacheKey = () => "moon_surface_with_overlay";
+    material.onBeforeCompile = (shader) => {
+      shader.uniforms.uOverlayMap = this.overlayUniforms.uOverlayMap;
+      shader.uniforms.uOverlayOpacity = this.overlayUniforms.uOverlayOpacity;
+      shader.uniforms.uHasOverlay = this.overlayUniforms.uHasOverlay;
+
+      shader.fragmentShader = shader.fragmentShader.replace(
+        "#include <map_pars_fragment>",
+        `#include <map_pars_fragment>
+        uniform sampler2D uOverlayMap;
+        uniform float uOverlayOpacity;
+        uniform float uHasOverlay;
+        vec4 vCustomOverlay = vec4(0.0);`
+      );
+
+      shader.fragmentShader = shader.fragmentShader.replace(
+        "#include <map_fragment>",
+        `#include <map_fragment>
+        if (uHasOverlay > 0.5) {
+          vCustomOverlay = texture2D(uOverlayMap, vMapUv);
+          float overlayAlpha = vCustomOverlay.a * uOverlayOpacity;
+          diffuseColor.rgb = mix(diffuseColor.rgb, vCustomOverlay.rgb, overlayAlpha);
+        }`
+      );
+
+      shader.fragmentShader = shader.fragmentShader.replace(
+        "#include <emissivemap_fragment>",
+        `#include <emissivemap_fragment>
+        if (uHasOverlay > 0.5) {
+          totalEmissiveRadiance += vCustomOverlay.rgb * (vCustomOverlay.a * uOverlayOpacity * 0.35);
+        }`
+      );
+
+      material.userData.shader = shader;
+    };
+  }
+
   #buildMoon() {
     this.loader = new THREE.TextureLoader();
     const color = this.#loadColor("moon_color_4k.jpg");
     this.colors.standard = color;
+
+    const emptyTex = new THREE.DataTexture(new Uint8Array([0, 0, 0, 0]), 1, 1);
+    emptyTex.needsUpdate = true;
+    this.emptyOverlayTexture = emptyTex;
+    this.overlayUniforms = {
+      uOverlayMap: { value: emptyTex },
+      uOverlayOpacity: { value: 0.0 },
+      uHasOverlay: { value: 0.0 },
+    };
+
+    const material = new THREE.MeshStandardMaterial({ map: color, roughness: 1, metalness: 0 });
+    this.#setupOverlayShader(material);
+
     this.moon = new THREE.Mesh(
       new THREE.SphereGeometry(1, ...SEGMENTS_FLAT),
-      new THREE.MeshStandardMaterial({ map: color, roughness: 1, metalness: 0 }),
+      material,
     );
     this.scene.add(this.moon);
-    this.riskOverlay = new THREE.Mesh(
-      new THREE.SphereGeometry(1.0025, 192, 96),
-      new THREE.MeshStandardMaterial({
-        transparent: true,
-        opacity: 0.82,
-        roughness: 0.95,
-        metalness: 0,
-        depthWrite: false,
-      }),
-    );
-    this.riskOverlay.visible = false;
-    this.scene.add(this.riskOverlay);
     // Use a lightweight sphere for pointer raycasting instead of the 131k-vertex relief mesh.
     this.pickSphere = new THREE.Mesh(new THREE.SphereGeometry(1, 48, 24));
     this.#loadRelief();
@@ -616,10 +691,6 @@ export class GlobeView {
       material.displacementMap = height;
       material.normalMap = normal;
       material.needsUpdate = true;
-      if (this.riskOverlay) {
-        this.riskOverlay.material.displacementMap = height;
-        this.riskOverlay.material.needsUpdate = true;
-      }
       this.relief.meta = meta;
       this.relief.field = new HeightField(height.image, meta);
       this.lolaTexture = buildLolaTexture(height.image);
@@ -656,10 +727,6 @@ export class GlobeView {
     material.displacementBias = (meta.min_m / radius) * on;
     // El mapa guarda las pendientes multiplicadas por normal_gain: se compensa aquí.
     material.normalScale.setScalar((on / meta.normal_gain) || 0);
-    if (this.riskOverlay) {
-      this.riskOverlay.material.displacementScale = material.displacementScale;
-      this.riskOverlay.material.displacementBias = material.displacementBias;
-    }
     this.#placeMarkers();
   }
 
@@ -799,23 +866,39 @@ export class GlobeView {
 
   /**
    * Switches the on-globe surface visualization layer.
+   * Directly blends the suitability/risk heatmap onto the 3D lunar terrain mesh.
    * @param {"surface"|"risk-a"|"risk-b"|"solar"|"comm"|"suitability"|"safe-havens"} mode - Active lunar layer mode.
    */
   setLayerMode(mode) {
     this.layerMode = mode;
-    if (!this.riskOverlay) return;
     if (mode === "surface" || !this.riskGrid) {
-      this.riskOverlay.visible = false;
+      this.overlayUniforms.uHasOverlay.value = 0.0;
+      this.overlayUniforms.uOverlayOpacity.value = 0.0;
+      this.overlayUniforms.uOverlayMap.value = this.emptyOverlayTexture;
+      if (this.moon?.material?.userData?.shader) {
+        const s = this.moon.material.userData.shader;
+        s.uniforms.uHasOverlay.value = 0.0;
+        s.uniforms.uOverlayOpacity.value = 0.0;
+        s.uniforms.uOverlayMap.value = this.emptyOverlayTexture;
+      }
       return;
     }
+
     let tex = this.riskTextures.get(mode);
     if (!tex) {
       tex = buildRiskOverlayTexture(this.riskGrid, mode, this.relief?.field, this.maxSlopeDeg ?? 15);
       this.riskTextures.set(mode, tex);
     }
-    this.riskOverlay.material.map = tex;
-    this.riskOverlay.material.needsUpdate = true;
-    this.riskOverlay.visible = true;
+
+    this.overlayUniforms.uOverlayMap.value = tex;
+    this.overlayUniforms.uOverlayOpacity.value = 0.82;
+    this.overlayUniforms.uHasOverlay.value = 1.0;
+    if (this.moon?.material?.userData?.shader) {
+      const s = this.moon.material.userData.shader;
+      s.uniforms.uOverlayMap.value = tex;
+      s.uniforms.uOverlayOpacity.value = 0.82;
+      s.uniforms.uHasOverlay.value = 1.0;
+    }
   }
 
   removeSite(id) {
