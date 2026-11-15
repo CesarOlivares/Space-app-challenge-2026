@@ -563,20 +563,25 @@ async function ensureRiskGrid() {
 }
 
 const layerBar = document.getElementById("moon-layer-bar");
+// Activa una capa del globo por su data-layer; ignora nombres que no estén en la barra.
+async function setMoonLayer(layer) {
+  const btn = layerBar?.querySelector(`button[data-layer="${CSS.escape(layer)}"]`);
+  if (!btn) return;
+  for (const b of layerBar.querySelectorAll("button[data-layer]")) {
+    const active = b === btn;
+    b.classList.toggle("active", active);
+    b.setAttribute("aria-pressed", String(active));
+  }
+  if (layer !== "surface") await ensureRiskGrid();
+  globe.setLayerMode(layer);
+  renderActiveLayerLegend();
+}
 if (layerBar) {
   layerBar.addEventListener("click", async (e) => {
     const btn = e.target.closest("button[data-layer]");
     if (!btn) return;
     setDrawerTab("layers");
-    const layer = btn.dataset.layer;
-    for (const b of layerBar.querySelectorAll("button[data-layer]")) {
-      const active = b === btn;
-      b.classList.toggle("active", active);
-      b.setAttribute("aria-pressed", String(active));
-    }
-    if (layer !== "surface") await ensureRiskGrid();
-    globe.setLayerMode(layer);
-    renderActiveLayerLegend();
+    await setMoonLayer(btn.dataset.layer);
   });
 }
 legendToggle.addEventListener("click", () => setLegend(legendCard.hidden));
@@ -926,11 +931,13 @@ function siteForRef(ref) {
 }
 
 // Ejemplo guiado (sección Aprender): abre la herramienta ya configurada.
-async function runExample({ ids, date, pole = false, compare = false }) {
+// `layer` (opcional): data-layer de la barra de capas que el ejemplo deja activa.
+async function runExample({ ids, date, pole = false, compare = false, layer = null }) {
   router.go("explorar");
   const when = new Date(date);
   controls.setDate(when);
   await loadDate(when);
+  if (layer) await setMoonLayer(layer);
   if (compare) {
     state.selected = ids.filter((id) => state.sites.has(id));
     applySelection();

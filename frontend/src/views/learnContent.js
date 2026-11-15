@@ -1,6 +1,7 @@
 // Capas de profundidad de cada tarjeta de Aprender: cómo leerlo · ejemplo real · pruébalo.
 // La primera capa («qué es») es el texto corto que ya vive en LearnView. Cada cifra de aquí sale de
 // docs/modelo/ (05-puntaje.md, 03-horizonte.md) o de la interfaz; si el modelo cambia, se cambia aquí.
+// Las cifras de ejemplo (porcentajes, pendientes, fechas) se recalculan con backend/scripts/learn_facts.py.
 //
 //   read: cómo interpretarlo · example: un caso concreto del catálogo · tryEx: índice del ejemplo guiado
 //   que abre la herramienta (0 Mons Mouton, 1 IM-1, 2 Apollo 11, 3 comparación) · where: dónde aparece.
@@ -25,8 +26,8 @@ export const DETAILS = {
       "Zenith evaluates a 14-day mission window (adjustable in Technical mode) and requires Sun for the whole 6.5-day surface stay: the crewed lander's.",
     ),
     example: T(
-      "Mons Malapert cumple todos los requisitos en solo el 15 % de las fechas de un año; casi todas las fallas son por luz (cálculo del 20/11/2026).",
-      "Mons Malapert meets every requirement on only 15 % of the dates in a year; almost all failures are for light (computed on 20 Nov 2026).",
+      "Mons Malapert cumple todos los requisitos en solo el 14 % de las fechas de 2027; casi todas las fallas son por luz.",
+      "Mons Malapert meets every requirement on only 14 % of the dates in 2027; almost all failures are for light.",
     ),
     where: T("Calendario de disponibilidad, en el detalle técnico de la comparación.", "Availability calendar, in the comparison's technical detail."),
     tryEx: 3,
@@ -37,8 +38,8 @@ export const DETAILS = {
       "Near the pole the Sun skims the horizon almost flat. Any distant ridge can block it, so two very close sites can get very different light.",
     ),
     example: T(
-      "Mons Mouton e IM-2 están casi en el mismo lugar y con la misma geometría; el relieve los separa en 24 puntos porcentuales de visibilidad de la Tierra.",
-      "Mons Mouton and IM-2 are almost in the same place with the same geometry; terrain separates them by 24 percentage points of Earth visibility.",
+      "Mons Mouton e IM-2 están casi en el mismo lugar y con la misma geometría; el relieve los separa en unos 21 puntos porcentuales de visibilidad de la Tierra en 2027.",
+      "Mons Mouton and IM-2 are almost in the same place with the same geometry; terrain separates them by about 21 percentage points of Earth visibility in 2027.",
     ),
     where: T("Gráfico «Horizonte y trayectorias» del detalle de cada sitio.", "“Horizon and paths” chart in each site's detail."),
     tryEx: 0,
@@ -49,8 +50,8 @@ export const DETAILS = {
       "From the Moon, Earth barely moves in the sky: it stays at an almost fixed azimuth (±8°) and its height swings about ±7° over ~27-day cycles. That is why the landing date changes communication so much.",
     ),
     example: T(
-      "En 2027, con la ventana de 14 días: IM-1 ve la Tierra el 100 % del tiempo; Shackleton, solo el 35 %.",
-      "In 2027, over the 14-day window: IM-1 sees Earth 100 % of the time; Shackleton, only 35 %.",
+      "En 2027, con la ventana de 14 días: IM-1 ve la Tierra el 100 % del tiempo; Shackleton Ridge, solo el 36 %.",
+      "In 2027, over the 14-day window: IM-1 sees Earth 100 % of the time; Shackleton Ridge, only 36 %.",
     ),
     tryEx: 0,
   },
@@ -61,8 +62,8 @@ export const DETAILS = {
       "100 = Earth in view the whole time and no link loss after landing. Half the index is the share of the window with Earth visible and the other half how long contact lasts unbroken from landing. Earth counts when its centre is at least 2° above the horizon.",
     ),
     example: T(
-      "En 2027, con la ventana de 14 días, IM-1 ve la Tierra el 100 % del tiempo y Shackleton Ridge el 35 %.",
-      "In 2027, over the 14-day window, IM-1 sees Earth 100 % of the time and Shackleton Ridge 35 %.",
+      "En 2027, con la ventana de 14 días, IM-1 ve la Tierra el 100 % del tiempo y Shackleton Ridge el 36 %.",
+      "In 2027, over the 14-day window, IM-1 sees Earth 100 % of the time and Shackleton Ridge 36 %.",
     ),
     where: T("Ficha del sitio, tablero de comparación y gráfico «Luz y enlace en la ventana».", "Site card, comparison board and the “Light and link in the window” chart."),
     tryEx: 2,
@@ -73,16 +74,16 @@ export const DETAILS = {
       "100 = Sun all window with no sunset. Half the index is solar use (by default, the share of hours with Sun) and half is continuity: how many hours in a row of light from landing, which matters to avoid running out of battery at night.",
     ),
     example: T(
-      "Apollo 11 el 15/11/2026 marca 100 en energía y 100 en comunicación: la Tierra siempre a la vista y luz para toda la estancia.",
-      "Apollo 11 on 15 Nov 2026 scores 100 in energy and 100 in communication: Earth always in view and light for the whole stay.",
+      "Apollo 11 el 15/12/2026 marca 100 en energía y 100 en comunicación: la Tierra siempre a la vista y luz para toda la estancia.",
+      "Apollo 11 on 15 Dec 2026 scores 100 in energy and 100 in communication: Earth always in view and light for the whole stay.",
     ),
     where: T("Ficha del sitio y tablero de comparación.", "Site card and comparison board."),
     tryEx: 2,
   },
   "kpi-terrain": {
     read: T(
-      "Combina 65 % pendiente, 25 % rugosidad y 10 % de horizontes bajos. Esos pesos son supuestos del equipo sin fuente publicada, por eso el terreno pesa 0 en el puntaje hasta que lo actives, y se muestra como información. Fuera del relieve medido dice «sin datos»: no es un cero.",
-      "It blends 65 % slope, 25 % roughness and 10 % low horizons. Those weights are team assumptions without a published source, so terrain weighs 0 in the score until you turn it on, and is shown as information. Outside measured terrain it says “no data”: it is not a zero.",
+      "Combina 65 % pendiente, 25 % rugosidad y 10 % de horizontes bajos. Esos pesos son supuestos del equipo sin fuente publicada, por eso el terreno pesa 0 en el puntaje hasta que lo actives, y se muestra como información. Fuera del polo sale de un relieve global mucho más grueso o dice «sin datos»: no es un cero.",
+      "It blends 65 % slope, 25 % roughness and 10 % low horizons. Those weights are team assumptions without a published source, so terrain weighs 0 in the score until you turn it on, and is shown as information. Outside the pole it comes from a much coarser global terrain model or says “no data”: it is not a zero.",
     ),
     example: T(
       "IM-1 está sobre una pendiente de 11,8°, por encima del límite de 8°: no es viable aunque tenga luz y Tierra.",
@@ -133,8 +134,8 @@ export const DETAILS = {
       "Horizontal: direction (N, E, S, W). Vertical: height above the horizon. The grey silhouette is terrain and the lines are where the Sun and Earth travel. A body is only visible while its line is above the silhouette.",
     ),
     example: T(
-      "Mons Mouton ve la Tierra menos de la mitad del tiempo (46 % en 2027): en el gráfico, es el tramo de su línea que cae bajo la silueta.",
-      "Mons Mouton sees Earth less than half the time (46 % in 2027): in the chart, that is the stretch of its line that falls below the silhouette.",
+      "Mons Mouton ve la Tierra menos de la mitad del tiempo (48 % en 2027): en el gráfico, es el tramo de su línea que cae bajo la silueta.",
+      "Mons Mouton sees Earth less than half the time (48 % in 2027): in the chart, that is the stretch of its line that falls below the silhouette.",
     ),
     where: T("Detalle del sitio (cielo) y detalle técnico de la comparación.", "Site detail (sky) and comparison technical detail."),
     tryEx: 0,
@@ -153,8 +154,8 @@ export const DETAILS = {
       "Each tick is a landing date in the year. Green = meets everything; another colour = fails, by the first requirement not met (no light, no Earth or slope). It shows how often landing is possible, not just whether today works.",
     ),
     example: T(
-      "Mons Malapert cumple en el 15 % de las fechas e IM-2 en el 18 %: pocas oportunidades por región, como dice la NASA.",
-      "Mons Malapert meets it on 15 % of dates and IM-2 on 18 %: few chances per region, as NASA says.",
+      "Mons Malapert cumple en el 14 % de las fechas de 2027 e IM-2 en el 16 %: pocas oportunidades por región, como dice la NASA.",
+      "Mons Malapert meets it on 14 % of the 2027 dates and IM-2 on 16 %: few chances per region, as NASA says.",
     ),
     where: T("Detalle técnico de la comparación.", "Comparison technical detail."),
     tryEx: 3,
