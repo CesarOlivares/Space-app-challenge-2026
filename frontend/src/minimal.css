@@ -484,7 +484,97 @@ body.hero-leaving .page--hero > * {
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  background: rgba(8, 10, 18, 0.78);
+  backdrop-filter: blur(14px);
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  border-radius: 16px;
   animation: drawer-in 0.35s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+
+.drawer button,
+.drawer select,
+.drawer .btn {
+  background: rgba(255, 255, 255, 0.045);
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  border-radius: 8px;
+  color: var(--ink-muted);
+  transition: background 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease, color 0.15s ease;
+}
+
+.drawer button:hover,
+.drawer select:hover,
+.drawer .btn:hover {
+  background: rgba(255, 255, 255, 0.10);
+  border-color: rgba(255, 255, 255, 0.16);
+  color: var(--ink);
+}
+
+.drawer .segmented {
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 8px;
+}
+
+.drawer .segmented button {
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+}
+
+.drawer .segmented button + button {
+  border-left: 1px solid rgba(255, 255, 255, 0.07);
+}
+
+.drawer .segmented button:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--ink);
+}
+
+.drawer .segmented button[aria-pressed="true"],
+.drawer-tabs button[aria-selected="true"],
+.drawer .surface-toggle button.active,
+.drawer .layer-grid button[aria-pressed="true"] {
+  background: color-mix(in srgb, var(--accent) 22%, rgba(8, 10, 18, 0.85));
+  border-color: color-mix(in srgb, var(--accent) 65%, transparent);
+  color: var(--ink);
+  font-weight: 600;
+}
+
+.drawer .layer-grid .btn-suitability {
+  background: rgba(255, 255, 255, 0.055);
+  border-color: rgba(255, 255, 255, 0.13);
+  color: var(--ink);
+  font-weight: 500;
+}
+
+.drawer .layer-grid .btn-suitability:hover {
+  background: rgba(255, 255, 255, 0.10);
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.drawer .layer-grid .btn-suitability[aria-pressed="true"] {
+  background: color-mix(in srgb, var(--accent) 24%, rgba(8, 10, 18, 0.85));
+  border-color: color-mix(in srgb, var(--accent) 70%, transparent);
+  box-shadow: 0 0 12px color-mix(in srgb, var(--accent) 28%, transparent);
+  color: var(--ink);
+  font-weight: 600;
+}
+
+.drawer #tab-layers .group-head-row {
+  margin-top: 4px;
+  padding-top: 10px;
+  border-top: 1px solid rgba(255, 255, 255, 0.07);
+}
+
+.drawer #active-layer-legend {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 8px;
+  padding: 7px 10px;
+}
+
+.drawer .relief {
+  border-top-color: rgba(255, 255, 255, 0.07);
 }
 
 @keyframes drawer-in {
@@ -708,8 +798,10 @@ body.mode-simple .drawer #site-list .status {
 }
 
 #place-pin-toggle[aria-pressed="true"] {
-  background: color-mix(in srgb, var(--accent) 30%, var(--surface-solid));
-  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 22%, rgba(8, 10, 18, 0.85));
+  border-color: color-mix(in srgb, var(--accent) 65%, transparent);
+  box-shadow: 0 0 12px color-mix(in srgb, var(--accent) 28%, transparent);
+  color: var(--ink);
   font-weight: 600;
 }
 
