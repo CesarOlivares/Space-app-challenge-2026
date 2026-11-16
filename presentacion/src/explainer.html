@@ -1,0 +1,370 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Zenith in 30 Seconds</title>
+<meta name="description" content="Zenith: where and when to land at the Moon's south pole. A 30-second animated walkthrough with real NASA and JPL data.">
+<style>
+@font-face{font-family:Archivo;src:url(assets/fonts/archivo-var.woff2) format("woff2");font-weight:100 900;font-stretch:62% 125%}
+@font-face{font-family:JBM;src:url(assets/fonts/jetbrains-mono-var.woff2) format("woff2");font-weight:100 800}
+/*@@tokens.css*/
+/*@@maqueta.css*/
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;background:#000;overflow:hidden}
+body{font-family:Archivo,system-ui,sans-serif;color:var(--ink)}
+#stage{position:absolute;left:50%;top:50%;width:1920px;height:1080px;transform-origin:center;background:var(--bg);overflow:hidden}
+.scene{position:absolute;inset:0;overflow:hidden;visibility:hidden;background:var(--bg)}
+.abs{position:absolute}
+.h{font-weight:900;font-stretch:125%;line-height:.92;letter-spacing:-.01em;text-transform:uppercase}
+.mono{font-family:JBM,monospace}
+.kick{position:absolute;left:var(--m);top:var(--top-kick);font:600 var(--t-label)/1 JBM,monospace;letter-spacing:.28em;text-transform:uppercase;color:var(--acc)}
+.acc{color:var(--acc)}
+.lbl{font:500 var(--t-label)/1.25 JBM,monospace;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+.sub{font:600 var(--t-sub)/1.15 Archivo}
+.txt{font:500 var(--t-text)/1.3 Archivo}
+.src{position:absolute;left:var(--m);bottom:var(--bottom-src);font:400 var(--t-src) Archivo;color:var(--muted)}
+.stars{position:absolute;inset:0;pointer-events:none}
+.stars i{position:absolute;border-radius:50%;background:#fff;animation:tw 4s ease-in-out infinite}
+@keyframes tw{50%{opacity:.15}}
+.svg{display:block}.svg svg{width:100%;height:100%;display:block}
+.mask{display:inline-block;overflow:hidden;vertical-align:top;padding:0 .01em}
+.mask>span{display:inline-block}
+/* Escena 1 */
+#a canvas{position:absolute;left:0;top:0;width:1920px;height:1080px}
+#a .glow{position:absolute;left:1000px;top:60px;width:960px;height:960px;border-radius:50%;background:radial-gradient(circle at 62% 45%,rgba(167,139,250,.20),rgba(167,139,250,0) 62%)}
+/* Escena 2 */
+.dchip{border:2px solid var(--line);background:var(--panel);padding:18px 26px;display:flex;flex-direction:column;gap:6px}
+.dchip b{font:700 32px JBM,monospace}
+.dchip span{font:500 22px JBM,monospace;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+.hub i{position:absolute;left:-60px;top:-60px;width:120px;height:120px;border-radius:50%;border:5px solid var(--acc);opacity:0}
+.links line{stroke:var(--acc);stroke-width:2;stroke-dasharray:6 8;opacity:.8}
+/* Escena 3: demo */
+.frame{position:absolute;border:1.5px solid var(--line);background:#000;overflow:hidden}
+.frame .bar{height:44px;display:flex;align-items:center;gap:12px;padding:0 18px;background:var(--panel);border-bottom:1px solid var(--line);font:500 20px JBM,monospace;color:var(--muted)}
+.frame .bar b{width:12px;height:12px;border-radius:50%;background:#2a3142}
+.frame .bar .url{margin-left:14px}
+.frame .bar .note{margin-left:auto;color:var(--acc);letter-spacing:.1em;font-size:18px}
+.demo-host{position:relative;overflow:hidden;background:#05070d}
+.zoom{position:absolute;left:0;top:0;width:1600px;height:900px;transform-origin:0 0}
+.shield{position:absolute;inset:0;z-index:50}
+.cursor{position:absolute;left:0;top:0;width:44px;height:44px;z-index:60;pointer-events:none;opacity:0;filter:drop-shadow(0 4px 10px rgba(0,0,0,.7));transform-origin:8px 4px}
+.ripple{position:absolute;width:70px;height:70px;margin:-35px 0 0 -35px;border:4px solid var(--acc);border-radius:50%;z-index:60;pointer-events:none;opacity:0}
+.cap{position:absolute;display:flex;align-items:center;gap:18px;font:700 var(--t-text) Archivo;background:var(--bg);color:var(--ink);border:2px solid var(--acc);padding:14px 26px;opacity:0;white-space:nowrap}
+.cap .n{font:700 28px JBM,monospace;color:var(--acc)}
+.cap.ok .n{color:var(--ok)}.cap.bad .n{color:var(--bad)}
+.step{display:flex;gap:24px;align-items:flex-start;padding:26px 0 26px 26px;border-left:4px solid var(--line);opacity:.4;transition:opacity .35s,border-color .35s}
+.step.on{opacity:1;border-left-color:var(--acc)}
+.step.done{opacity:.75}
+.step .n{font:700 30px JBM,monospace;color:var(--acc);padding-top:4px}
+.step b{display:block;font:800 36px/1.05 Archivo;font-stretch:125%;text-transform:uppercase}
+.step span{display:block;font:500 24px/1.3 Archivo;color:var(--muted);margin-top:8px}
+.fx{display:flex;gap:14px;margin-top:14px}
+.fx .svg{width:54px;height:54px;opacity:.35;transition:opacity .3s,transform .3s}
+.fx .svg.on{opacity:1;transform:scale(1.12)}
+/* Escena 4 */
+.qrbox{background:#fff}
+/* Interfaz del reproductor */
+#prog{position:absolute;left:0;bottom:0;height:6px;width:0;background:var(--acc);z-index:80}
+#replay{position:absolute;right:96px;bottom:40px;z-index:90;display:flex;align-items:center;gap:14px;font:600 24px JBM,monospace;letter-spacing:.14em;text-transform:uppercase;color:var(--ink);background:transparent;border:2px solid var(--acc);padding:16px 28px;cursor:pointer;opacity:0;pointer-events:none}
+#replay.show{opacity:1;pointer-events:auto}
+#replay:hover{background:#3a3160}
+#load{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font:500 26px JBM,monospace;letter-spacing:.3em;color:var(--muted);z-index:95;background:var(--bg)}
+@media (prefers-reduced-motion:reduce){.stars i{animation:none}}
+</style>
+</head>
+<body>
+<div id="stage">
+
+<!-- 1 · HOOK -->
+<section class="scene" id="a">
+  <div class="stars" data-stars="190"></div>
+  <div class="glow"></div>
+  <canvas width="1920" height="1080"></canvas>
+  <div class="abs svg ret" data-svg="elementos-2/hud_crosshair_lock_reticle" style="left:1400px;top:759px;width:160px;height:160px;color:var(--acc)"></div>
+  <p class="abs lbl polo" style="left:1580px;top:812px;color:var(--ink)">South pole<br><span class="acc" id="p-lat">−90.0°</span></p>
+  <p class="kick k1">NASA Space Apps Challenge 2026</p>
+  <h1 class="abs h hero" aria-label="Zenith" style="left:86px;top:330px;font-size:176px"></h1>
+  <p class="abs tag sub" style="left:var(--m);top:640px;width:980px">Where and when to land at the Moon’s <span class="acc">south pole</span>?</p>
+  <p class="abs lbl by" style="left:var(--m);bottom:var(--bottom-src);color:var(--ink)">Usach Space Program · Chile</p>
+</section>
+
+<!-- 2 · WHY -->
+<section class="scene" id="b">
+  <div class="stars" data-stars="120"></div>
+  <p class="kick k1">Why it matters</p>
+  <p class="abs sub z0" style="left:var(--m);top:150px;width:1500px">At the south pole, <span class="acc">sunlight and Earth contact</span> change by the day</p>
+  <div class="abs dchip" style="left:110px;top:400px"><b>JPL DE440</b><span>Sun &amp; Earth</span></div>
+  <div class="abs dchip" style="left:820px;top:370px"><b>LRO · LOLA</b><span>Terrain</span></div>
+  <div class="abs dchip" style="left:1380px;top:500px"><b>NASA PGDA</b><span>Illumination</span></div>
+  <div class="abs dchip" style="left:420px;top:630px"><b>NASA SVS</b><span>Surface</span></div>
+  <div class="abs dchip" style="left:1080px;top:750px"><b>LROC</b><span>Sites</span></div>
+  <p class="abs lbl slow" style="left:var(--m);top:920px;color:var(--bad)">The data exists, but it is spread across separate platforms</p>
+  <svg class="abs links" width="1920" height="1080" viewBox="0 0 1920 1080" style="left:0;top:0;pointer-events:none"></svg>
+  <div class="abs hub" style="left:960px;top:560px;width:0;height:0"><i></i></div>
+  <div class="abs z1" style="left:0;top:430px;width:1920px;text-align:center">
+    <p class="sub" style="color:var(--muted)">Zenith brings it together in</p>
+    <p class="h" style="font-size:140px;margin-top:22px">one clear <span class="acc">answer</span></p>
+  </div>
+</section>
+
+<!-- 3 · HOW -->
+<section class="scene" id="c">
+  <div class="stars" data-stars="50"></div>
+  <p class="kick k1">How it works</p>
+  <div class="abs steps" style="left:var(--m);top:180px;width:470px">
+    <div class="step" data-s="1"><span class="n">01</span><div><b>Compare sites</b><span>Candidate regions side by side</span></div></div>
+    <div class="step" data-s="2"><span class="n">02</span><div><b>Check 3 factors</b><span>For a two-week mission</span>
+      <div class="fx"><div class="svg" data-f="1" data-svg="elementos-2/sun_radiant_corona" style="color:var(--sun)"></div><div class="svg" data-f="2" data-svg="elementos-2/deep_space_radar_dish" style="color:var(--earth)"></div><div class="svg" data-f="3" data-svg="elementos-3/hud_3d_terrain_wireframe_mesh" style="color:var(--acc)"></div></div></div></div>
+    <div class="step" data-s="3"><span class="n">03</span><div><b>Test the date</b><span>See how one day changes everything</span></div></div>
+  </div>
+  <div class="frame fr" style="left:640px;top:150px;width:1188px">
+    <div class="bar"><b></b><b></b><b></b><span class="url">zenith.spaceprogram.cl</span><span class="note">Real interface · real data</span></div>
+    <div class="demo-host" style="width:1185px;height:667px"></div>
+  </div>
+  <p class="cap" data-cap style="left:640px;top:900px"></p>
+</section>
+
+<!-- 4 · CTA -->
+<section class="scene" id="d">
+  <div class="stars" data-stars="170"></div>
+  <img class="abs moon" src="assets/luna.webp" alt="" style="left:-260px;top:420px;width:1000px;height:1000px;opacity:.35">
+  <p class="kick k1">Zenith</p>
+  <p class="abs h big1" style="left:var(--m);top:170px;font-size:84px;white-space:nowrap">NASA &amp; JPL data.</p>
+  <p class="abs h big2" style="left:var(--m);top:272px;font-size:84px;white-space:nowrap">One clear <span class="acc">answer</span>.</p>
+  <p class="abs txt sm" style="left:var(--m);top:420px;width:1100px;color:var(--muted)">Zenith doesn’t replace expert analysis. It shows which sites and dates deserve a closer look.</p>
+  <div class="abs qrbox" style="left:1384px;top:190px;width:380px;height:380px"><div id="qr" style="width:380px;height:380px"></div></div>
+  <p class="abs sub qrt" style="left:1384px;top:600px;width:440px;font-size:40px;line-height:1.15">Try it on your <span class="acc">phone</span></p>
+  <p class="abs lbl qru" style="left:1384px;top:700px;width:440px;font-size:22px;letter-spacing:.06em;text-transform:none;color:var(--ink)">zenith.spaceprogram.cl</p>
+  <p class="abs lbl by" style="left:var(--m);bottom:var(--bottom-src);color:var(--ink)">Usach Space Program · NASA Space Apps Challenge 2026</p>
+</section>
+
+<div id="prog"></div>
+<button id="replay" type="button"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 3v6h6"/></svg>Replay</button>
+<div id="load">LOADING…</div>
+</div>
+<svg width="0" height="0" style="position:absolute"><defs>
+<symbol id="cursor-shape" viewBox="0 0 44 44"><path d="M8 4 L8 36 L16 28 L22 41 L28 38 L22 26 L33 26 Z" fill="#fff" stroke="#05070d" stroke-width="2.5" stroke-linejoin="round"/></symbol>
+</defs></svg>
+
+<script src="vendor/gsap.min.js"></script>
+<script src="vendor/qrcode.min.js"></script>
+<script>
+//@@datos.js
+</script>
+<script>window.MQ_LANG = 'en';</script>
+<script>
+//@@maqueta.js
+</script>
+<script>
+(() => {
+const stage = document.getElementById('stage');
+const fit = () => { const s = Math.min(innerWidth / 1920, innerHeight / 1080); stage.style.transform = `translate(-50%,-50%) scale(${s})`; };
+addEventListener('resize', fit); fit();
+const $ = (s, r = document) => [...r.querySelectorAll(s)];
+const captura = /captura/.test(location.search);
+
+document.querySelectorAll('[data-stars]').forEach((el, n) => {
+  let r = 97 * (n + 3); const rnd = () => (r = (r * 9301 + 49297) % 233280) / 233280;
+  for (let i = 0; i < +el.dataset.stars; i++) { const s = document.createElement('i'), z = 1 + rnd() * 2.2;
+    s.style.cssText = `left:${rnd()*100}%;top:${rnd()*100}%;width:${z}px;height:${z}px;opacity:${.3 + rnd()*.7};animation-delay:${-rnd()*4}s`; el.appendChild(s); }
+});
+document.querySelector('#a .hero').innerHTML = [...'ZENITH'].map(c => `<span class="mask"><span class="ch">${c}</span></span>`).join('');
+(() => { const q = qrcode(0, 'M'); q.addData('https://zenith.spaceprogram.cl/#intro'); q.make(); const n = q.getModuleCount(); let d = '';
+  for (let r = 0; r < n; r++) for (let c = 0; c < n; c++) if (q.isDark(r, c)) d += `M${c + 4} ${r + 4}h1v1h-1z`;
+  document.getElementById('qr').innerHTML = `<svg viewBox="0 0 ${n + 8} ${n + 8}" width="380" height="380" shape-rendering="crispEdges"><rect width="100%" height="100%" fill="#fff"/><path d="${d}" fill="#05070d"/></svg>`; })();
+
+const A = document.getElementById('a'), B = document.getElementById('b'), C = document.getElementById('c'), Dd = document.getElementById('d');
+const play = tl => new Promise(res => tl.eventCallback('onComplete', res).play(0));
+const wait = s => new Promise(res => gsap.delayedCall(s, res));
+
+// Cambio de escena: la nueva entra por un círculo que se abre (como el iris del deck)
+function cut(from, to, dur = .8) {
+  to.style.visibility = 'visible'; to.style.zIndex = 2; from && (from.style.zIndex = 1);
+  return play(gsap.timeline({paused: true}).fromTo(to, {clipPath: 'circle(0% at 50% 50%)'}, {clipPath: 'circle(75% at 50% 50%)', duration: dur, ease: 'power3.inOut', clearProps: 'clipPath'})
+    .call(() => { if (from) from.style.visibility = 'hidden'; }));
+}
+
+/* ===== Escena 1: la Luna gira hasta el polo sur ===== */
+let globo = null;
+function hook() {
+  const cv = $('canvas', A)[0]; globo = new Globo(cv, {q: 3});
+  const v = {lat: 22, lon: -165, R: 360, cx: 1700, cy: 470, gain: 0};
+  return globo.ready.then(() => {
+    const draw = () => globo.draw(v, v.gain); draw();
+    gsap.ticker.add(globo.tick = draw);
+    const o = {v: 0}, lat = $('#p-lat', A)[0];
+    const tl = gsap.timeline({paused: true})
+      .to(v, {gain: 1, duration: 2.6, ease: 'power2.inOut'}, 0)
+      .to(v, {lon: 18, lat: -38, R: 430, cx: 1480, cy: 500, duration: 3.4, ease: 'power3.out'}, 0)
+      .from($('.glow', A), {opacity: 0, duration: 2.4}, 0)
+      .from($('.stars', A), {opacity: 0, duration: 1.6}, 0)
+      .from($('.k1', A), {y: 24, opacity: 0, duration: .6, ease: 'power3.out'}, .5)
+      .from($('.ch', A), {yPercent: 115, duration: .9, ease: 'power4.out', stagger: .07}, .7)
+      .from($('.tag', A), {clipPath: 'inset(0 100% 0 0)', y: 20, opacity: 0, duration: 1, ease: 'power3.inOut'}, 1.5)
+      .from($('.ret', A), {scale: 1.9, opacity: 0, rotation: -60, duration: 1, ease: 'power3.out'}, 2.1)
+      .from($('.polo', A), {opacity: 0, x: -20, duration: .6}, 2.4)
+      .to(o, {v: 90, duration: 1.3, ease: 'power2.out', onUpdate: () => lat.textContent = '−' + o.v.toFixed(1) + '°'}, 2.1)
+      .from($('.by', A), {opacity: 0, duration: .6}, 2.0)
+      .to({}, {duration: .4}, 3.2);
+    return {tl};   // envuelto: una línea de GSAP es "thenable" y await la esperaría
+  });
+}
+
+/* ===== Escena 2: datos dispersos → una respuesta ===== */
+function why() {
+  const chips = $('.dchip', B), CX = 960, CY = 560, svg = $('.links', B)[0];
+  gsap.set($('.z1', B), {opacity: 0});
+  const tl = gsap.timeline({paused: true})
+    .from($('.k1', B), {y: 24, opacity: 0, duration: .5, ease: 'power3.out'}, 0)
+    .from($('.z0', B), {y: 30, opacity: 0, duration: .6, ease: 'power3.out'}, .1)
+    .from(chips, {scale: .6, opacity: 0, duration: .5, ease: 'back.out(1.6)', stagger: .12}, .5)
+    .from($('.slow', B), {opacity: 0, x: -20, duration: .5}, 1.3)
+    .call(() => {   // líneas hacia el centro
+      chips.forEach(el => { const x = el.offsetLeft + el.offsetWidth / 2, y = el.offsetTop + el.offsetHeight / 2, L = Math.hypot(CX - x, CY - y);
+        const ln = document.createElementNS('http://www.w3.org/2000/svg', 'line'); ln.setAttribute('x1', x); ln.setAttribute('y1', y); ln.setAttribute('x2', CX); ln.setAttribute('y2', CY);
+        ln.style.strokeDasharray = L; ln.style.strokeDashoffset = L; svg.appendChild(ln); gsap.to(ln, {strokeDashoffset: 0, duration: .6, ease: 'power2.inOut'}); gsap.to(ln, {opacity: 0, duration: .3, delay: 1.1}); });
+    }, null, 2.4)
+    .to($('.z0, .slow', B), {opacity: 0, y: -10, duration: .35}, 2.4)
+    .to(chips, {x: (i, el) => CX - el.offsetLeft - el.offsetWidth / 2, y: (i, el) => CY - el.offsetTop - el.offsetHeight / 2, scale: .2, opacity: 0, duration: .7, ease: 'power3.in', stagger: .05}, 2.85)
+    .fromTo($('.hub i', B), {scale: .2, opacity: 1}, {scale: 3.4, opacity: 0, duration: .8, ease: 'power2.out'}, 3.55)
+    .to($('.z1', B), {opacity: 1, duration: .5}, 3.65)
+    .from($('.z1 .h', B), {y: 40, duration: .6, ease: 'power3.out'}, 3.65)
+    .to({}, {duration: .7}, 4.15);
+  return tl;
+}
+
+/* ===== Escena 3: recorrido por la app (maqueta con interfaz y datos reales) ===== */
+const CANCEL = Symbol('cancel');
+class Demo {
+  constructor(host) {
+    this.host = host; this.base = host.clientWidth / 1600; this.z = {s: 1, x: 0, y: 0}; this.c = {x: 1100, y: 700};
+    this.zoom = document.createElement('div'); this.zoom.className = 'zoom';
+    this.cursor = document.createElementNS('http://www.w3.org/2000/svg', 'svg'); this.cursor.setAttribute('class', 'cursor'); this.cursor.innerHTML = '<use href="#cursor-shape"/>';
+    this.ripple = document.createElement('div'); this.ripple.className = 'ripple';
+    host.append(this.zoom);
+    this.m = new Maqueta(this.zoom); this.m.root.append(this.cursor, this.ripple);
+    const shield = document.createElement('div'); shield.className = 'shield'; this.m.root.append(shield);
+    this.cap = C.querySelector('[data-cap]');
+    this.apply(); this.placeCursor();
+  }
+  apply() { const {s, x, y} = this.z; this.zoom.style.transform = `scale(${this.base * s}) translate(${-x}px,${-y}px)`; this.cursor.style.scale = 1 / s; }
+  placeCursor() { this.cursor.style.transform = `translate(${this.c.x - 8}px,${this.c.y - 4}px)`; }
+  sleep(ms) { return wait(ms / 1000); }
+  tw(target, vars) { return new Promise(res => gsap.to(target, {...vars, onComplete: res})); }
+  async move(p, dur = .7) { this.cursor.style.opacity = 1; await this.tw(this.c, {x: p.x, y: p.y, duration: dur, ease: 'power2.inOut', onUpdate: () => this.placeCursor()}); }
+  pulse(p) { gsap.fromTo(this.ripple, {left: p.x, top: p.y, scale: .3, opacity: 1}, {scale: 1.6 / this.z.s, opacity: 0, duration: .6, ease: 'power2.out'}); gsap.fromTo(this.cursor, {scale: 1 / this.z.s}, {scale: .8 / this.z.s, duration: .09, yoyo: true, repeat: 1}); }
+  async clickEl(sel, dur) { const r = this.m.rectOf(sel), p = {x: r.x + r.w / 2, y: r.y + r.h / 2}; await this.move(p, dur); this.pulse(p); this.m.press(sel); await this.sleep(220); }
+  async clickSite(id, dur = .7) { const p = this.m.project(id); await this.move(p, dur); this.pulse(p); await this.sleep(200); }
+  async zoomTo(r, dur = 1, pad = 1.1) {
+    const S = Math.min(1600 / (r.w * pad), 900 / (r.h * pad), 2.4), vw = 1600 / S, vh = 900 / S;
+    const x = Math.max(0, Math.min(1600 - vw, r.x + r.w / 2 - vw / 2)), y = Math.max(0, Math.min(900 - vh, r.y + r.h / 2 - vh / 2));
+    await this.tw(this.z, {s: S, x, y, duration: dur, ease: 'power3.inOut', onUpdate: () => this.apply()});
+  }
+  async zoomOut(dur = .9) { await this.tw(this.z, {s: 1, x: 0, y: 0, duration: dur, ease: 'power3.inOut', onUpdate: () => this.apply()}); }
+  async say(html, tone = '') { await this.tw(this.cap, {opacity: 0, duration: .12});
+    this.cap.className = 'cap ' + tone; this.cap.innerHTML = html; await this.tw(this.cap, {opacity: 1, duration: .25, ease: 'power2.out'}); }
+}
+const union = (...rs) => { const x = Math.min(...rs.map(r => r.x)), y = Math.min(...rs.map(r => r.y)); return {x, y, w: Math.max(...rs.map(r => r.x + r.w)) - x, h: Math.max(...rs.map(r => r.y + r.h)) - y}; };
+const stepOn = n => $('.step', C).forEach(e => { e.classList.toggle('on', +e.dataset.s === n); e.classList.toggle('done', +e.dataset.s < n); });
+const fxOn = n => $('.fx .svg', C).forEach(e => e.classList.toggle('on', n === 4 || +e.dataset.f === n));
+
+let demo = null;
+function prepDemo() { demo = new Demo($('.demo-host', C)[0]); demo.m.setDate('2026-11-18T00:00:00Z'); return demo.m.ready; }
+async function tour() {
+  const a = demo, m = a.m;
+  // 01 · comparar sitios (18 nov 2026)
+  stepOn(1);
+  m.southPole(1.3);
+  await a.say('<span class="n">NOV 18</span> Pick candidate sites at the south pole');
+  await a.sleep(500);
+  for (const id of ['mons-mouton', 'im-2', 'mons-malapert']) { await a.clickSite(id, .45); m.select(id); await a.sleep(100); }
+  await a.clickEl('.mq-selbar .go', .45);
+  m.showCompare(['im-2', 'mons-malapert', 'mons-mouton'], .3);
+  await a.sleep(600);
+  await a.say('<span class="n">✓</span> IM-2 leads · Mons Mouton loses Earth contact', 'ok');
+  await a.zoomTo(union(m.rectOf('.mq-cmp .head'), m.rectOf('.mq-cmp .row:nth-child(3)')), .8, 1.04);
+  await a.sleep(1000);
+  // 02 · tres factores en un sitio (23 nov 2026)
+  stepOn(2);
+  await a.zoomOut(.5);
+  m.hideCompare(); m.root.querySelector('.mq-nav li.on')?.classList.remove('on'); m.root.querySelectorAll('.mq-nav li')[1].classList.add('on');
+  m.selected = []; m.active = null; m.syncSelbar(); m.hideCard();
+  await a.clickEl('.mq-datebar .date', .45);
+  m.setDate('2026-11-23T00:00:00Z');
+  await a.say('<span class="n">NOV 23</span> Open Mons Malapert');
+  await a.clickSite('mons-malapert', .45); m.select('mons-malapert');
+  await a.sleep(150);
+  await a.zoomTo(m.rectOf('.mq-card'), .7, 1.15);
+  fxOn(1); m.highlight(1); await a.say('<span class="n">☀</span> Power: sunlight until Nov 30');
+  await a.sleep(800);
+  fxOn(2); m.highlight(2); await a.say('<span class="n">⌁</span> Earth link: in view for 11 days');
+  await a.sleep(800);
+  fxOn(3); m.highlight(3); await a.say('<span class="n">△</span> Terrain: 5.5° slope, under the 8° limit');
+  await a.sleep(800);
+  fxOn(4); m.highlight(0); await a.say('<span class="n">✓</span> Viable for a 14-day mission', 'ok');
+  await a.sleep(800);
+  // 03 · un día después
+  stepOn(3);
+  await a.zoomTo(union(m.rectOf('.mq-datebar'), m.rectOf('.mq-card')), .6, 1.05);
+  await a.clickEl('.mq-datebar .next', .4); m.setDate('2026-11-24T00:00:00Z');
+  await a.say('<span class="n">+1 DAY</span> Nov 24: not viable. The Sun sets too soon.', 'bad');
+  await a.sleep(200);
+  await a.zoomTo(m.rectOf('.mq-card'), .6, 1.2);
+  await a.sleep(1300);
+}
+function how() {
+  return gsap.timeline({paused: true})
+    .from($('.k1', C), {y: 24, opacity: 0, duration: .5, ease: 'power3.out'}, 0)
+    .from($('.fr', C), {y: 50, opacity: 0, duration: .7, ease: 'power3.out'}, .1)
+    .from($('.step', C), {x: -40, opacity: 0, duration: .5, ease: 'power3.out', stagger: .1, clearProps: 'transform,opacity'}, .3);
+}
+
+/* ===== Escena 4: cierre ===== */
+function cta() {
+  return gsap.timeline({paused: true})
+    .from($('.moon', Dd), {opacity: 0, scale: .9, duration: 2, ease: 'power2.out'}, 0)
+    .from($('.k1', Dd), {y: 24, opacity: 0, duration: .5, ease: 'power3.out'}, 0)
+    .from($('.big1', Dd), {y: 50, opacity: 0, duration: .6, ease: 'power3.out'}, .1)
+    .from($('.big2', Dd), {y: 50, opacity: 0, duration: .6, ease: 'power3.out'}, .35)
+    .from($('.sm', Dd), {opacity: 0, duration: .6}, .8)
+    .from($('.qrbox', Dd), {scale: .85, opacity: 0, duration: .6, ease: 'back.out(1.5)'}, .6)
+    .from($('.qrt, .qru', Dd), {y: 20, opacity: 0, duration: .5, stagger: .12}, .9)
+    .from($('.by', Dd), {opacity: 0, duration: .5}, 1.1);
+}
+
+/* ===== Reproducción ===== */
+const marks = window.__marks = [], mark = n => marks.push(n + ' ' + ((performance.now() - (window.__t0 || 0)) / 1000).toFixed(1));
+const T = 30, prog = document.getElementById('prog');
+async function main() {
+  const t0 = window.__t0 = performance.now();
+  const bar = () => { prog.style.width = Math.min(100, (performance.now() - t0) / 10 / T) + '%'; };
+  gsap.ticker.add(bar);
+  const {tl: tHook} = await hook(); mark('hook');
+  const pDemo = prepDemo();
+  A.style.visibility = 'visible';
+  await play(tHook);
+  const tWhy = why(); B.style.visibility = 'visible'; B.style.opacity = 1;
+  await cut(A, B, .7); gsap.ticker.remove(globo.tick);
+  mark('why'); await play(tWhy);
+  await pDemo; const tHow = how();
+  cut(B, C, .7); tHow.play(0);
+  mark('demo'); await wait(.3);
+  await tour(); mark('cta');
+  gsap.to(demo.cap, {opacity: 0, duration: .2});
+  cut(C, Dd, .8); await play(cta());
+  gsap.ticker.remove(bar); prog.style.width = '100%';
+  console.info('[explainer] total', ((performance.now() - t0) / 1000).toFixed(1) + ' s');
+  document.getElementById('replay').classList.add('show');
+  window.__done = true;
+}
+document.getElementById('replay').onclick = () => location.reload();
+Promise.all([document.fonts.ready, new Globo(document.createElement('canvas')).ready]).then(() => {
+  gsap.to('#load', {opacity: 0, duration: .3, onComplete: () => document.getElementById('load').remove()});
+  main().catch(e => console.error('[explainer]', e));
+});
+if (captura) document.getElementById('replay').style.display = 'none';
+})();
+</script>
+</body>
+</html>

@@ -3,8 +3,9 @@
 (() => {
 const W = 1600, H = 900, D = window.ZENITH_DATA;
 const rad = Math.PI / 180;
+const EN = window.MQ_LANG === 'en', L = (es, en) => EN ? en : es, dec = v => EN ? v : v.replace('.', ',');  // idioma de la maqueta (deck en español, explicativo en inglés)
 const fmtH = h => { const d = Math.floor(h / 24), r = Math.round(h - d * 24); return d ? `${d} d ${r} h` : `${r} h`; };
-const fmtDate = iso => { const d = new Date(iso); return d.getUTCDate() + ' ' + ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'][d.getUTCMonth()] + ' ' + d.getUTCFullYear() + ', ' + String(d.getUTCHours()).padStart(2,'0') + ':' + String(d.getUTCMinutes()).padStart(2,'0') + ' UTC'; };
+const fmtDate = iso => { const d = new Date(iso); return d.getUTCDate() + ' ' + (EN ? ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'] : ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'])[d.getUTCMonth()] + ' ' + d.getUTCFullYear() + ', ' + String(d.getUTCHours()).padStart(2,'0') + ':' + String(d.getUTCMinutes()).padStart(2,'0') + ' UTC'; };
 const dayKey = iso => iso.slice(0, 10);
 const nameShort = id => ({'mons-malapert':'Mons Malapert','mons-mouton':'Mons Mouton','im-2':'IM-2 Athena'}[id] || D.sitios[id].nombre.split(' — ')[0]);
 
@@ -28,9 +29,9 @@ class Maqueta {
     root.innerHTML = `
       <div class="stars"></div>
       <canvas width="${W}" height="${H}"></canvas>
-      <div class="mq-nav"><span class="brand">ZENITH</span><ul><li>Inicio</li><li class="on">Explorar</li><li>Comparar</li><li>Aprender</li></ul><div class="lang"><b class="on">ES</b><b>EN</b></div></div>
+      <div class="mq-nav"><span class="brand">ZENITH</span><ul><li>${L('Inicio','Home')}</li><li class="on">${L('Explorar','Explore')}</li><li>${L('Comparar','Compare')}</li><li>${L('Aprender','Learn')}</li></ul><div class="lang"><b class="${EN ? '' : 'on'}">ES</b><b class="${EN ? 'on' : ''}">EN</b></div></div>
       <div class="mq-datebar glass"><span class="step prev">‹</span><span class="date"></span><span class="step next">›</span><span class="status"></span></div>
-      <div class="mq-legend glass"><span><svg width="18" height="18" viewBox="0 0 20 20"><circle cx="10" cy="10" r="7" fill="none" stroke="#56b4e9" stroke-opacity=".3" stroke-width="2.6"/><circle cx="10" cy="10" r="7" fill="none" stroke="#56b4e9" stroke-width="2.6" stroke-dasharray="28 44" transform="rotate(-90 10 10)"/></svg>Arco: puntaje</span><span><svg width="18" height="18" viewBox="0 0 20 20"><circle cx="10" cy="10" r="7" fill="none" stroke="#56b4e9" stroke-width="2.6"/></svg>Celeste: viable</span><span><svg width="18" height="18" viewBox="0 0 20 20"><circle cx="10" cy="10" r="6" fill="none" stroke="#8a9099" stroke-width="2.4" stroke-dasharray="2.2 2.4"/></svg>Gris punteado: no viable</span></div>
+      <div class="mq-legend glass"><span><svg width="18" height="18" viewBox="0 0 20 20"><circle cx="10" cy="10" r="7" fill="none" stroke="#56b4e9" stroke-opacity=".3" stroke-width="2.6"/><circle cx="10" cy="10" r="7" fill="none" stroke="#56b4e9" stroke-width="2.6" stroke-dasharray="28 44" transform="rotate(-90 10 10)"/></svg>${L('Arco: puntaje','Arc: score')}</span><span><svg width="18" height="18" viewBox="0 0 20 20"><circle cx="10" cy="10" r="7" fill="none" stroke="#56b4e9" stroke-width="2.6"/></svg>${L('Celeste: viable','Blue: viable')}</span><span><svg width="18" height="18" viewBox="0 0 20 20"><circle cx="10" cy="10" r="6" fill="none" stroke="#8a9099" stroke-width="2.4" stroke-dasharray="2.2 2.4"/></svg>${L('Gris punteado: no viable','Dotted grey: not viable')}</span></div>
       <div class="mq-card glass"></div>
       <div class="mq-selbar glass"></div>
       <div class="mq-cmp"></div>`;
@@ -106,22 +107,22 @@ class Maqueta {
   dateKey() { const k = dayKey(this.date); return D.fechas[k] ? k : '2026-11-18'; }
   setDate(iso) {
     this.date = iso; const k = this.dateKey(), f = D.fechas[k], n = Object.values(f).filter(v => v.v).length;
-    this.el.date.textContent = new Date(iso).toLocaleDateString('es-CL', {day: '2-digit', month: '2-digit', year: 'numeric', timeZone: 'UTC'}).replaceAll('-', '/') + ', 00:00';
-    this.el.status.textContent = `${n} de ${Object.keys(f).length} sitios viables`;
+    this.el.date.textContent = new Date(iso).toLocaleDateString(EN ? 'en-US' : 'es-CL', {day: '2-digit', month: '2-digit', year: 'numeric', timeZone: 'UTC'}).replaceAll('-', '/') + ', 00:00';
+    this.el.status.textContent = L(`${n} de ${Object.keys(f).length} sitios viables`, `${n} of ${Object.keys(f).length} sites viable`);
     for (const [id, el] of this.markers) el.innerHTML = this.markerSVG(id);
     if (this.active) this.renderCard(this.active);
   }
   // ---- ficha ----
   renderCard(id) {
     const f = D.fechas[this.dateKey()][id], fi = D.ficha[this.dateKey()], s = D.sitios[id], rich = id === 'mons-malapert' && fi;
-    const reason = rich ? 'El Sol se pone antes de terminar la estancia de 6,5 días.' : (f.c < 60 ? 'Tierra poco visible.' : 'Pendiente sobre el límite.');
-    const verdict = f.v ? `<p class="verdict ok">Viable</p>` : `<p class="verdict bad">No viable al aterrizar: ${reason}</p>`;
-    const sunC = rich ? `<div class="counter ${fi.sunSetH >= 156 ? 'ok' : 'bad'}" data-f="1"><b>Ocaso solar en ${fmtH(fi.sunSetH)}</b><span>${fmtDate(fi.sunSet)}</span></div>` : '';
-    const eaC = rich ? `<div class="counter ok" data-f="2"><b>Ocaso terrestre en ${fmtH(fi.earthSetH)}</b><span>${fmtDate(fi.earthSet)}</span></div>` : '';
-    const slC = rich ? `<div class="counter ok" data-f="3"><b>Pendiente ${fi.slope.toFixed(1).replace('.', ',')}°</b><span>Apta: límite 8°</span></div>` : '';
-    this.el.card.innerHTML = `<h3>${s.nombre.split(' — ')[0].replace(/\s*\(.*\)/, '')}${id === 'mons-malapert' ? ' (región candidata Artemis)' : ''}</h3><p class="sub">${s.cat === 'historico' ? 'Sitio histórico' : 'Candidato'}</p>${verdict}
+    const reason = rich ? L('El Sol se pone antes de terminar la estancia de 6,5 días.', 'the Sun sets before the 6.5-day stay ends.') : (f.c < 60 ? L('Tierra poco visible.', 'Earth rarely in view.') : L('Pendiente sobre el límite.', 'slope above the limit.'));
+    const verdict = f.v ? `<p class="verdict ok">Viable</p>` : `<p class="verdict bad">${L('No viable al aterrizar', 'Not viable at landing')}: ${reason}</p>`;
+    const sunC = rich ? `<div class="counter ${fi.sunSetH >= 156 ? 'ok' : 'bad'}" data-f="1"><b>${L('Ocaso solar en', 'Sunset in')} ${fmtH(fi.sunSetH)}</b><span>${fmtDate(fi.sunSet)}</span></div>` : '';
+    const eaC = rich ? `<div class="counter ok" data-f="2"><b>${L('Ocaso terrestre en', 'Earthset in')} ${fmtH(fi.earthSetH)}</b><span>${fmtDate(fi.earthSet)}</span></div>` : '';
+    const slC = rich ? `<div class="counter ok" data-f="3"><b>${L('Pendiente', 'Slope')} ${dec(fi.slope.toFixed(1))}°</b><span>${L('Apta: límite 8°', 'OK: limit 8°')}</span></div>` : '';
+    this.el.card.innerHTML = `<h3>${s.nombre.split(' — ')[0].replace(/\s*\(.*\)/, '')}${id === 'mons-malapert' ? L(' (región candidata Artemis)', ' (Artemis candidate region)') : ''}</h3><p class="sub">${s.cat === 'historico' ? L('Sitio histórico', 'Historic site') : L('Candidato', 'Candidate')}</p>${verdict}
       <div class="counters">${sunC}${eaC}${slC}</div>
-      <p class="mini"><b>${f.t}</b> Global${f.v ? '' : ' · referencial'} &nbsp; <b>${f.e}</b> Energía &nbsp; <b>${f.c}</b> Comunicación</p><div class="btn">Ver detalle</div>`;
+      <p class="mini"><b>${f.t}</b> Global${f.v ? '' : L(' · referencial', ' · reference')} &nbsp; <b>${f.e}</b> ${L('Energía', 'Power')} &nbsp; <b>${f.c}</b> ${L('Comunicación', 'Comms')}</p><div class="btn">${L('Ver detalle', 'View details')}</div>`;
   }
   select(id) {
     if (!this.selected.includes(id)) this.selected.push(id); this.active = id; this.renderCard(id);
@@ -131,7 +132,7 @@ class Maqueta {
   hideCard() { gsap.to(this.el.card, {opacity: 0, duration: .25}); }
   syncSelbar() {
     if (this.selected.length < 2) { gsap.to(this.el.sel, {opacity: 0, duration: .2}); return; }
-    this.el.sel.innerHTML = this.selected.map(i => `<span class="chip"><i style="width:10px;height:10px;border-radius:50%;background:${D.fechas[this.dateKey()][i].v ? '#56b4e9' : '#8a9099'}"></i>${nameShort(i)}</span>`).join('') + `<span class="go">Comparar</span>`;
+    this.el.sel.innerHTML = this.selected.map(i => `<span class="chip"><i style="width:10px;height:10px;border-radius:50%;background:${D.fechas[this.dateKey()][i].v ? '#56b4e9' : '#8a9099'}"></i>${nameShort(i)}</span>`).join('') + `<span class="go">${L('Comparar', 'Compare')}</span>`;
     gsap.to(this.el.sel, {opacity: 1, duration: .35});
   }
   rectOf(sel) { const e = this.root.querySelector(sel), r = e.getBoundingClientRect(), b = this.root.getBoundingClientRect(), k = b.width / W; return {x: (r.left - b.left) / k, y: (r.top - b.top) / k, w: r.width / k, h: r.height / k, el: e}; }
@@ -141,14 +142,14 @@ class Maqueta {
   buildCompare(ids) {
     const C = D.comparar, bestId = ids.filter(i => C[i].viable).sort((a, b) => C[b].total - C[a].total)[0];
     const col = i => C[i].viable ? '#56b4e9' : '#8a9099';
-    const head = `<div class="row head"><div class="k"><b style="font-size:24px">Comparación de ${ids.length} sitios</b><span>18 nov 2026 · misión de 14 días</span></div>${ids.map(i => `<div class="site"><b><i style="background:${col(i)}"></i>${nameShort(i)}</b><em class="${C[i].viable ? 'ok' : 'bad'}">${C[i].viable ? 'viable' : 'no viable'}</em></div>`).join('')}</div>`;
+    const head = `<div class="row head"><div class="k"><b style="font-size:24px">${L(`Comparación de ${ids.length} sitios`, `Comparing ${ids.length} sites`)}</b><span>${L('18 nov 2026 · misión de 14 días', 'Nov 18, 2026 · 14-day mission')}</span></div>${ids.map(i => `<div class="site"><b><i style="background:${col(i)}"></i>${nameShort(i)}</b><em class="${C[i].viable ? 'ok' : 'bad'}">${C[i].viable ? 'viable' : L('no viable', 'not viable')}</em></div>`).join('')}</div>`;
     const row = (k, sub, f) => `<div class="row"><div class="k"><b>${k}</b><span>${sub}</span></div>${ids.map(i => { const o = f(C[i], i); return `<div class="v ${i === bestId ? 'win' : ''}" data-i="${i}"><div class="n">${o.n}<small>${o.s}</small></div><div class="bar"><i data-w="${o.w}"></i></div></div>`; }).join('')}</div>`;
     this.el.cmp.innerHTML = head
-      + row('Puntaje global', 'Mezcla 50 % energía y 50 % comunicación', c => ({n: Math.round(c.total), s: '/ 100', w: c.total}))
-      + row('Comunicaciones', '¿Cuántos días hay enlace directo con la Tierra?', c => ({n: (c.earthFrac * 14).toFixed(c.earthFrac === 1 ? 0 : 1).replace('.', ','), s: 'de 14 días', w: c.earthFrac * 100}))
-      + row('Energía', '¿Cuánto Sol seguido tendrá desde que aterrice?', c => ({n: fmtH(c.sunHours), s: 'de luz continua', w: Math.min(100, c.sunHours / 336 * 100)}))
-      + row('Terreno', '¿Qué tan inclinado es el suelo? (menos es mejor)', c => ({n: c.slope.toFixed(1).replace('.', ','), s: '° de pendiente', w: Math.max(6, 100 - c.slope / 12 * 100)}))
-      + `<p class="note" style="margin-top:26px">Estimación preliminar con efemérides JPL y relieve LOLA reales. Para una decisión final, revisa el detalle técnico.</p>`;
+      + row(L('Puntaje global', 'Overall score'), L('Mezcla 50 % energía y 50 % comunicación', '50% power, 50% communications'), c => ({n: Math.round(c.total), s: '/ 100', w: c.total}))
+      + row(L('Comunicaciones', 'Communications'), L('¿Cuántos días hay enlace directo con la Tierra?', 'Days with a direct link to Earth'), c => ({n: dec((c.earthFrac * 14).toFixed(c.earthFrac === 1 ? 0 : 1)), s: L('de 14 días', 'of 14 days'), w: c.earthFrac * 100}))
+      + row(L('Energía', 'Power'), L('¿Cuánto Sol seguido tendrá desde que aterrice?', 'Continuous sunlight after landing'), c => ({n: fmtH(c.sunHours), s: L('de luz continua', 'of sunlight'), w: Math.min(100, c.sunHours / 336 * 100)}))
+      + row(L('Terreno', 'Terrain'), L('¿Qué tan inclinado es el suelo? (menos es mejor)', 'How steep is the ground? (lower is better)'), c => ({n: dec(c.slope.toFixed(1)), s: L('° de pendiente', '° slope'), w: Math.max(6, 100 - c.slope / 12 * 100)}))
+      + `<p class="note" style="margin-top:26px">${L('Estimación preliminar con efemérides JPL y relieve LOLA reales. Para una decisión final, revisa el detalle técnico.', 'Preliminary estimate from real JPL ephemerides and LOLA terrain. Check the technical detail before a final decision.')}</p>`;
     return bestId;
   }
   async showCompare(ids, dur = .5) {
