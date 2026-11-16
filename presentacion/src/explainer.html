@@ -53,14 +53,14 @@ body{font-family:Archivo,system-ui,sans-serif;color:var(--ink)}
 .cap{position:absolute;display:flex;align-items:center;gap:18px;font:700 var(--t-text) Archivo;background:var(--bg);color:var(--ink);border:2px solid var(--acc);padding:14px 26px;opacity:0;white-space:nowrap}
 .cap .n{font:700 28px JBM,monospace;color:var(--acc)}
 .cap.ok .n{color:var(--ok)}.cap.bad .n{color:var(--bad)}
-.step{display:flex;gap:24px;align-items:flex-start;padding:26px 0 26px 26px;border-left:4px solid var(--line);opacity:.4;transition:opacity .35s,border-color .35s}
+.step{display:flex;gap:22px;align-items:flex-start;padding:15px 0 15px 24px;border-left:4px solid var(--line);opacity:.4;transition:opacity .35s,border-color .35s}
 .step.on{opacity:1;border-left-color:var(--acc)}
 .step.done{opacity:.75}
-.step .n{font:700 30px JBM,monospace;color:var(--acc);padding-top:4px}
-.step b{display:block;font:800 36px/1.05 Archivo;font-stretch:125%;text-transform:uppercase}
-.step span{display:block;font:500 24px/1.3 Archivo;color:var(--muted);margin-top:8px}
-.fx{display:flex;gap:14px;margin-top:14px}
-.fx .svg{width:54px;height:54px;opacity:.35;transition:opacity .3s,transform .3s}
+.step .n{font:700 26px JBM,monospace;color:var(--acc);padding-top:3px}
+.step b{display:block;font:800 32px/1.05 Archivo;font-stretch:125%;text-transform:uppercase}
+.step span{display:block;font:500 21px/1.3 Archivo;color:var(--muted);margin-top:6px}
+.fx{display:flex;gap:12px;margin-top:10px}
+.fx .svg{width:44px;height:44px;opacity:.35;transition:opacity .3s,transform .3s}
 .fx .svg.on{opacity:1;transform:scale(1.12)}
 /* Escena 4 */
 .qrbox{background:#fff}
@@ -112,11 +112,14 @@ body{font-family:Archivo,system-ui,sans-serif;color:var(--ink)}
 <section class="scene" id="c">
   <div class="stars" data-stars="50"></div>
   <p class="kick k1">How it works</p>
-  <div class="abs steps" style="left:var(--m);top:180px;width:470px">
-    <div class="step" data-s="1"><span class="n">01</span><div><b>Compare sites</b><span>Candidate regions side by side</span></div></div>
-    <div class="step" data-s="2"><span class="n">02</span><div><b>Check 3 factors</b><span>For a two-week mission</span>
+  <div class="abs steps" style="left:var(--m);top:150px;width:480px">
+    <div class="step" data-s="1"><span class="n">01</span><div><b>Data layers</b><span>LOLA topography, slope, sun, Earth signal</span></div></div>
+    <div class="step" data-s="2"><span class="n">02</span><div><b>Compare sites</b><span>Candidate regions side by side</span></div></div>
+    <div class="step" data-s="3"><span class="n">03</span><div><b>Check 3 factors</b><span>Power · Earth link · terrain</span>
       <div class="fx"><div class="svg" data-f="1" data-svg="elementos-2/sun_radiant_corona" style="color:var(--sun)"></div><div class="svg" data-f="2" data-svg="elementos-2/deep_space_radar_dish" style="color:var(--earth)"></div><div class="svg" data-f="3" data-svg="elementos-3/hud_3d_terrain_wireframe_mesh" style="color:var(--acc)"></div></div></div></div>
-    <div class="step" data-s="3"><span class="n">03</span><div><b>Test the date</b><span>See how one day changes everything</span></div></div>
+    <div class="step" data-s="4"><span class="n">04</span><div><b>Local terrain</b><span>3 km of real relief around the site</span></div></div>
+    <div class="step" data-s="5"><span class="n">05</span><div><b>Test the date</b><span>One day can change everything</span></div></div>
+    <div class="step" data-s="6"><span class="n">06</span><div><b>Learn</b><span>The science, for students and educators</span></div></div>
   </div>
   <div class="frame fr" style="left:640px;top:150px;width:1188px">
     <div class="bar"><b></b><b></b><b></b><span class="url">zenith.spaceprogram.cl</span><span class="note">Real interface · real data</span></div>
@@ -151,6 +154,9 @@ body{font-family:Archivo,system-ui,sans-serif;color:var(--ink)}
 <script src="vendor/qrcode.min.js"></script>
 <script>
 //@@datos.js
+</script>
+<script>
+//@@capas.js
 </script>
 <script>window.MQ_LANG = 'en';</script>
 <script>
@@ -206,7 +212,7 @@ function hook() {
       .from($('.polo', A), {opacity: 0, x: -20, duration: .6}, 2.4)
       .to(o, {v: 90, duration: 1.3, ease: 'power2.out', onUpdate: () => lat.textContent = '−' + o.v.toFixed(1) + '°'}, 2.1)
       .from($('.by', A), {opacity: 0, duration: .6}, 2.0)
-      .to({}, {duration: .4}, 3.2);
+      .to({}, {duration: .1}, 3.1);
     return {tl};   // envuelto: una línea de GSAP es "thenable" y await la esperaría
   });
 }
@@ -224,13 +230,13 @@ function why() {
       chips.forEach(el => { const x = el.offsetLeft + el.offsetWidth / 2, y = el.offsetTop + el.offsetHeight / 2, L = Math.hypot(CX - x, CY - y);
         const ln = document.createElementNS('http://www.w3.org/2000/svg', 'line'); ln.setAttribute('x1', x); ln.setAttribute('y1', y); ln.setAttribute('x2', CX); ln.setAttribute('y2', CY);
         ln.style.strokeDasharray = L; ln.style.strokeDashoffset = L; svg.appendChild(ln); gsap.to(ln, {strokeDashoffset: 0, duration: .6, ease: 'power2.inOut'}); gsap.to(ln, {opacity: 0, duration: .3, delay: 1.1}); });
-    }, null, 2.4)
-    .to($('.z0, .slow', B), {opacity: 0, y: -10, duration: .35}, 2.4)
-    .to(chips, {x: (i, el) => CX - el.offsetLeft - el.offsetWidth / 2, y: (i, el) => CY - el.offsetTop - el.offsetHeight / 2, scale: .2, opacity: 0, duration: .7, ease: 'power3.in', stagger: .05}, 2.85)
-    .fromTo($('.hub i', B), {scale: .2, opacity: 1}, {scale: 3.4, opacity: 0, duration: .8, ease: 'power2.out'}, 3.55)
-    .to($('.z1', B), {opacity: 1, duration: .5}, 3.65)
-    .from($('.z1 .h', B), {y: 40, duration: .6, ease: 'power3.out'}, 3.65)
-    .to({}, {duration: .7}, 4.15);
+    }, null, 2.0)
+    .to($('.z0, .slow', B), {opacity: 0, y: -10, duration: .35}, 2.0)
+    .to(chips, {x: (i, el) => CX - el.offsetLeft - el.offsetWidth / 2, y: (i, el) => CY - el.offsetTop - el.offsetHeight / 2, scale: .2, opacity: 0, duration: .7, ease: 'power3.in', stagger: .05}, 2.4)
+    .fromTo($('.hub i', B), {scale: .2, opacity: 1}, {scale: 3.4, opacity: 0, duration: .8, ease: 'power2.out'}, 3.1)
+    .to($('.z1', B), {opacity: 1, duration: .4}, 3.2)
+    .from($('.z1 .h', B), {y: 40, duration: .5, ease: 'power3.out'}, 3.2)
+    .to({}, {duration: .3}, 3.6);
   return tl;
 }
 
@@ -272,46 +278,74 @@ const fxOn = n => $('.fx .svg', C).forEach(e => e.classList.toggle('on', n === 4
 let demo = null;
 function prepDemo() { demo = new Demo($('.demo-host', C)[0]); demo.m.setDate('2026-11-18T00:00:00Z'); return demo.m.ready; }
 async function tour() {
-  const a = demo, m = a.m;
-  // 01 · comparar sitios (18 nov 2026)
+  const a = demo, m = a.m, ly = k => `.mq-layers .ly[data-l="${k}"]`;
+  // 01 · capas de datos sobre el globo
   stepOn(1);
-  m.southPole(1.3);
-  await a.say('<span class="n">NOV 18</span> Pick candidate sites at the south pole');
-  await a.sleep(500);
-  for (const id of ['mons-mouton', 'im-2', 'mons-malapert']) { await a.clickSite(id, .45); m.select(id); await a.sleep(100); }
-  await a.clickEl('.mq-selbar .go', .45);
-  m.showCompare(['im-2', 'mons-malapert', 'mons-mouton'], .3);
-  await a.sleep(600);
-  await a.say('<span class="n">✓</span> IM-2 leads · Mons Mouton loses Earth contact', 'ok');
-  await a.zoomTo(union(m.rectOf('.mq-cmp .head'), m.rectOf('.mq-cmp .row:nth-child(3)')), .8, 1.04);
-  await a.sleep(1000);
-  // 02 · tres factores en un sitio (23 nov 2026)
+  m.flyTo({lat: -55, lon: 15, R: 560, cx: 610, cy: 430}, 1.1); m.showLayers();
+  a.say('<span class="n">01</span> Explore NASA data layers on the Moon');
+  await a.sleep(250);
+  await a.clickEl(ly('lola'), .4); await m.setSurface('lola');
+  a.say('<span class="n">LOLA</span> Topography: elevation from −9 to +10 km');
+  await a.sleep(650);
+  for (const [k, t] of [['slope', 'Slope, measured by LRO'], ['solar', 'Sunlight over a lunar day'], ['comm', 'Direct signal to Earth'], ['suit', 'Overall suitability']]) {
+    await a.clickEl(ly(k), .25); m.setLayer(k); a.say(`<span class="n">◐</span> ${t}`); await a.sleep(380);
+  }
+  await a.sleep(100);
+  // 02 · comparar sitios (18 nov 2026)
   stepOn(2);
-  await a.zoomOut(.5);
+  m.setLayer(null); m.setSurface('lroc'); m.showLayers(false); m.southPole(1.1);
+  a.say('<span class="n">NOV 18</span> Pick candidate sites at the south pole');
+  await a.sleep(450);
+  for (const id of ['mons-mouton', 'im-2', 'mons-malapert']) { await a.clickSite(id, .32); m.select(id); }
+  await a.clickEl('.mq-selbar .go', .32);
+  m.showCompare(['im-2', 'mons-malapert', 'mons-mouton'], .3);
+  await a.sleep(300);
+  a.say('<span class="n">✓</span> IM-2 leads · Mons Mouton loses Earth contact', 'ok');
+  await a.sleep(1000);
+  // 03 · tres factores en un sitio (23 nov 2026)
+  stepOn(3);
   m.hideCompare(); m.root.querySelector('.mq-nav li.on')?.classList.remove('on'); m.root.querySelectorAll('.mq-nav li')[1].classList.add('on');
   m.selected = []; m.active = null; m.syncSelbar(); m.hideCard();
-  await a.clickEl('.mq-datebar .date', .45);
+  await a.clickEl('.mq-datebar .date', .38);
   m.setDate('2026-11-23T00:00:00Z');
-  await a.say('<span class="n">NOV 23</span> Open Mons Malapert');
-  await a.clickSite('mons-malapert', .45); m.select('mons-malapert');
-  await a.sleep(150);
-  await a.zoomTo(m.rectOf('.mq-card'), .7, 1.15);
-  fxOn(1); m.highlight(1); await a.say('<span class="n">☀</span> Power: sunlight until Nov 30');
+  a.say('<span class="n">NOV 23</span> Open Mons Malapert');
+  await a.clickSite('mons-malapert', .35); m.select('mons-malapert');
+  await a.zoomTo(m.rectOf('.mq-card'), .5, 1.15);
+  fxOn(1); m.highlight(1); a.say('<span class="n">☀</span> Power: sunlight until Nov 30');
+  await a.sleep(680);
+  fxOn(2); m.highlight(2); a.say('<span class="n">⌁</span> Earth link: in view for 11 days');
+  await a.sleep(680);
+  fxOn(3); m.highlight(3); a.say('<span class="n">△</span> Terrain: 5.5° slope, under the 8° limit');
+  await a.sleep(680);
+  fxOn(4); m.highlight(0); a.say('<span class="n">✓</span> Viable for a 14-day mission', 'ok');
+  await a.sleep(700);
+  // 04 · relieve local (parche LOLA 25×25)
+  stepOn(4);
+  await a.clickEl('.mq-card .btn', .3);
+  a.zoomOut(.35); await m.showPatch('slope');
+  m.spinPatch(1.75, 3.2);
+  a.say('<span class="n">3D</span> Local relief from LOLA: slope');
   await a.sleep(800);
-  fxOn(2); m.highlight(2); await a.say('<span class="n">⌁</span> Earth link: in view for 11 days');
+  await a.clickEl('.mq-patch .tabs [data-p="sun"]', .28); m.patchMode('sun');
+  a.say('<span class="n">☀</span> Sunlight across the landing zone');
+  await a.sleep(680);
+  await a.clickEl('.mq-patch .tabs [data-p="comb"]', .28); m.patchMode('comb');
+  a.say('<span class="n">✓</span> Favorable zone: 21.4% of the patch', 'ok');
   await a.sleep(800);
-  fxOn(3); m.highlight(3); await a.say('<span class="n">△</span> Terrain: 5.5° slope, under the 8° limit');
-  await a.sleep(800);
-  fxOn(4); m.highlight(0); await a.say('<span class="n">✓</span> Viable for a 14-day mission', 'ok');
-  await a.sleep(800);
-  // 03 · un día después
-  stepOn(3);
-  await a.zoomTo(union(m.rectOf('.mq-datebar'), m.rectOf('.mq-card')), .6, 1.05);
-  await a.clickEl('.mq-datebar .next', .4); m.setDate('2026-11-24T00:00:00Z');
-  await a.say('<span class="n">+1 DAY</span> Nov 24: not viable. The Sun sets too soon.', 'bad');
-  await a.sleep(200);
-  await a.zoomTo(m.rectOf('.mq-card'), .6, 1.2);
-  await a.sleep(1300);
+  // 05 · un día después
+  stepOn(5);
+  m.hidePatch();
+  await a.zoomTo(union(m.rectOf('.mq-datebar'), m.rectOf('.mq-card')), .45, 1.05);
+  await a.clickEl('.mq-datebar .next', .3); m.setDate('2026-11-24T00:00:00Z');
+  a.say('<span class="n">+1 DAY</span> Nov 24: not viable. The Sun sets too soon.', 'bad');
+  await a.sleep(1150);
+  // 06 · aprender
+  stepOn(6);
+  await a.zoomOut(.35);
+  await a.clickEl('.mq-nav li:nth-child(4)', .32); m.hideCard(); m.showLearn();
+  a.say('<span class="n">LEARN</span> The science behind every result');
+  await a.sleep(550);
+  for (const c of m.el.learn.querySelectorAll('.lc')) { c.classList.add('hl'); await a.sleep(260); c.classList.remove('hl'); }
 }
 function how() {
   return gsap.timeline({paused: true})
@@ -323,14 +357,10 @@ function how() {
 /* ===== Escena 4: cierre ===== */
 function cta() {
   return gsap.timeline({paused: true})
-    .from($('.moon', Dd), {opacity: 0, scale: .9, duration: 2, ease: 'power2.out'}, 0)
-    .from($('.k1', Dd), {y: 24, opacity: 0, duration: .5, ease: 'power3.out'}, 0)
-    .from($('.big1', Dd), {y: 50, opacity: 0, duration: .6, ease: 'power3.out'}, .1)
-    .from($('.big2', Dd), {y: 50, opacity: 0, duration: .6, ease: 'power3.out'}, .35)
-    .from($('.sm', Dd), {opacity: 0, duration: .6}, .8)
-    .from($('.qrbox', Dd), {scale: .85, opacity: 0, duration: .6, ease: 'back.out(1.5)'}, .6)
-    .from($('.qrt, .qru', Dd), {y: 20, opacity: 0, duration: .5, stagger: .12}, .9)
-    .from($('.by', Dd), {opacity: 0, duration: .5}, 1.1);
+    .from($('.moon', Dd), {opacity: 0, scale: .92, duration: 1.2, ease: 'power2.out'}, 0)
+    .from($('.k1, .big1, .big2', Dd), {y: 36, opacity: 0, duration: .45, ease: 'power3.out', stagger: .08}, 0)
+    .from($('.qrbox', Dd), {scale: .9, opacity: 0, duration: .45, ease: 'back.out(1.5)'}, .15)
+    .from($('.sm, .qrt, .qru, .by', Dd), {opacity: 0, duration: .4, stagger: .05}, .3);
 }
 
 /* ===== Reproducción ===== */
@@ -352,7 +382,7 @@ async function main() {
   mark('demo'); await wait(.3);
   await tour(); mark('cta');
   gsap.to(demo.cap, {opacity: 0, duration: .2});
-  cut(C, Dd, .8); await play(cta());
+  cut(C, Dd, .6); await play(cta());
   gsap.ticker.remove(bar); prog.style.width = '100%';
   console.info('[explainer] total', ((performance.now() - t0) / 1000).toFixed(1) + ' s');
   document.getElementById('replay').classList.add('show');
