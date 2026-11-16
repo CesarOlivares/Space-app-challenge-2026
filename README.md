@@ -11,6 +11,19 @@ Zenith: un globo lunar 3D para comparar sitios y fechas de aterrizaje según la 
 - [Cómo integrar la topografía](docs/INTEGRAR-TOPOGRAFIA.md)
 - [UX elements: elementos visuales para el frontend](UX%20elements/README.md)
 - [Guía de despliegue en producción](docs/DESPLIEGUE.md)
+- [Mejoras futuras: vistas, gráficos y próximos pasos](docs/MEJORAS-FUTURAS.md)
+
+## Mejoras futuras
+
+Lo que probamos en el pitch y en el [video explicativo de 30 s](https://cesarolivares.github.io/Space-app-challenge-2026/explainer.html) deja varias ideas para llevar a la app. Las cinco con más impacto:
+
+1. **Relieve 3D del polo sur** con capas de pendiente, luz y zonas óptimas.
+2. **Mapa de luz con sombras del relieve**, más fino que la grilla actual de 5°.
+3. **Capa "dónde aterrizar"**: solo brillan las zonas que cumplen los tres factores.
+4. **Recorrido guiado en pasos**, con subtítulos de lo que se ve en pantalla.
+5. **"+1 día" animado**, para mostrar cómo un retraso cambia la viabilidad.
+
+Detalle, esfuerzo estimado y el resto de las ideas en [docs/MEJORAS-FUTURAS.md](docs/MEJORAS-FUTURAS.md).
 
 ## Requisitos
 
