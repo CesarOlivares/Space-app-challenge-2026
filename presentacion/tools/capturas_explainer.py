@@ -49,6 +49,14 @@ async def main():
         enc = subprocess.Popen([imageio_ffmpeg.get_ffmpeg_exe(), "-y", "-loglevel", "error", "-f", "image2pipe", "-framerate", str(FPS), "-c:v", "mjpeg", "-i", "-",
                                 "-c:v", "libx264", "-preset", "medium", "-crf", "21", "-pix_fmt", "yuv420p", "-movflags", "+faststart", VIDEO], stdin=subprocess.PIPE, start_new_session=True)
         PROCS.append(enc)
+    if os.environ.get("PERF"):   # costo de JS por cuadro (ms reales por cada avance de 1/30 s), agrupado por segundo de la animación
+        import time; cost = []
+        for f in range(int(max(TIMES) * FPS)):
+            t1 = time.perf_counter(); await js(f"window.__advance({1000 / FPS}); true"); cost.append((time.perf_counter() - t1) * 1000)
+        base = sorted(cost)[len(cost) // 2]
+        for sec in range(int(max(TIMES))):
+            c = cost[sec * FPS:(sec + 1) * FPS]; print(f"{sec:2d}s  máx {max(c):6.1f} ms  >50ms: {sum(x > 50 for x in c):2d}  media {sum(c) / len(c):5.1f}")
+        print("mediana", round(base, 1), "| marcas", (await js("JSON.stringify(window.__marks)")).get("result", {}).get("value"), "| errores", errs or "ninguno"); await ws.close(); return
     now, end, dt = 0.0, max(TIMES), 1000 / FPS; pend = sorted(TIMES)
     while now <= end + 1e-6:
         if enc:

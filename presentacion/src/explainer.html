@@ -75,6 +75,8 @@ body{font-family:Archivo,system-ui,sans-serif;color:var(--ink)}
 /* Escena 4 */
 .qrbox{background:#fff}
 /* Interfaz del reproductor */
+#ring{position:absolute;left:960px;top:540px;width:0;height:0;border:6px solid var(--acc);border-radius:50%;transform:translate(-50%,-50%);z-index:70;pointer-events:none;opacity:0}
+#flash{position:absolute;inset:0;background:#fff;z-index:70;pointer-events:none;opacity:0}
 #prog{position:absolute;left:0;bottom:0;height:6px;width:0;background:var(--acc);z-index:80}
 #replay{position:absolute;right:96px;bottom:40px;z-index:90;display:flex;align-items:center;gap:14px;font:600 24px JBM,monospace;letter-spacing:.14em;text-transform:uppercase;color:var(--ink);background:transparent;border:2px solid var(--acc);padding:16px 28px;cursor:pointer;opacity:0;pointer-events:none}
 #replay.show{opacity:1;pointer-events:auto}
@@ -162,6 +164,7 @@ body{font-family:Archivo,system-ui,sans-serif;color:var(--ink)}
   <p class="abs lbl by" style="left:var(--m);bottom:var(--bottom-src);color:var(--ink)">Usach Space Program · NASA Space Apps Challenge 2026</p>
 </section>
 
+<div id="ring"></div><div id="flash"></div>
 <div id="prog"></div>
 <button id="replay" type="button"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 3v6h6"/></svg>Replay</button>
 <div id="load">LOADING…</div>
@@ -205,34 +208,39 @@ const play = tl => new Promise(res => tl.eventCallback('onComplete', res).play(0
 const wait = s => new Promise(res => gsap.delayedCall(s, res));
 
 // Cambio de escena: la nueva entra por un círculo que se abre (como el iris del deck)
-function cut(from, to, dur = .8) {
+const ring = document.getElementById('ring'), flash = document.getElementById('flash');
+function cut(from, to, dur = .8) {   // iris con anillo de acento en el borde (como el deck)
   to.style.visibility = 'visible'; to.style.zIndex = 2; from && (from.style.zIndex = 1);
+  gsap.fromTo(ring, {width: 0, height: 0, opacity: 1}, {width: 2342, height: 2342, duration: dur, ease: 'power3.inOut'});
+  gsap.to(ring, {opacity: 0, duration: dur * .35, delay: dur * .65});
   return play(gsap.timeline({paused: true}).fromTo(to, {clipPath: 'circle(0% at 50% 50%)'}, {clipPath: 'circle(75% at 50% 50%)', duration: dur, ease: 'power3.inOut', clearProps: 'clipPath'})
     .call(() => { if (from) from.style.visibility = 'hidden'; }));
 }
 
 /* ===== Escena 1: la Luna gira hasta el polo sur ===== */
 let globo = null;
-function hook() {
+function hook() {   // la geometría del globo queda fija (solo gira en longitud) y la entrada se hace con CSS: liviano
   const cv = $('canvas', A)[0]; globo = new Globo(cv, {q: 3});
-  const v = {lat: 22, lon: -165, R: 360, cx: 1700, cy: 470, gain: 0};
+  const v = {lat: -38, lon: -165, R: 430, cx: 1480, cy: 500, gain: 0};
   return globo.ready.then(() => {
     const draw = () => globo.draw(v, v.gain); draw();
     gsap.ticker.add(globo.tick = draw);
     const o = {v: 0}, lat = $('#p-lat', A)[0];
+    gsap.set(cv, {transformOrigin: '1480px 500px'});
     const tl = gsap.timeline({paused: true})
-      .to(v, {gain: 1, duration: 2.6, ease: 'power2.inOut'}, 0)
-      .to(v, {lon: 18, lat: -38, R: 430, cx: 1480, cy: 500, duration: 3.4, ease: 'power3.out'}, 0)
-      .from($('.glow', A), {opacity: 0, duration: 2.4}, 0)
-      .from($('.stars', A), {opacity: 0, duration: 1.6}, 0)
-      .from($('.k1', A), {y: 24, opacity: 0, duration: .6, ease: 'power3.out'}, .5)
-      .from($('.ch', A), {yPercent: 115, duration: .9, ease: 'power4.out', stagger: .07}, .7)
-      .from($('.tag', A), {clipPath: 'inset(0 100% 0 0)', y: 20, opacity: 0, duration: 1, ease: 'power3.inOut'}, 1.5)
-      .from($('.ret', A), {scale: 1.9, opacity: 0, rotation: -60, duration: 1, ease: 'power3.out'}, 2.1)
-      .from($('.polo', A), {opacity: 0, x: -20, duration: .6}, 2.4)
-      .to(o, {v: 90, duration: 1.3, ease: 'power2.out', onUpdate: () => lat.textContent = '−' + o.v.toFixed(1) + '°'}, 2.1)
-      .from($('.by', A), {opacity: 0, duration: .6}, 2.0)
-      .to({}, {duration: .1}, 3.1);
+      .to(v, {gain: 1, duration: 2.2, ease: 'power2.inOut'}, 0)
+      .to(v, {lon: 18, duration: 3.0, ease: 'power3.out'}, 0)
+      .fromTo(cv, {scale: .8, x: 160}, {scale: 1, x: 0, duration: 2.8, ease: 'power3.out'}, 0)
+      .from($('.glow', A), {opacity: 0, duration: 2.2}, 0)
+      .from($('.stars', A), {opacity: 0, duration: 1.4}, 0)
+      .from($('.k1', A), {y: 24, opacity: 0, duration: .5, ease: 'power3.out'}, .4)
+      .from($('.ch', A), {yPercent: 115, duration: .85, ease: 'power4.out', stagger: .06}, .55)
+      .from($('.tag', A), {clipPath: 'inset(0 100% 0 0)', y: 20, opacity: 0, duration: .9, ease: 'power3.inOut'}, 1.25)
+      .from($('.ret', A), {scale: 1.9, opacity: 0, rotation: -60, duration: .9, ease: 'power3.out'}, 1.75)
+      .from($('.polo', A), {opacity: 0, x: -20, duration: .5}, 2.0)
+      .to(o, {v: 90, duration: 1.0, ease: 'power2.out', onUpdate: () => lat.textContent = '−' + o.v.toFixed(1) + '°'}, 1.75)
+      .from($('.by', A), {opacity: 0, duration: .5}, 1.6)
+      .to({}, {duration: .1}, 2.8);
     return {tl};   // envuelto: una línea de GSAP es "thenable" y await la esperaría
   });
 }
@@ -244,55 +252,61 @@ function why() {
   const tl = gsap.timeline({paused: true})
     .from($('.k1', B), {y: 24, opacity: 0, duration: .5, ease: 'power3.out'}, 0)
     .from($('.z0', B), {y: 30, opacity: 0, duration: .6, ease: 'power3.out'}, .1)
-    .from(chips, {scale: .6, opacity: 0, duration: .5, ease: 'back.out(1.6)', stagger: .12}, .5)
-    .from($('.slow', B), {opacity: 0, x: -20, duration: .5}, 1.3)
+    .from(chips, {scale: .6, opacity: 0, duration: .45, ease: 'back.out(1.6)', stagger: .1}, .4)
+    .from($('.slow', B), {opacity: 0, x: -20, duration: .45}, 1.05)
     .call(() => {   // líneas hacia el centro
       chips.forEach(el => { const x = el.offsetLeft + el.offsetWidth / 2, y = el.offsetTop + el.offsetHeight / 2, L = Math.hypot(CX - x, CY - y);
         const ln = document.createElementNS('http://www.w3.org/2000/svg', 'line'); ln.setAttribute('x1', x); ln.setAttribute('y1', y); ln.setAttribute('x2', CX); ln.setAttribute('y2', CY);
         ln.style.strokeDasharray = L; ln.style.strokeDashoffset = L; svg.appendChild(ln); gsap.to(ln, {strokeDashoffset: 0, duration: .6, ease: 'power2.inOut'}); gsap.to(ln, {opacity: 0, duration: .3, delay: 1.1}); });
-    }, null, 2.0)
-    .to($('.z0, .slow', B), {opacity: 0, y: -10, duration: .35}, 2.0)
-    .to(chips, {x: (i, el) => CX - el.offsetLeft - el.offsetWidth / 2, y: (i, el) => CY - el.offsetTop - el.offsetHeight / 2, scale: .2, opacity: 0, duration: .7, ease: 'power3.in', stagger: .05}, 2.4)
-    .fromTo($('.hub i', B), {scale: .2, opacity: 1}, {scale: 3.4, opacity: 0, duration: .8, ease: 'power2.out'}, 3.1)
-    .to($('.z1', B), {opacity: 1, duration: .4}, 3.2)
-    .from($('.z1 .h', B), {y: 40, duration: .5, ease: 'power3.out'}, 3.2)
-    .to({}, {duration: .3}, 3.6);
+    }, null, 1.7)
+    .to($('.z0, .slow', B), {opacity: 0, y: -10, duration: .35}, 1.7)
+    .to(chips, {x: (i, el) => CX - el.offsetLeft - el.offsetWidth / 2, y: (i, el) => CY - el.offsetTop - el.offsetHeight / 2, scale: .2, opacity: 0, duration: .7, ease: 'power3.in', stagger: .05}, 2.05)
+    .fromTo($('.hub i', B), {scale: .2, opacity: 1}, {scale: 3.4, opacity: 0, duration: .8, ease: 'power2.out'}, 2.75)
+    .to($('.z1', B), {opacity: 1, duration: .35}, 2.85)
+    .from($('.z1 .h', B), {y: 40, duration: .45, ease: 'power3.out'}, 2.85)
+    .to({}, {duration: .25}, 3.2);
   return tl;
 }
 
 /* ===== Escena 2b: la Luna gira y las capas cambian por cortes secos (montaje rítmico) ===== */
 const Ls = document.getElementById('l');
 function relieve(cv) {   // relieve 3D del polo sur (DEM LOLA 120 m en bloques de 2,5 km) con tres coloreados: pendiente, luz, zonas óptimas
+  // Liviano: colores ya convertidos a texto, orden de pintado por recorrido (sin ordenar), menos detalle cuando se ve de lejos y nada fuera de cuadro.
   const Rl = window.ZENITH_CAPAS.relieve, n = Rl.n, H = Rl.h, N = n * n, ctx = cv.getContext('2d');
-  const mean = H.reduce((a, b) => a + b, 0) / N, X = new Float32Array(N), Y = new Float32Array(N), Z = new Float32Array(N);
+  const mean = H.reduce((a, b) => a + b, 0) / N, X = new Float32Array(N), Y = new Float32Array(N);
   const hex = h => [1, 3, 5].map(k => parseInt(h.slice(k, k + 2), 16));
-  const PAL = {
-    slope: Rl.s.map(s => s <= 50 ? [45, 226, 230] : s <= 100 ? [245, 165, 25] : [225, 45, 55]),           // planicies en cian, bordes escarpados en rojo
-    sun: Rl.sun.map(v => hex(v < 20 ? '#221c44' : v < 45 ? '#64335c' : v < 70 ? '#c46825' : v < 85 ? '#eab034' : '#fff68f')),   // paleta solar de la app
-    best: Rl.best.map(b => b ? [94, 234, 212] : [44, 48, 60]),
-  };
   const shade = H.map((h, i) => { const e = i % n < n - 1 ? H[i + 1] : h, so = i + n < N ? H[i + n] : h; return Math.max(.4, Math.min(1.3, .85 + (h - e) / Rl.cell_m * 1.6 + (h - so) / Rl.cell_m * .6)); });
-  const glow = Rl.best.map(b => b ? 1.35 : 1);
-  const ord = new Uint32Array((n - 1) * (n - 1)), dq = new Float32Array(N);
+  // sombreado en 8 niveles: celdas vecinas comparten color y se pintan juntas
+  const css = (rgb, i, g = 1) => { const k = Math.round(shade[i] * 8) / 8 * g; return `rgb(${Math.min(255, rgb[0] * k) | 0},${Math.min(255, rgb[1] * k) | 0},${Math.min(255, rgb[2] * k) | 0})`; };
+  const PAL = {
+    slope: Rl.s.map((s, i) => css(s <= 50 ? [45, 226, 230] : s <= 100 ? [245, 165, 25] : [225, 45, 55], i)),          // planicies en cian, bordes escarpados en rojo
+    sun: Rl.sun.map((v, i) => css(hex(v < 20 ? '#221c44' : v < 45 ? '#64335c' : v < 70 ? '#c46825' : v < 85 ? '#eab034' : '#fff68f'), i)),   // paleta solar de la app
+    best: Rl.best.map((b, i) => css(b ? [94, 234, 212] : [44, 48, 60], i, b ? 1.35 : 1)),
+  };
   const half = (n - 1) / 2, v = {yaw: .55, ex: 0, k: 8.6, pitch: .42, cx: 960, cy: 700, fr: half, fc: half, mode: 'slope'};
   v.at = (r, c) => { const cy = Math.cos(v.yaw), sy = Math.sin(v.yaw), x0 = (c - v.fc) * v.k, y0 = (r - v.fr) * v.k, rx = x0 * cy - y0 * sy, ry = x0 * sy + y0 * cy;
     const i = Math.round(r) * n + Math.round(c); return {x: v.cx + rx, y: v.cy + ry * Math.sin(v.pitch) - (H[i] - mean) * v.k / Rl.cell_m * 3 * v.ex * Math.cos(v.pitch)}; };
   v.draw = () => {
+    const key = `${v.yaw}|${v.k}|${v.ex}|${v.pitch}|${v.fr}|${v.fc}|${v.cy}|${v.mode}|${v.moving}`;
+    if (key === v._key) return; v._key = key;   // cuadro quieto: no se redibuja
     ctx.clearRect(0, 0, 1920, 1080);
-    const cy = Math.cos(v.yaw), sy = Math.sin(v.yaw), sp = Math.sin(v.pitch), cp = Math.cos(v.pitch), zk = v.k / Rl.cell_m * 3 * v.ex, col = PAL[v.mode], gl = v.mode === 'best';
-    for (let r = 0, i = 0; r < n; r++) for (let c = 0; c < n; c++, i++) {
-      const x0 = (c - v.fc) * v.k, y0 = (r - v.fr) * v.k, rx = x0 * cy - y0 * sy, ry = x0 * sy + y0 * cy;
-      X[i] = v.cx + rx; Y[i] = v.cy + ry * sp - (H[i] - mean) * zk * cp; Z[i] = ry; }
-    let q = 0; for (let r = 0; r < n - 1; r++) for (let c = 0; c < n - 1; c++) { const i = r * n + c;
-      if (Math.max(X[i], X[i + n + 1]) < -80 || Math.min(X[i], X[i + n + 1]) > 2000 || Math.max(Y[i], Y[i + n + 1]) < -80 || Math.min(Y[i], Y[i + n + 1]) > 1160) continue;   // fuera de cuadro
-      ord[q++] = i; dq[i] = Z[i] + Z[i + n + 1]; }
-    const o = ord.subarray(0, q).sort((a, b) => dq[a] - dq[b]);
-    for (const i of o) { const [r, g, b] = col[i], k = shade[i] * (gl ? glow[i] : 1);
-      ctx.fillStyle = `rgb(${Math.min(255, r * k) | 0},${Math.min(255, g * k) | 0},${Math.min(255, b * k) | 0})`;
-      ctx.beginPath(); ctx.moveTo(X[i], Y[i]); ctx.lineTo(X[i + 1], Y[i + 1]); ctx.lineTo(X[i + n + 1], Y[i + n + 1]); ctx.lineTo(X[i + n], Y[i + n]); ctx.closePath(); ctx.fill(); }
+    const cy = Math.cos(v.yaw), sy = Math.sin(v.yaw), sp = Math.sin(v.pitch), cp = Math.cos(v.pitch), zk = v.k / Rl.cell_m * 3 * v.ex, col = PAL[v.mode];
+    const st = v.moving ? 2 : 1, last = n - 1;   // en pleno acercamiento, celdas de 2×2
+    for (let r = 0; r < n; r += st) for (let c = 0; c < n; c += st) { const i = r * n + c;
+      const x0 = (c - v.fc) * v.k, y0 = (r - v.fr) * v.k; X[i] = v.cx + x0 * cy - y0 * sy; Y[i] = v.cy + (x0 * sy + y0 * cy) * sp - (H[i] - mean) * zk * cp; }
+    // de atrás hacia adelante: la profundidad crece con c si sen(yaw) > 0 y con r si cos(yaw) > 0
+    const rs = cy > 0 ? 0 : last - st, re = cy > 0 ? last : -1, rd = cy > 0 ? st : -st, cs = sy > 0 ? 0 : last - st, ce = sy > 0 ? last : -1, cd = sy > 0 ? st : -st;
+    const D = st * n; let cur = null;
+    for (let r = rs; r !== re && r >= 0 && r < last; r += rd) for (let c = cs; c !== ce && c >= 0 && c < last; c += cd) {
+      const i = r * n + c, a = X[i], b = X[i + st + D], ya = Y[i], yb = Y[i + st + D];
+      if ((a < -60 && b < -60) || (a > 1980 && b > 1980) || (ya < -60 && yb < -60) || (ya > 1140 && yb > 1140)) continue;   // fuera de cuadro
+      if (col[i] !== cur) { if (cur) ctx.fill(); cur = col[i]; ctx.fillStyle = cur; ctx.beginPath(); }   // un solo relleno por tramo del mismo color (respeta el orden de pintado)
+      ctx.moveTo(a, ya); ctx.lineTo(X[i + st], Y[i + st]); ctx.lineTo(b, yb); ctx.lineTo(X[i + D], Y[i + D]); ctx.closePath(); }
+    if (cur) ctx.fill();
   };
   return v;
 }
+let RELIEVE = null;   // se arma durante la carga, no en el corte
 async function layers() {
   const gl = $('.gl', Ls)[0], rl = $('.rl', Ls)[0], lk = $('.lk', Ls)[0], lt = $('.lt', Ls)[0], mk = $('.mk', Ls)[0], mkl = $('.mkl', Ls)[0];
   const g = new Globo(gl, {q: 3, light: [.8, .12, .55]}); await g.ready;
@@ -300,36 +314,39 @@ async function layers() {
   const draw = () => g.draw(v, v.gain); gsap.ticker.add(draw);
   const spin = gsap.to(v, {lon: '+=360', duration: 8, ease: 'none', repeat: -1});   // 45°/s
   const head = (k, t) => { lk.textContent = k; lt.innerHTML = t; gsap.fromTo([lk, lt], {y: -10}, {y: 0, duration: .25, ease: 'power3.out'}); };   // texto cambia en seco
-  const punch = R => gsap.fromTo(v, {R: v.R * .96}, {R, duration: .4, ease: 'power3.out'});
+  gsap.set(gl, {transformOrigin: `${v.cx}px ${v.cy}px`});
+  const punch = k => gsap.fromTo(gl, {scale: k * .96}, {scale: k, duration: .4, ease: 'power3.out'});   // acercamiento con CSS: no redibuja la geometría
   mark('layers');
   head('01 · NASA LRO', 'Real surface'); gsap.from(v, {gain: .2, duration: .5});
-  await wait(1.1);
+  await wait(1.0);
   await g.surface('lola'); g.light([.3, .25, .92]); v.gain = 1.08;
-  head('02 · LOLA laser altimetry', 'Topography'); punch(450);
-  await wait(1.1);
+  head('02 · LOLA laser altimetry', 'Topography'); punch(1.12);
+  await wait(1.0);
   // 03 · relieve 3D oblicuo, extruido de golpe
   gsap.ticker.remove(draw); spin.kill(); gl.style.visibility = 'hidden'; rl.style.visibility = 'visible';
-  const rv = relieve(rl); gsap.ticker.add(rv.draw);
+  const rv = RELIEVE; gsap.ticker.add(rv.draw);
   head('03 · South pole · LOLA 120 m', 'Slope &amp; 3D relief');
-  gsap.to(rv, {ex: 1, duration: .5, ease: 'back.out(1.6)'}); gsap.to(rv, {yaw: 1.3, duration: 4.6, ease: 'none'});
-  await wait(1.3);
+  gsap.to(rv, {ex: 1, duration: .5, ease: 'back.out(1.6)'}); gsap.to(rv, {yaw: 1.3, duration: 4.4, ease: 'none'});
+  await wait(1.2);
   // 04 · corte: luz solar sobre el mismo relieve, con un punch-in
   rv.mode = 'sun'; head('04 · Sunlight over a lunar day · terrain shadows', 'Solar resource');
   gsap.fromTo(rv, {k: 8.6, pitch: .55}, {k: 9.4, pitch: .48, duration: .4, ease: 'power3.out'});
-  await wait(1.15);
+  await wait(1.0);
   // 05 · corte: solo las zonas óptimas brillan; speed-ramp hacia Mons Malapert
   rv.mode = 'best'; head('05 · Flat ground + sunlight + Earth in view', 'Where to land');
   gsap.fromTo(rv, {k: 9.4}, {k: 10, duration: .35, ease: 'power3.out'});
-  await wait(.75);
+  await wait(.6);
   const [mr, mc] = Rl0().malapert;
   const Rr = Rl0(), mH = Rr.h.reduce((x, y) => x + y, 0) / Rr.h.length, hi = Rr.h[Math.round(mr) * Rr.n + Math.round(mc)];
   const K = 26, P = .62, lift = (hi - mH) * K / Rr.cell_m * 3 * Math.cos(P);   // el cerro levanta el punto: se compensa para que quede al centro
-  await new Promise(res => gsap.to(rv, {k: K, fr: mr, fc: mc, cy: 620 + lift, pitch: P, duration: .95, ease: 'expo.in', onComplete: res}));
+  rv.moving = true;
+  await new Promise(res => gsap.to(rv, {k: K, fr: mr, fc: mc, cy: 620 + lift, pitch: P, duration: .85, ease: 'expo.in', onComplete: res}));
+  rv.moving = false; gsap.killTweensOf(rv, 'yaw');   // al clavar el marcador la imagen queda quieta y nítida
   const p = rv.at(mr, mc);
   gsap.set(mk, {left: p.x, top: p.y}); gsap.set(mkl, {left: p.x + 120, top: p.y - 62});
   gsap.fromTo(mk, {scale: 2.6, opacity: 0, rotation: -70}, {scale: 1, opacity: 1, rotation: 0, duration: .45, ease: 'power4.out'});
   gsap.fromTo(mkl, {x: -20, opacity: 0}, {x: 0, opacity: 1, duration: .35, delay: .2});
-  await wait(.9);
+  await wait(.75);
   return () => gsap.ticker.remove(rv.draw);
 }
 const Rl0 = () => window.ZENITH_CAPAS.relieve;
@@ -354,8 +371,8 @@ class Demo {
   tw(target, vars) { return new Promise(res => gsap.to(target, {...vars, onComplete: res})); }
   async move(p, dur = .7) { this.cursor.style.opacity = 1; await this.tw(this.c, {x: p.x, y: p.y, duration: dur, ease: 'power2.inOut', onUpdate: () => this.placeCursor()}); }
   pulse(p) { gsap.fromTo(this.ripple, {left: p.x, top: p.y, scale: .3, opacity: 1}, {scale: 1.6 / this.z.s, opacity: 0, duration: .6, ease: 'power2.out'}); gsap.fromTo(this.cursor, {scale: 1 / this.z.s}, {scale: .8 / this.z.s, duration: .09, yoyo: true, repeat: 1}); }
-  async clickEl(sel, dur) { const r = this.m.rectOf(sel), p = {x: r.x + r.w / 2, y: r.y + r.h / 2}; await this.move(p, dur); this.pulse(p); this.m.press(sel); await this.sleep(220); }
-  async clickSite(id, dur = .7) { const p = this.m.project(id); await this.move(p, dur); this.pulse(p); await this.sleep(200); }
+  async clickEl(sel, dur) { const r = this.m.rectOf(sel), p = {x: r.x + r.w / 2, y: r.y + r.h / 2}; await this.move(p, dur); this.pulse(p); this.m.press(sel); await this.sleep(160); }
+  async clickSite(id, dur = .7) { const p = this.m.project(id); await this.move(p, dur); this.pulse(p); await this.sleep(150); }
   async zoomTo(r, dur = 1, pad = 1.1) {
     const S = Math.min(1600 / (r.w * pad), 900 / (r.h * pad), 2.4), vw = 1600 / S, vh = 900 / S;
     const x = Math.max(0, Math.min(1600 - vw, r.x + r.w / 2 - vw / 2)), y = Math.max(0, Math.min(900 - vh, r.y + r.h / 2 - vh / 2));
@@ -377,13 +394,13 @@ async function tour() {
   stepOn(1);
   m.southPole(1.1);
   a.say('<span class="n">NOV 18</span> Pick candidate sites at the south pole');
-  await a.sleep(450);
-  for (const id of ['mons-mouton', 'im-2', 'mons-malapert']) { await a.clickSite(id, .32); m.select(id); }
+  await a.sleep(300);
+  for (const id of ['mons-mouton', 'im-2', 'mons-malapert']) { await a.clickSite(id, .28); m.select(id); }
   await a.clickEl('.mq-selbar .go', .32);
   m.showCompare(['im-2', 'mons-malapert', 'mons-mouton'], .3);
-  await a.sleep(300);
+  await a.sleep(200);
   a.say('<span class="n">✓</span> IM-2 leads · Mons Mouton loses Earth contact', 'ok');
-  await a.sleep(1000);
+  await a.sleep(850);
   // 03 · tres factores en un sitio (23 nov 2026)
   stepOn(2);
   m.hideCompare(); m.root.querySelector('.mq-nav li.on')?.classList.remove('on'); m.root.querySelectorAll('.mq-nav li')[1].classList.add('on');
@@ -394,40 +411,40 @@ async function tour() {
   await a.clickSite('mons-malapert', .35); m.select('mons-malapert');
   await a.zoomTo(m.rectOf('.mq-card'), .5, 1.15);
   fxOn(1); m.highlight(1); a.say('<span class="n">☀</span> Power: sunlight until Nov 30');
-  await a.sleep(680);
+  await a.sleep(520);
   fxOn(2); m.highlight(2); a.say('<span class="n">⌁</span> Earth link: in view for 11 days');
-  await a.sleep(680);
+  await a.sleep(520);
   fxOn(3); m.highlight(3); a.say('<span class="n">△</span> Terrain: 5.5° slope, under the 8° limit');
-  await a.sleep(680);
+  await a.sleep(520);
   fxOn(4); m.highlight(0); a.say('<span class="n">✓</span> Viable for a 14-day mission', 'ok');
-  await a.sleep(700);
+  await a.sleep(600);
   // 04 · relieve local (parche LOLA 25×25)
   stepOn(3);
   await a.clickEl('.mq-card .btn', .3);
   a.zoomOut(.35); await m.showPatch('slope');
   m.spinPatch(1.75, 3.2);
   a.say('<span class="n">3D</span> Local relief from LOLA: slope');
-  await a.sleep(800);
+  await a.sleep(650);
   await a.clickEl('.mq-patch .tabs [data-p="sun"]', .28); m.patchMode('sun');
   a.say('<span class="n">☀</span> Sunlight across the landing zone');
-  await a.sleep(680);
+  await a.sleep(550);
   await a.clickEl('.mq-patch .tabs [data-p="comb"]', .28); m.patchMode('comb');
   a.say('<span class="n">✓</span> Favorable zone: 21.4% of the patch', 'ok');
-  await a.sleep(800);
+  await a.sleep(650);
   // 05 · un día después
   stepOn(4);
   m.hidePatch();
   await a.zoomTo(union(m.rectOf('.mq-datebar'), m.rectOf('.mq-card')), .45, 1.05);
   await a.clickEl('.mq-datebar .next', .3); m.setDate('2026-11-24T00:00:00Z');
   a.say('<span class="n">+1 DAY</span> Nov 24: not viable. The Sun sets too soon.', 'bad');
-  await a.sleep(1150);
+  await a.sleep(950);
   // 06 · aprender
   stepOn(5);
   await a.zoomOut(.35);
   await a.clickEl('.mq-nav li:nth-child(4)', .32); m.hideCard(); m.showLearn();
   a.say('<span class="n">LEARN</span> The science behind every result');
-  await a.sleep(550);
-  for (const c of m.el.learn.querySelectorAll('.lc')) { c.classList.add('hl'); await a.sleep(260); c.classList.remove('hl'); }
+  await a.sleep(400);
+  for (const c of m.el.learn.querySelectorAll('.lc')) { c.classList.add('hl'); await a.sleep(200); c.classList.remove('hl'); }
 }
 function how() {
   return gsap.timeline({paused: true})
@@ -437,9 +454,9 @@ function how() {
 }
 
 /* ===== Escena 4: cierre ===== */
-function cta() {
+function cta() {   // dura 1,25 s: es el cuadro final
   return gsap.timeline({paused: true})
-    .from($('.moon', Dd), {opacity: 0, scale: .92, duration: 1.2, ease: 'power2.out'}, 0)
+    .from($('.moon', Dd), {opacity: 0, scale: .92, duration: 1.25, ease: 'power2.out'}, 0)
     .from($('.k1, .big1, .big2', Dd), {y: 36, opacity: 0, duration: .45, ease: 'power3.out', stagger: .08}, 0)
     .from($('.qrbox', Dd), {scale: .9, opacity: 0, duration: .45, ease: 'back.out(1.5)'}, .15)
     .from($('.sm, .qrt, .qru, .by', Dd), {opacity: 0, duration: .4, stagger: .05}, .3);
@@ -447,33 +464,40 @@ function cta() {
 
 /* ===== Reproducción ===== */
 const marks = window.__marks = [], mark = n => marks.push(n + ' ' + ((performance.now() - (window.__t0 || 0)) / 1000).toFixed(1));
+gsap.ticker.lagSmoothing(0);   // si un cuadro tarda, la animación no se estira: dura 30 s igual
 const T = 30, prog = document.getElementById('prog');
 async function main() {
   const t0 = window.__t0 = performance.now();
   const bar = () => { prog.style.width = Math.min(100, (performance.now() - t0) / 10 / T) + '%'; };
   gsap.ticker.add(bar);
+  const until = t => wait(Math.max(0, t - (performance.now() - t0) / 1000));
   const {tl: tHook} = await hook(); mark('hook');
-  const pDemo = prepDemo();
   A.style.visibility = 'visible';
   await play(tHook);
   const tWhy = why(); B.style.visibility = 'visible'; B.style.opacity = 1;
-  await cut(A, B, .7); gsap.ticker.remove(globo.tick);
+  await cut(A, B, .55); gsap.ticker.remove(globo.tick);
   mark('why'); await play(tWhy);
-  Ls.style.visibility = 'visible'; Ls.style.zIndex = 2; B.style.visibility = 'hidden';   // corte seco al espacio
+  Ls.style.visibility = 'visible'; Ls.style.zIndex = 2; B.style.visibility = 'hidden';   // corte seco al espacio, con un destello corto
+  gsap.fromTo(flash, {opacity: .55}, {opacity: 0, duration: .35, ease: 'power2.out'});
   const stopLayers = await layers();
-  await pDemo; const tHow = how();
+  const tHow = how();
   cut(Ls, C, .5).then(stopLayers); tHow.play(0);
   mark('demo'); await wait(.3);
-  await tour(); mark('cta');
-  gsap.to(demo.cap, {opacity: 0, duration: .2});
-  cut(C, Dd, .6); await play(cta());
+  // el cierre entra siempre a los 28,75 s y termina justo a los 30,0 s; si el equipo va lento, lo que se corta es el final de la demo
+  await Promise.race([tour().then(() => mark('fin demo')), until(T - 1.25)]);
+  await until(T - 1.25);
+  mark('cta'); gsap.to(demo.cap, {opacity: 0, duration: .2});
+  cut(C, Dd, .5); await play(cta());
   gsap.ticker.remove(bar); prog.style.width = '100%';
-  console.info('[explainer] total', ((performance.now() - t0) / 1000).toFixed(1) + ' s');
+  console.info('[explainer] total', ((performance.now() - t0) / 1000).toFixed(2) + ' s');
   document.getElementById('replay').classList.add('show');
   window.__done = true;
 }
 document.getElementById('replay').onclick = () => location.reload();
-Promise.all([document.fonts.ready, new Globo(document.createElement('canvas')).ready]).then(() => {
+// Todo lo pesado se prepara durante la carga: texturas, relieve y maqueta de la demo (así ningún corte se traba)
+Promise.all([document.fonts.ready, new Globo(document.createElement('canvas')).ready, Globo.preload()]).then(() => {
+  RELIEVE = relieve($('.rl', Ls)[0]); return prepDemo();
+}).then(() => {
   gsap.to('#load', {opacity: 0, duration: .3, onComplete: () => document.getElementById('load').remove()});
   main().catch(e => console.error('[explainer]', e));
 });

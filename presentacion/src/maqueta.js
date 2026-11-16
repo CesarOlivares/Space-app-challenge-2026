@@ -152,6 +152,8 @@ class Maqueta {
     return `<svg viewBox="0 0 44 44">${halo}<circle cx="22" cy="22" r="13" fill="rgba(5,7,13,.5)" stroke="${col}" stroke-width="3" stroke-dasharray="3.4 4"/><circle cx="22" cy="22" r="3" fill="${col}"/></svg>`;
   }
   place() {
+    const key = `${this.view.lat}|${this.view.lon}|${this.view.R}|${this.view.cx}|${this.view.cy}|${this.mode}|${this.selected.join()}`;
+    if (key === this._pk) return; this._pk = key;   // sin cambios: no tocar el DOM en cada cuadro
     for (const [id, el] of this.markers) { const p = this.project(id); el.style.opacity = p.vis && this.mode === 'explorar' ? 1 : 0; el.style.left = p.x + 'px'; el.style.top = p.y + 'px'; el.classList.toggle('sel', this.selected.includes(id)); }
   }
   flyTo({lat = this.view.lat, lon = this.view.lon, R = this.view.R, cx = this.view.cx, cy = this.view.cy} = {}, dur = 1.4) {
@@ -307,38 +309,45 @@ class Globo {
     this.ready = loadTex('assets/luna-tex.webp').then(t => { this.tex = this.lroc = t; });
   }
   async surface(mode) { this.tex = mode === 'lola' ? await loadLola('assets/lola.webp') : this.lroc; }
-  layer(mode) { this.ov = mode ? overlayTex(mode) : null; this.ovA = 1; }
+  static preload() { return loadLola('assets/lola.webp'); }
   light(v) { const n = Math.hypot(...v); this.L = v.map(x => x / n); }
   project(lat, lon, {lat: vl, lon: vo, R, cx, cy}) {
     const la = lat * rad, dl = (lon - vo) * rad, phi = vl * rad, X = Math.cos(la) * Math.sin(dl), Yp = Math.sin(la), Zp = Math.cos(la) * Math.cos(dl);
     return {x: cx + X * R, y: cy - (Yp * Math.cos(phi) - Zp * Math.sin(phi)) * R, vis: Yp * Math.sin(phi) + Zp * Math.cos(phi) > 0};
   }
+  // Geometría por píxel en caché: mientras no cambien latitud, radio, centro ni textura, cada cuadro solo desplaza la longitud
+  // (sin asin/atan2 por píxel). Girar la Luna cuesta así una fracción del dibujo completo.
+  _geom(lat, R, cx, cy, w, h, tw, th) {
+    const s = this.q, phi = lat * rad, cp = Math.cos(phi), sp = Math.sin(phi);
+    const x0 = Math.max(0, Math.floor((cx - R) / s)), x1 = Math.min(w, Math.ceil((cx + R) / s)), y0 = Math.max(0, Math.floor((cy - R) / s)), y1 = Math.min(h, Math.ceil((cy + R) / s));
+    const cap = Math.max(1, (x1 - x0) * (y1 - y0));
+    if (!this.G || this.G.cap < cap) this.G = {cap, O: new Int32Array(cap), RW: new Int32Array(cap), BU: new Float32Array(cap), VX: new Float32Array(cap), VY: new Float32Array(cap), VZ: new Float32Array(cap), E: new Uint8ClampedArray(cap), SH: new Float32Array(cap)};
+    const G = this.G; let n = 0;
+    for (let j = y0; j < y1; j++) { const vy = (cy - j * s) / R;
+      for (let i = x0; i < x1; i++) { const vx = (i * s - cx) / R, r2 = vx * vx + vy * vy; if (r2 >= 1) continue;
+        const vz = Math.sqrt(1 - r2), yy = vy * cp + vz * sp, zz = -vy * sp + vz * cp;
+        G.O[n] = (j * w + i) * 4; G.RW[n] = Math.min(th - 1, ((0.5 - Math.asin(yy) / Math.PI) * th) | 0) * tw; G.BU[n] = Math.atan2(vx, zz) / (2 * Math.PI) + .5;
+        G.VX[n] = vx; G.VY[n] = vy; G.VZ[n] = vz; G.E[n] = 255 * (r2 < .985 ? 1 : Math.min(1, (1 - Math.sqrt(r2)) * R / 1.5)); n++; } }
+    G.n = n; this.img.data.fill(0); this._lk = null;
+  }
   draw(view, gain = 1) {
     if (!this.tex) return;
     const {lat, lon, R, cx, cy} = view, s = this.q, Wc = this.cv.width, Hc = this.cv.height, w = Math.ceil(Wc / s), h = Math.ceil(Hc / s);
-    if (!this.img || this.img.width !== w) { this.img = this.ctx.createImageData(w, h); this._off = document.createElement('canvas'); this._off.width = w; this._off.height = h; }
-    const px = this.img.data, T = this.tex, td = T.d, tw = T.w, th = T.h, phi = lat * rad, cp = Math.cos(phi), sp = Math.sin(phi), Ls = this.L, ov = this.ov;
-    px.fill(0);
-    const x0 = Math.max(0, Math.floor((cx - R) / s)), x1 = Math.min(w, Math.ceil((cx + R) / s)), y0 = Math.max(0, Math.floor((cy - R) / s)), y1 = Math.min(h, Math.ceil((cy + R) / s));
-    for (let j = y0; j < y1; j++) {
-      const vy = (cy - j * s) / R;
-      for (let i = x0; i < x1; i++) {
-        const vx = (i * s - cx) / R, r2 = vx * vx + vy * vy; if (r2 >= 1) continue;
-        const vz = Math.sqrt(1 - r2), yy = vy * cp + vz * sp, zz = -vy * sp + vz * cp;
-        const la = Math.asin(yy), lo = Math.atan2(vx, zz) / rad + lon;
-        let u = (lo / 360 + 0.5) % 1; if (u < 0) u += 1;
-        const p = ((((0.5 - la / Math.PI) * th) | 0) * tw + ((u * tw) | 0)) * 4;
-        const sh = SHADE[(Math.max(0, vx * Ls[0] + vy * Ls[1] + vz * Ls[2]) * 1023) | 0] * gain;
-        const o = (j * w + i) * 4, e = r2 < .985 ? 1 : Math.min(1, (1 - Math.sqrt(r2)) * R / 1.5);
-        let r = td[p], g = td[p + 1], b = td[p + 2];
-        if (ov) { const oi = ((((0.5 - la / Math.PI) * ov.h) | 0) * ov.w + ((u * ov.w) | 0)) * 4, al = ov.d[oi + 3] / 255 * .88 * this.ovA;
-          if (al) { const k = Math.max(sh, .35); r += (ov.d[oi] / k - r) * al; g += (ov.d[oi + 1] / k - g) * al; b += (ov.d[oi + 2] / k - b) * al; } }
-        px[o] = Math.min(255, r * sh); px[o + 1] = Math.min(255, g * sh); px[o + 2] = Math.min(255, b * sh); px[o + 3] = 255 * e;
-      }
+    if (!this.img || this.img.width !== w) { this.img = this.ctx.createImageData(w, h); this._off = document.createElement('canvas'); this._off.width = w; this._off.height = h; this._gk = null; }
+    const T = this.tex, td = T.d, tw = T.w, th = T.h, gk = `${lat}|${R}|${cx}|${cy}|${tw}|${th}`;
+    if (gk !== this._gk) { this._geom(lat, R, cx, cy, w, h, tw, th); this._gk = gk; }
+    const G = this.G, Ls = this.L, lk = Ls.join();
+    if (lk !== this._lk) { for (let k = 0; k < G.n; k++) G.SH[k] = SHADE[(Math.max(0, G.VX[k] * Ls[0] + G.VY[k] * Ls[1] + G.VZ[k] * Ls[2]) * 1023) | 0]; this._lk = lk; }
+    const px = this.img.data, lu = lon / 360, n = G.n, O = G.O, RW = G.RW, BU = G.BU, SH = G.SH, E = G.E;
+    for (let k = 0; k < n; k++) {
+      let u = BU[k] + lu; u -= Math.floor(u);
+      const p = (RW[k] + ((u * tw) | 0)) * 4, sh = SH[k] * gain, o = O[k];
+      px[o] = td[p] * sh; px[o + 1] = td[p + 1] * sh; px[o + 2] = td[p + 2] * sh; px[o + 3] = E[k];   // Uint8ClampedArray satura sola
     }
     this._off.getContext('2d').putImageData(this.img, 0, 0);
     this.ctx.clearRect(0, 0, Wc, Hc); this.ctx.imageSmoothingQuality = 'low'; this.ctx.drawImage(this._off, 0, 0, Wc, Hc);
   }
+
 }
 window.Globo = Globo;
 window.Maqueta = Maqueta;
