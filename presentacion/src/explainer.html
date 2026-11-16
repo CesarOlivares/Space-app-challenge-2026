@@ -39,6 +39,16 @@ body{font-family:Archivo,system-ui,sans-serif;color:var(--ink)}
 .dchip span{font:500 22px JBM,monospace;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
 .hub i{position:absolute;left:-60px;top:-60px;width:120px;height:120px;border-radius:50%;border:5px solid var(--acc);opacity:0}
 .links line{stroke:var(--acc);stroke-width:2;stroke-dasharray:6 8;opacity:.8}
+/* Escena 2b: capas */
+#l canvas{position:absolute;left:0;top:0;width:1920px;height:1080px}
+#l .rl{visibility:hidden}
+#l .hl{position:absolute;left:0;right:0;top:64px;text-align:center;z-index:3}
+#l .lk{font:600 26px JBM,monospace;letter-spacing:.3em;text-transform:uppercase;color:var(--acc)}
+#l .lt{font-size:104px;margin-top:16px;text-shadow:0 4px 30px rgba(0,0,0,.8)}
+#l .mk{width:170px;height:170px;margin:-85px 0 0 -85px;color:#5eead4;filter:drop-shadow(0 0 14px #5eead4) drop-shadow(0 0 34px rgba(94,234,212,.6));opacity:0;z-index:3}
+#l .mkl{font:500 24px JBM,monospace;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);opacity:0;z-index:3;background:rgba(5,7,13,.82);border-left:4px solid #5eead4;padding:16px 24px}
+#l .mkl b{display:block;font:800 44px Archivo;font-stretch:125%;letter-spacing:0;color:var(--ink);margin-bottom:6px}
+#l .lsrc{z-index:3}
 /* Escena 3: demo */
 .frame{position:absolute;border:1.5px solid var(--line);background:#000;overflow:hidden}
 .frame .bar{height:44px;display:flex;align-items:center;gap:12px;padding:0 18px;background:var(--panel);border-bottom:1px solid var(--line);font:500 20px JBM,monospace;color:var(--muted)}
@@ -53,7 +63,7 @@ body{font-family:Archivo,system-ui,sans-serif;color:var(--ink)}
 .cap{position:absolute;display:flex;align-items:center;gap:18px;font:700 var(--t-text) Archivo;background:var(--bg);color:var(--ink);border:2px solid var(--acc);padding:14px 26px;opacity:0;white-space:nowrap}
 .cap .n{font:700 28px JBM,monospace;color:var(--acc)}
 .cap.ok .n{color:var(--ok)}.cap.bad .n{color:var(--bad)}
-.step{display:flex;gap:22px;align-items:flex-start;padding:15px 0 15px 24px;border-left:4px solid var(--line);opacity:.4;transition:opacity .35s,border-color .35s}
+.step{display:flex;gap:22px;align-items:flex-start;padding:20px 0 20px 24px;border-left:4px solid var(--line);opacity:.4;transition:opacity .35s,border-color .35s}
 .step.on{opacity:1;border-left-color:var(--acc)}
 .step.done{opacity:.75}
 .step .n{font:700 26px JBM,monospace;color:var(--acc);padding-top:3px}
@@ -108,18 +118,28 @@ body{font-family:Archivo,system-ui,sans-serif;color:var(--ink)}
   </div>
 </section>
 
+<!-- 2b · LAYERS: la Luna gira y las capas cambian por cortes -->
+<section class="scene" id="l">
+  <div class="stars" data-stars="230"></div>
+  <canvas class="gl" width="1920" height="1080"></canvas>
+  <canvas class="rl" width="1920" height="1080"></canvas>
+  <div class="hl"><p class="lk"></p><p class="lt h"></p></div>
+  <div class="abs mk svg" data-svg="elementos-2/hud_crosshair_lock_reticle"></div>
+  <p class="abs mkl"><b>Mons Malapert</b>Artemis III candidate region</p>
+  <p class="src lsrc">NASA LRO · LROC WAC mosaic · LOLA altimetry and 120 m south pole DEM · sunlight and Earth view estimated by Zenith from terrain horizons</p>
+</section>
+
 <!-- 3 · HOW -->
 <section class="scene" id="c">
   <div class="stars" data-stars="50"></div>
   <p class="kick k1">How it works</p>
-  <div class="abs steps" style="left:var(--m);top:150px;width:480px">
-    <div class="step" data-s="1"><span class="n">01</span><div><b>Data layers</b><span>LOLA topography, slope, sun, Earth signal</span></div></div>
-    <div class="step" data-s="2"><span class="n">02</span><div><b>Compare sites</b><span>Candidate regions side by side</span></div></div>
-    <div class="step" data-s="3"><span class="n">03</span><div><b>Check 3 factors</b><span>Power · Earth link · terrain</span>
+  <div class="abs steps" style="left:var(--m);top:170px;width:480px">
+    <div class="step" data-s="1"><span class="n">01</span><div><b>Compare sites</b><span>Candidate regions side by side</span></div></div>
+    <div class="step" data-s="2"><span class="n">02</span><div><b>Check 3 factors</b><span>Power · Earth link · terrain</span>
       <div class="fx"><div class="svg" data-f="1" data-svg="elementos-2/sun_radiant_corona" style="color:var(--sun)"></div><div class="svg" data-f="2" data-svg="elementos-2/deep_space_radar_dish" style="color:var(--earth)"></div><div class="svg" data-f="3" data-svg="elementos-3/hud_3d_terrain_wireframe_mesh" style="color:var(--acc)"></div></div></div></div>
-    <div class="step" data-s="4"><span class="n">04</span><div><b>Local terrain</b><span>3 km of real relief around the site</span></div></div>
-    <div class="step" data-s="5"><span class="n">05</span><div><b>Test the date</b><span>One day can change everything</span></div></div>
-    <div class="step" data-s="6"><span class="n">06</span><div><b>Learn</b><span>The science, for students and educators</span></div></div>
+    <div class="step" data-s="3"><span class="n">03</span><div><b>Local terrain</b><span>3 km of real relief around the site</span></div></div>
+    <div class="step" data-s="4"><span class="n">04</span><div><b>Test the date</b><span>One day can change everything</span></div></div>
+    <div class="step" data-s="5"><span class="n">05</span><div><b>Learn</b><span>The science, for students and educators</span></div></div>
   </div>
   <div class="frame fr" style="left:640px;top:150px;width:1188px">
     <div class="bar"><b></b><b></b><b></b><span class="url">zenith.spaceprogram.cl</span><span class="note">Real interface · real data</span></div>
@@ -240,6 +260,80 @@ function why() {
   return tl;
 }
 
+/* ===== Escena 2b: la Luna gira y las capas cambian por cortes secos (montaje rítmico) ===== */
+const Ls = document.getElementById('l');
+function relieve(cv) {   // relieve 3D del polo sur (DEM LOLA 120 m en bloques de 2,5 km) con tres coloreados: pendiente, luz, zonas óptimas
+  const Rl = window.ZENITH_CAPAS.relieve, n = Rl.n, H = Rl.h, N = n * n, ctx = cv.getContext('2d');
+  const mean = H.reduce((a, b) => a + b, 0) / N, X = new Float32Array(N), Y = new Float32Array(N), Z = new Float32Array(N);
+  const hex = h => [1, 3, 5].map(k => parseInt(h.slice(k, k + 2), 16));
+  const PAL = {
+    slope: Rl.s.map(s => s <= 50 ? [45, 226, 230] : s <= 100 ? [245, 165, 25] : [225, 45, 55]),           // planicies en cian, bordes escarpados en rojo
+    sun: Rl.sun.map(v => hex(v < 20 ? '#221c44' : v < 45 ? '#64335c' : v < 70 ? '#c46825' : v < 85 ? '#eab034' : '#fff68f')),   // paleta solar de la app
+    best: Rl.best.map(b => b ? [94, 234, 212] : [44, 48, 60]),
+  };
+  const shade = H.map((h, i) => { const e = i % n < n - 1 ? H[i + 1] : h, so = i + n < N ? H[i + n] : h; return Math.max(.4, Math.min(1.3, .85 + (h - e) / Rl.cell_m * 1.6 + (h - so) / Rl.cell_m * .6)); });
+  const glow = Rl.best.map(b => b ? 1.35 : 1);
+  const ord = new Uint32Array((n - 1) * (n - 1)), dq = new Float32Array(N);
+  const half = (n - 1) / 2, v = {yaw: .55, ex: 0, k: 8.6, pitch: .42, cx: 960, cy: 700, fr: half, fc: half, mode: 'slope'};
+  v.at = (r, c) => { const cy = Math.cos(v.yaw), sy = Math.sin(v.yaw), x0 = (c - v.fc) * v.k, y0 = (r - v.fr) * v.k, rx = x0 * cy - y0 * sy, ry = x0 * sy + y0 * cy;
+    const i = Math.round(r) * n + Math.round(c); return {x: v.cx + rx, y: v.cy + ry * Math.sin(v.pitch) - (H[i] - mean) * v.k / Rl.cell_m * 3 * v.ex * Math.cos(v.pitch)}; };
+  v.draw = () => {
+    ctx.clearRect(0, 0, 1920, 1080);
+    const cy = Math.cos(v.yaw), sy = Math.sin(v.yaw), sp = Math.sin(v.pitch), cp = Math.cos(v.pitch), zk = v.k / Rl.cell_m * 3 * v.ex, col = PAL[v.mode], gl = v.mode === 'best';
+    for (let r = 0, i = 0; r < n; r++) for (let c = 0; c < n; c++, i++) {
+      const x0 = (c - v.fc) * v.k, y0 = (r - v.fr) * v.k, rx = x0 * cy - y0 * sy, ry = x0 * sy + y0 * cy;
+      X[i] = v.cx + rx; Y[i] = v.cy + ry * sp - (H[i] - mean) * zk * cp; Z[i] = ry; }
+    let q = 0; for (let r = 0; r < n - 1; r++) for (let c = 0; c < n - 1; c++) { const i = r * n + c;
+      if (Math.max(X[i], X[i + n + 1]) < -80 || Math.min(X[i], X[i + n + 1]) > 2000 || Math.max(Y[i], Y[i + n + 1]) < -80 || Math.min(Y[i], Y[i + n + 1]) > 1160) continue;   // fuera de cuadro
+      ord[q++] = i; dq[i] = Z[i] + Z[i + n + 1]; }
+    const o = ord.subarray(0, q).sort((a, b) => dq[a] - dq[b]);
+    for (const i of o) { const [r, g, b] = col[i], k = shade[i] * (gl ? glow[i] : 1);
+      ctx.fillStyle = `rgb(${Math.min(255, r * k) | 0},${Math.min(255, g * k) | 0},${Math.min(255, b * k) | 0})`;
+      ctx.beginPath(); ctx.moveTo(X[i], Y[i]); ctx.lineTo(X[i + 1], Y[i + 1]); ctx.lineTo(X[i + n + 1], Y[i + n + 1]); ctx.lineTo(X[i + n], Y[i + n]); ctx.closePath(); ctx.fill(); }
+  };
+  return v;
+}
+async function layers() {
+  const gl = $('.gl', Ls)[0], rl = $('.rl', Ls)[0], lk = $('.lk', Ls)[0], lt = $('.lt', Ls)[0], mk = $('.mk', Ls)[0], mkl = $('.mkl', Ls)[0];
+  const g = new Globo(gl, {q: 3, light: [.8, .12, .55]}); await g.ready;
+  const v = {lat: -16, lon: -60, R: 400, cx: 960, cy: 610, gain: 1.3};
+  const draw = () => g.draw(v, v.gain); gsap.ticker.add(draw);
+  const spin = gsap.to(v, {lon: '+=360', duration: 8, ease: 'none', repeat: -1});   // 45°/s
+  const head = (k, t) => { lk.textContent = k; lt.innerHTML = t; gsap.fromTo([lk, lt], {y: -10}, {y: 0, duration: .25, ease: 'power3.out'}); };   // texto cambia en seco
+  const punch = R => gsap.fromTo(v, {R: v.R * .96}, {R, duration: .4, ease: 'power3.out'});
+  mark('layers');
+  head('01 · NASA LRO', 'Real surface'); gsap.from(v, {gain: .2, duration: .5});
+  await wait(1.1);
+  await g.surface('lola'); g.light([.3, .25, .92]); v.gain = 1.08;
+  head('02 · LOLA laser altimetry', 'Topography'); punch(450);
+  await wait(1.1);
+  // 03 · relieve 3D oblicuo, extruido de golpe
+  gsap.ticker.remove(draw); spin.kill(); gl.style.visibility = 'hidden'; rl.style.visibility = 'visible';
+  const rv = relieve(rl); gsap.ticker.add(rv.draw);
+  head('03 · South pole · LOLA 120 m', 'Slope &amp; 3D relief');
+  gsap.to(rv, {ex: 1, duration: .5, ease: 'back.out(1.6)'}); gsap.to(rv, {yaw: 1.3, duration: 4.6, ease: 'none'});
+  await wait(1.3);
+  // 04 · corte: luz solar sobre el mismo relieve, con un punch-in
+  rv.mode = 'sun'; head('04 · Sunlight over a lunar day · terrain shadows', 'Solar resource');
+  gsap.fromTo(rv, {k: 8.6, pitch: .55}, {k: 9.4, pitch: .48, duration: .4, ease: 'power3.out'});
+  await wait(1.15);
+  // 05 · corte: solo las zonas óptimas brillan; speed-ramp hacia Mons Malapert
+  rv.mode = 'best'; head('05 · Flat ground + sunlight + Earth in view', 'Where to land');
+  gsap.fromTo(rv, {k: 9.4}, {k: 10, duration: .35, ease: 'power3.out'});
+  await wait(.75);
+  const [mr, mc] = Rl0().malapert;
+  const Rr = Rl0(), mH = Rr.h.reduce((x, y) => x + y, 0) / Rr.h.length, hi = Rr.h[Math.round(mr) * Rr.n + Math.round(mc)];
+  const K = 26, P = .62, lift = (hi - mH) * K / Rr.cell_m * 3 * Math.cos(P);   // el cerro levanta el punto: se compensa para que quede al centro
+  await new Promise(res => gsap.to(rv, {k: K, fr: mr, fc: mc, cy: 620 + lift, pitch: P, duration: .95, ease: 'expo.in', onComplete: res}));
+  const p = rv.at(mr, mc);
+  gsap.set(mk, {left: p.x, top: p.y}); gsap.set(mkl, {left: p.x + 120, top: p.y - 62});
+  gsap.fromTo(mk, {scale: 2.6, opacity: 0, rotation: -70}, {scale: 1, opacity: 1, rotation: 0, duration: .45, ease: 'power4.out'});
+  gsap.fromTo(mkl, {x: -20, opacity: 0}, {x: 0, opacity: 1, duration: .35, delay: .2});
+  await wait(.9);
+  return () => gsap.ticker.remove(rv.draw);
+}
+const Rl0 = () => window.ZENITH_CAPAS.relieve;
+
 /* ===== Escena 3: recorrido por la app (maqueta con interfaz y datos reales) ===== */
 const CANCEL = Symbol('cancel');
 class Demo {
@@ -278,22 +372,10 @@ const fxOn = n => $('.fx .svg', C).forEach(e => e.classList.toggle('on', n === 4
 let demo = null;
 function prepDemo() { demo = new Demo($('.demo-host', C)[0]); demo.m.setDate('2026-11-18T00:00:00Z'); return demo.m.ready; }
 async function tour() {
-  const a = demo, m = a.m, ly = k => `.mq-layers .ly[data-l="${k}"]`;
-  // 01 · capas de datos sobre el globo
-  stepOn(1);
-  m.flyTo({lat: -55, lon: 15, R: 560, cx: 610, cy: 430}, 1.1); m.showLayers();
-  a.say('<span class="n">01</span> Explore NASA data layers on the Moon');
-  await a.sleep(250);
-  await a.clickEl(ly('lola'), .4); await m.setSurface('lola');
-  a.say('<span class="n">LOLA</span> Topography: elevation from −9 to +10 km');
-  await a.sleep(650);
-  for (const [k, t] of [['slope', 'Slope, measured by LRO'], ['solar', 'Sunlight over a lunar day'], ['comm', 'Direct signal to Earth'], ['suit', 'Overall suitability']]) {
-    await a.clickEl(ly(k), .25); m.setLayer(k); a.say(`<span class="n">◐</span> ${t}`); await a.sleep(380);
-  }
-  await a.sleep(100);
+  const a = demo, m = a.m;
   // 02 · comparar sitios (18 nov 2026)
-  stepOn(2);
-  m.setLayer(null); m.setSurface('lroc'); m.showLayers(false); m.southPole(1.1);
+  stepOn(1);
+  m.southPole(1.1);
   a.say('<span class="n">NOV 18</span> Pick candidate sites at the south pole');
   await a.sleep(450);
   for (const id of ['mons-mouton', 'im-2', 'mons-malapert']) { await a.clickSite(id, .32); m.select(id); }
@@ -303,7 +385,7 @@ async function tour() {
   a.say('<span class="n">✓</span> IM-2 leads · Mons Mouton loses Earth contact', 'ok');
   await a.sleep(1000);
   // 03 · tres factores en un sitio (23 nov 2026)
-  stepOn(3);
+  stepOn(2);
   m.hideCompare(); m.root.querySelector('.mq-nav li.on')?.classList.remove('on'); m.root.querySelectorAll('.mq-nav li')[1].classList.add('on');
   m.selected = []; m.active = null; m.syncSelbar(); m.hideCard();
   await a.clickEl('.mq-datebar .date', .38);
@@ -320,7 +402,7 @@ async function tour() {
   fxOn(4); m.highlight(0); a.say('<span class="n">✓</span> Viable for a 14-day mission', 'ok');
   await a.sleep(700);
   // 04 · relieve local (parche LOLA 25×25)
-  stepOn(4);
+  stepOn(3);
   await a.clickEl('.mq-card .btn', .3);
   a.zoomOut(.35); await m.showPatch('slope');
   m.spinPatch(1.75, 3.2);
@@ -333,14 +415,14 @@ async function tour() {
   a.say('<span class="n">✓</span> Favorable zone: 21.4% of the patch', 'ok');
   await a.sleep(800);
   // 05 · un día después
-  stepOn(5);
+  stepOn(4);
   m.hidePatch();
   await a.zoomTo(union(m.rectOf('.mq-datebar'), m.rectOf('.mq-card')), .45, 1.05);
   await a.clickEl('.mq-datebar .next', .3); m.setDate('2026-11-24T00:00:00Z');
   a.say('<span class="n">+1 DAY</span> Nov 24: not viable. The Sun sets too soon.', 'bad');
   await a.sleep(1150);
   // 06 · aprender
-  stepOn(6);
+  stepOn(5);
   await a.zoomOut(.35);
   await a.clickEl('.mq-nav li:nth-child(4)', .32); m.hideCard(); m.showLearn();
   a.say('<span class="n">LEARN</span> The science behind every result');
@@ -377,8 +459,10 @@ async function main() {
   const tWhy = why(); B.style.visibility = 'visible'; B.style.opacity = 1;
   await cut(A, B, .7); gsap.ticker.remove(globo.tick);
   mark('why'); await play(tWhy);
+  Ls.style.visibility = 'visible'; Ls.style.zIndex = 2; B.style.visibility = 'hidden';   // corte seco al espacio
+  const stopLayers = await layers();
   await pDemo; const tHow = how();
-  cut(B, C, .7); tHow.play(0);
+  cut(Ls, C, .5).then(stopLayers); tHow.play(0);
   mark('demo'); await wait(.3);
   await tour(); mark('cta');
   gsap.to(demo.cap, {opacity: 0, duration: .2});

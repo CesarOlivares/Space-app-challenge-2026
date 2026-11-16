@@ -43,6 +43,7 @@ function layerColor(mode, slope, solar, comm, suit) {
   if (mode === 'slope') return slope <= 5 ? [16, 200, 145, 190] : slope <= 10 ? [245, 165, 25, 185] : [225, 45, 55, 205];
   if (mode === 'solar') return solar >= 65 ? [250, 204, 21, 220] : solar >= 45 ? [249, 115, 22, 190] : solar >= 25 ? [59, 130, 246, 160] : [15, 23, 42, 225];
   if (mode === 'comm') return comm >= 75 ? [34, 197, 94, 205] : comm >= 25 ? [234, 179, 8, 185] : [225, 29, 72, 215];
+  if (mode === 'best') return suit >= 72 ? [94, 234, 212, 245] : [5, 7, 13, 150];  // solo las zonas óptimas; el resto se apaga
   return suit >= 72 ? [52, 211, 153, 230] : suit >= 50 ? [14, 165, 233, 195] : suit >= 30 ? [245, 158, 11, 175] : [225, 29, 72, 205];
 }
 const OVL = {};
@@ -303,13 +304,20 @@ class Globo {
   constructor(canvas, { light = [0.78, 0.28, 0.55], q = 2.5 } = {}) {
     this.cv = canvas; this.ctx = canvas.getContext('2d'); this.q = q; this.L = light;
     const n = Math.hypot(...light); this.L = light.map(v => v / n);
-    this.ready = loadTex('assets/luna-tex.webp').then(t => { this.tex = t; });
+    this.ready = loadTex('assets/luna-tex.webp').then(t => { this.tex = this.lroc = t; });
+  }
+  async surface(mode) { this.tex = mode === 'lola' ? await loadLola('assets/lola.webp') : this.lroc; }
+  layer(mode) { this.ov = mode ? overlayTex(mode) : null; this.ovA = 1; }
+  light(v) { const n = Math.hypot(...v); this.L = v.map(x => x / n); }
+  project(lat, lon, {lat: vl, lon: vo, R, cx, cy}) {
+    const la = lat * rad, dl = (lon - vo) * rad, phi = vl * rad, X = Math.cos(la) * Math.sin(dl), Yp = Math.sin(la), Zp = Math.cos(la) * Math.cos(dl);
+    return {x: cx + X * R, y: cy - (Yp * Math.cos(phi) - Zp * Math.sin(phi)) * R, vis: Yp * Math.sin(phi) + Zp * Math.cos(phi) > 0};
   }
   draw(view, gain = 1) {
     if (!this.tex) return;
     const {lat, lon, R, cx, cy} = view, s = this.q, Wc = this.cv.width, Hc = this.cv.height, w = Math.ceil(Wc / s), h = Math.ceil(Hc / s);
     if (!this.img || this.img.width !== w) { this.img = this.ctx.createImageData(w, h); this._off = document.createElement('canvas'); this._off.width = w; this._off.height = h; }
-    const px = this.img.data, T = this.tex, td = T.d, tw = T.w, th = T.h, phi = lat * rad, cp = Math.cos(phi), sp = Math.sin(phi), Ls = this.L;
+    const px = this.img.data, T = this.tex, td = T.d, tw = T.w, th = T.h, phi = lat * rad, cp = Math.cos(phi), sp = Math.sin(phi), Ls = this.L, ov = this.ov;
     px.fill(0);
     const x0 = Math.max(0, Math.floor((cx - R) / s)), x1 = Math.min(w, Math.ceil((cx + R) / s)), y0 = Math.max(0, Math.floor((cy - R) / s)), y1 = Math.min(h, Math.ceil((cy + R) / s));
     for (let j = y0; j < y1; j++) {
@@ -322,7 +330,10 @@ class Globo {
         const p = ((((0.5 - la / Math.PI) * th) | 0) * tw + ((u * tw) | 0)) * 4;
         const sh = SHADE[(Math.max(0, vx * Ls[0] + vy * Ls[1] + vz * Ls[2]) * 1023) | 0] * gain;
         const o = (j * w + i) * 4, e = r2 < .985 ? 1 : Math.min(1, (1 - Math.sqrt(r2)) * R / 1.5);
-        px[o] = Math.min(255, td[p] * sh); px[o + 1] = Math.min(255, td[p + 1] * sh); px[o + 2] = Math.min(255, td[p + 2] * sh); px[o + 3] = 255 * e;
+        let r = td[p], g = td[p + 1], b = td[p + 2];
+        if (ov) { const oi = ((((0.5 - la / Math.PI) * ov.h) | 0) * ov.w + ((u * ov.w) | 0)) * 4, al = ov.d[oi + 3] / 255 * .88 * this.ovA;
+          if (al) { const k = Math.max(sh, .35); r += (ov.d[oi] / k - r) * al; g += (ov.d[oi + 1] / k - g) * al; b += (ov.d[oi + 2] / k - b) * al; } }
+        px[o] = Math.min(255, r * sh); px[o + 1] = Math.min(255, g * sh); px[o + 2] = Math.min(255, b * sh); px[o + 3] = 255 * e;
       }
     }
     this._off.getContext('2d').putImageData(this.img, 0, 0);
