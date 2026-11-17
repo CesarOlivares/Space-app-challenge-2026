@@ -191,7 +191,6 @@ function showTooltip(id, x, y, zone = null, point = null) {
         ? t("tip.terrain", { score: Math.round(cell.landing_ease), slope: num(cell.slope_deg, 1), label: slopeWord(cell.slope_deg) })
         : t("tip.zoneNoTerrain")],
       ["span", t("tip.zoneEstimate", {
-        suitability: Math.round(cell.suitability ?? 0),
         solar: Math.round(cell.solar_exposure ?? 0),
         comm: Math.round(cell.earth_comm ?? 0),
       })],
@@ -501,7 +500,7 @@ const router = createRouter({
   },
 });
 
-// Moon Layer Switcher pill bar (Surface / Slope / Solar / Earth Signal / Suitability)
+// Capas del globo: superficie, pendiente, luz, señal de la Tierra y «Dónde aterrizar».
 const activeLayerLegend = document.getElementById("active-layer-legend");
 
 function legendItemsForLayer(layer, maxSlopeDeg) {
@@ -537,18 +536,6 @@ function legendItemsForLayer(layer, maxSlopeDeg) {
           ["#1e293b", t("layers.legCommNone")],
           ["#eab308", t("layers.legCommInterm")],
           ["#22c55e", t("layers.legCommDirect")],
-        ],
-      };
-    case "suitability":
-      return {
-        title: t("layers.legTitleSuit"),
-        gradient: "linear-gradient(to right, #1e293b 0%, #dc2626 25%, #ea8a18 50%, #0ea5e9 75%, #34d399 100%)",
-        items: [
-          ["#1e293b", t("layers.legSuitBlocked")],
-          ["#dc2626", `>${maxSlope}°`],
-          ["#ea8a18", t("layers.legSuitLim")],
-          ["#0ea5e9", t("layers.legSuitGood")],
-          ["#34d399", t("layers.legSuitOpt")],
         ],
       };
     default:
@@ -619,7 +606,6 @@ const LAYERS = {
   "risk-a": { globe: "risk-a", polar: "slope" },
   solar: { globe: "solar", polar: "sun" },
   comm: { globe: "comm", polar: "earth" },
-  suitability: { globe: "suitability", polar: null },
   optimal: { globe: "surface", polar: "optimal", focus: "south-pole" },
 };
 

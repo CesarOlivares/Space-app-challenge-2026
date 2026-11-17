@@ -127,8 +127,8 @@ export function mainTour(ctx) {
       },
       title: T("Capas del globo", "Globe layers"),
       body: T(
-        "Pinta la Luna con un mapa de color: Pendiente, Mapa solar, Señal de la Tierra o Aptitud global. «Dónde aterrizar» deja brillando solo las zonas del polo sur que cumplen los tres factores. «Superficie real» vuelve a la foto.",
-        "Paints the Moon with a colour map: Slope, Solar map, Earth signal or Overall suitability. “Where to land” leaves glowing only the south-pole zones that meet all three factors. “True surface” returns to the photo.",
+        "Pinta la Luna con un mapa de color: Pendiente, Mapa solar o Señal de la Tierra. «Dónde aterrizar» deja brillando solo las zonas del polo sur que cumplen los tres factores. «Superficie real» vuelve a la foto.",
+        "Paints the Moon with a colour map: Slope, Solar map or Earth signal. “Where to land” leaves glowing only the south-pole zones that meet all three factors. “True surface” returns to the photo.",
       ),
       read: T(
         "Al sur de 84° S las capas tienen detalle de 2,4 km: la pendiente es medida (LOLA) y la luz y la Tierra se estiman con el relieve real para la fecha elegida. En el resto del globo son una estimación gruesa. La leyenda dice siempre qué es medido y qué estimado, y «Relieve 3D del polo sur» abre esa zona en relieve.",
