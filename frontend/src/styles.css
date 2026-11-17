@@ -209,7 +209,6 @@ input {
   color: var(--bad);
 }
 
-
 #detail {
   flex: 1 1 auto;
   min-height: 0;
@@ -508,7 +507,6 @@ select {
   accent-color: var(--accent);
 }
 
-
 /* Leyenda, coordenadas y ranking */
 
 .legend {
@@ -703,7 +701,6 @@ select {
   display: none;
 }
 
-
 .compare-scroll {
   overflow-x: auto;
 }
@@ -792,7 +789,6 @@ select {
     bottom: 16px;
     max-height: 55vh;
   }
-
 
   .legend {
     display: none;
@@ -890,7 +886,6 @@ select {
   font-size: 0.82rem;
 }
 
-
 /* Phase 2 & 3: 3D Relief, Mission Control Readiness, Radar & Patch */
 
 .surface-toggle button.active {
@@ -927,7 +922,6 @@ select {
   margin-top: 2px;
   font-variant-numeric: tabular-nums;
 }
-
 
 .readiness-banner {
   display: flex;
@@ -1038,7 +1032,6 @@ body:not(.mode-simple) .simple-only {
   display: none !important;
 }
 
-
 .segmented {
   display: inline-flex;
   border: 1px solid var(--border);
@@ -1092,7 +1085,6 @@ button.small {
   font-size: 0.85rem;
 }
 
-
 .status + .reason,
 .sub .reason {
   display: block;
@@ -1134,14 +1126,12 @@ button.small {
   border-bottom: 0;
 }
 
-
 @media (prefers-reduced-motion: reduce) {
   * {
     scroll-behavior: auto !important;
     transition: none !important;
   }
 }
-
 
 /* ---------- Barra de navegación y secciones ---------- */
 
@@ -1278,7 +1268,6 @@ a.btn {
   }
 }
 
-
 /* Relieve y calidad del globo */
 
 .relief {
@@ -1347,18 +1336,3 @@ a.btn {
 .bar.nodata-bar b { font-weight: 400; color: var(--ink-muted); font-size: 0.75rem; }
 .bar.nodata-bar .track { background: repeating-linear-gradient(135deg, transparent 0 4px, rgba(255, 255, 255, 0.1) 4px 8px); }
 
-.layer-grid .btn-suitability {
-  grid-column: 1 / -1;
-  background: rgba(52, 211, 153, 0.12);
-  border-color: rgba(52, 211, 153, 0.45);
-  color: #34d399;
-  font-weight: 600;
-  letter-spacing: 0.02em;
-}
-
-.layer-grid .btn-suitability[aria-pressed="true"] {
-  background: rgba(52, 211, 153, 0.3);
-  border-color: #34d399;
-  color: #ffffff;
-  box-shadow: 0 0 14px rgba(52, 211, 153, 0.45);
-}

@@ -264,17 +264,16 @@ function estimateSlopeFromField(field, lat, lon) {
 }
 
 /**
- * Maps a risk score or mode to an RGBA tuple [r, g, b, a] for the on-globe heatmap.
- * @param {"risk-a"|"solar"|"comm"|"suitability"|"safe-havens"} mode - Active risk visualization mode.
- * @param {number|null} slopeDeg - Local slope in degrees.
- * @param {number} ease - Landing Ease score (0-100).
- * @param {number} [solar=50] - Solar exposure percentage (0-100).
- * @param {number} [comm=100] - Earth communication line-of-sight percentage (0-100).
- * @param {number} [suit=50] - Combined 3-variable suitability score (0-100).
- * @param {number} [maxSlopeDeg=15] - Maximum safe lander slope limit in degrees.
+ * Color [r, g, b, a] de una celda de la capa global ("risk-a" pendiente, "solar" o "comm").
+ * @param {"risk-a"|"solar"|"comm"} mode - Capa activa.
+ * @param {number|null} slopeDeg - Pendiente local en grados.
+ * @param {number} ease - Facilidad de aterrizaje (0-100), si no hay pendiente.
+ * @param {number} [solar=50] - Exposición solar estimada (0-100).
+ * @param {number} [comm=100] - Visibilidad estimada de la Tierra (0-100).
+ * @param {number} [maxSlopeDeg=15] - Pendiente máxima segura en grados.
  * @returns {[number, number, number, number]}
  */
-function riskCellColor(mode, slopeDeg, ease, solar = 50, comm = 100, suit = 50, maxSlopeDeg = 15.0) {
+function riskCellColor(mode, slopeDeg, ease, solar = 50, comm = 100, maxSlopeDeg = 15.0) {
   if (mode === "risk-a") {
     if (slopeDeg != null) {
       if (slopeDeg <= 5.0) return [16, 200, 145, 190]; // Emerald flat (< 5°)
@@ -301,77 +300,21 @@ function riskCellColor(mode, slopeDeg, ease, solar = 50, comm = 100, suit = 50, 
       [1.00, [250, 204, 21, 230]],  // 95%+: Bright Gold
     ], t);
   }
-  if (mode === "comm") {
-    // Direct Signal: Deep space black (<15% Far side) -> Yellow limb -> Strong green
-    if (comm < 15.0) return [15, 23, 42, 235]; // Far side / No direct signal
-    const t = Math.max(0, Math.min(1, (comm - 15) / 85));
-    return colorRamp([
-      [0.00, [234, 179, 8, 185]],   // 15%: Intermittent yellow limb
-      [0.50, [132, 204, 22, 200]],  // 57%: Lime
-      [1.00, [34, 197, 94, 215]],   // 100%: Strong green (Near side)
-    ], t);
-  }
-
-  // mode === "suitability" || mode === "safe-havens"
-  // 1. EXCLUSIÓN TOTAL DE LA CARA OCULTA:
-  // Si no hay enlace directo con la Tierra (Cara Oculta, comm < 15%),
-  // SIEMPRE es negro profundo (#0f172a). NUNCA rojo ni advertencia de pendiente,
-  // ya que sin línea de vista a la Tierra no hay comunicación posible sin satélites repetidores.
-  if (comm < 15.0) {
-    return [15, 23, 42, 235]; // #0f172a Deep Space / Slate Black (sin conexión DTE)
-  }
-
-  // 2. EXCLUSIÓN POR TRAMPA FRÍA PERMANENTE (solar < 20%):
-  if (solar < 20.0) {
-    return [15, 23, 42, 235];
-  }
-
-  // 3. EXCLUSIÓN POR PENDIENTE CRÍTICA EN ZONAS CON SEÑAL:
-  // Suavizado anti-aliasing en la transición de pendiente para evitar bordes dentados
-  const safeSlope = slopeDeg == null || slopeDeg <= maxSlopeDeg;
-  if (!safeSlope) {
-    if (slopeDeg > maxSlopeDeg + 1.5) {
-      return [220, 38, 38, 225]; // #dc2626 Rojo peligro de vuelco
-    }
-    // Banda de transición suave entre advertencia y peligro:
-    const blendFrac = (slopeDeg - maxSlopeDeg) / 1.5;
-    return colorRamp([
-      [0.0, [234, 138, 24, 205]], // Ámbar de advertencia
-      [1.0, [220, 38, 38, 225]],  // Rojo peligro
-    ], blendFrac);
-  }
-
-  // 4. TRANSICIÓN SUAVE EN EL LIMBO DE COMUNICACIÓN (15% a 22% comm):
-  // Si está cerca del borde donde se pierde la señal, fundir suavemente hacia el negro
-  const commFade = Math.min(1.0, (comm - 15.0) / 7.0);
-
-  // 5. GRADIENTE CONTINUO POR PUNTAJE PARA ZONAS VIABLES:
-  const t = Math.max(0, Math.min(1, (suit - 30) / 70));
-  const viableColor = colorRamp([
-    [0.00, [234, 138, 24, 185]],  // 30: Ámbar cálido
-    [0.32, [245, 197, 24, 205]],  // 52: Amarillo oro
-    [0.65, [14, 165, 233, 225]],  // 75: Cyan aeroespacial
-    [1.00, [52, 211, 153, 245]],  // 100: Verde esmeralda óptimo
+  // "comm": sin señal directa (< 15 %, cara oculta) → amarillo del limbo → verde de enlace directo.
+  if (comm < 15.0) return [15, 23, 42, 235];
+  const t = Math.max(0, Math.min(1, (comm - 15) / 85));
+  return colorRamp([
+    [0.00, [234, 179, 8, 185]],   // 15 %: limbo intermitente
+    [0.50, [132, 204, 22, 200]],  // 57 %
+    [1.00, [34, 197, 94, 215]],   // 100 %: cara visible
   ], t);
-
-  if (commFade < 1.0) {
-    const black = [15, 23, 42, 235];
-    return [
-      Math.round(black[0] * (1 - commFade) + viableColor[0] * commFade),
-      Math.round(black[1] * (1 - commFade) + viableColor[1] * commFade),
-      Math.round(black[2] * (1 - commFade) + viableColor[2] * commFade),
-      Math.round(black[3] * (1 - commFade) + viableColor[3] * commFade),
-    ];
-  }
-
-  return viableColor;
 }
 
 /**
  * Generates a smooth bilinear-interpolated RGBA CanvasTexture from the 72x36 risk grid.
  * Rendered at high resolution (1024x512) to produce smooth, non-pixelated contour curves.
  * @param {Object} grid - Grid payload from GET /api/risk-grid.
- * @param {"risk-a"|"risk-b"|"solar"|"comm"|"suitability"|"safe-havens"} mode - Active risk layer mode.
+ * @param {"risk-a"|"solar"|"comm"} mode - Capa activa.
  * @param {HeightField|null} [field] - Optional global 2K elevation heightfield for slope calculation.
  * @param {number} [maxSlopeDeg=15] - Maximum safe lander slope limit in degrees.
  * @returns {THREE.CanvasTexture}
@@ -430,29 +373,8 @@ function buildRiskOverlayTexture(grid, mode, field = null, maxSlopeDeg = 15.0) {
       const ease = bilerp("landing_ease", 50);
       const solar = bilerp("solar_exposure", 50);
       const comm = bilerp("earth_comm", 50);
-      let suit = bilerp("suitability", 50);
 
-      // Refinamiento de aptitud con la pendiente del mapa de alturas fuera del DEM polar
-      if (slope != null && c00.slope_deg == null && (mode === "suitability" || mode === "safe-havens")) {
-        if (slope > maxSlopeDeg || comm < 15.0 || solar < 20.0) {
-          suit = 0.0;
-        } else {
-          const slopeScore = Math.max(0, 100 * (1.0 - slope / maxSlopeDeg));
-          const solarTerm = Math.min(100, Math.max(0, (solar - 20) * (100 / 60)));
-          const commTerm = Math.min(100, Math.max(0, (comm - 15) * (100 / 85)));
-          suit = 0.40 * slopeScore + 0.35 * solarTerm + 0.25 * commTerm;
-        }
-      }
-
-      const [r, g, b, a] = riskCellColor(
-        mode,
-        slope,
-        ease,
-        solar,
-        comm,
-        suit,
-        maxSlopeDeg,
-      );
+      const [r, g, b, a] = riskCellColor(mode, slope, ease, solar, comm, maxSlopeDeg);
       const off = (py * w + pxIdx) * 4;
       px[off] = r;
       px[off + 1] = g;
@@ -462,7 +384,7 @@ function buildRiskOverlayTexture(grid, mode, field = null, maxSlopeDeg = 15.0) {
   }
 
   // Only seal the single terminal tip row (capRows=1) to prevent Three.js pole-pinch artifacts
-  // while preserving 100% of real candidate suitability/risk values across Mons Malapert, Shackleton, etc.
+  // while preserving the real values across Mons Malapert, Shackleton, etc.
   smoothPolarCaps(px, w, h, 1);
   ctx.putImageData(img, 0, 0);
   const tex = new THREE.CanvasTexture(canvas);
@@ -938,8 +860,8 @@ export class GlobeView {
 
   /**
    * Switches the on-globe surface visualization layer.
-   * Directly blends the suitability/risk heatmap onto the 3D lunar terrain mesh.
-   * @param {"surface"|"risk-a"|"risk-b"|"solar"|"comm"|"suitability"|"safe-havens"} mode - Active lunar layer mode.
+   * Directly blends the global heatmap onto the 3D lunar terrain mesh.
+   * @param {"surface"|"risk-a"|"solar"|"comm"} mode - Active lunar layer mode.
    */
   setLayerMode(mode) {
     this.layerMode = mode;

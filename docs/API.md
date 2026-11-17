@@ -454,13 +454,13 @@ Parámetros:
 
 ### `GET /api/risk-grid?max_slope_deg=…`
 
-Grilla global de $72 \times 36$ celdas ($5^\circ \times 5^\circ$) en caché, utilizada para alimentar las capas térmicas y de aptitud superpuestas directamente sobre el relieve del globo 3D.
+Grilla global de $72 \times 36$ celdas ($5^\circ \times 5^\circ$) en caché, que alimenta las capas Pendiente, Mapa solar y Señal Tierra del globo 3D. Al sur de 84° S el globo usa en su lugar las capas de 2,4 km de `/api/polar/layers`.
 
 Cada celda combina:
 - `landing_ease`: Facilidad topográfica calculada con pendiente y rugosidad reales (`lola_dem` en polos o `lola_global` globalmente).
 - `solar_exposure`: Exposición solar estimada sobre el ciclo sinódico (50% en ecuador, ajustada por elevación y aspecto hacia el ecuador en polos).
 - `earth_comm`: Línea de visión directa a la Tierra (DTE) con bloqueo geométrico de la cara oculta y atenuación en cuencas polares profundas.
-- `suitability`: Índice integrado de aptitud (0–100) con exclusión estricta (`0.0` / zona negra de NO-GO) si no hay comunicación directa con la Tierra (`earth_comm < 15.0`, cara oculta de la Luna sin satélite repetidor), si es trampa de frío permanente (`solar_exposure < 20.0`), o si la pendiente supera `max_slope_deg`.
+- `suitability` (**sin uso en la interfaz** desde el 17-11-2026: la capa «Aptitud global» se quitó porque sus pesos 0,40/0,35/0,25 no tienen fuente; la reemplaza «Dónde aterrizar», que solo combina umbrales declarados. Se conserva en la respuesta porque la usa la herramienta de capas del pitch): Índice integrado de aptitud (0–100) con exclusión estricta (`0.0` / zona negra de NO-GO) si no hay comunicación directa con la Tierra (`earth_comm < 15.0`, cara oculta de la Luna sin satélite repetidor), si es trampa de frío permanente (`solar_exposure < 20.0`), o si la pendiente supera `max_slope_deg`.
 
 Parámetros:
 - `max_slope_deg`: umbral máximo de pendiente segura (por defecto 8.0°, rango (2.0, 45.0]).

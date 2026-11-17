@@ -540,26 +540,6 @@ body.hero-leaving .page--hero > * {
   font-weight: 600;
 }
 
-.drawer .layer-grid .btn-suitability {
-  background: rgba(255, 255, 255, 0.055);
-  border-color: rgba(255, 255, 255, 0.13);
-  color: var(--ink);
-  font-weight: 500;
-}
-
-.drawer .layer-grid .btn-suitability:hover {
-  background: rgba(255, 255, 255, 0.10);
-  border-color: rgba(255, 255, 255, 0.2);
-}
-
-.drawer .layer-grid .btn-suitability[aria-pressed="true"] {
-  background: color-mix(in srgb, var(--accent) 24%, rgba(8, 10, 18, 0.85));
-  border-color: color-mix(in srgb, var(--accent) 70%, transparent);
-  box-shadow: 0 0 12px color-mix(in srgb, var(--accent) 28%, transparent);
-  color: var(--ink);
-  font-weight: 600;
-}
-
 .drawer #tab-layers .group-head-row {
   margin-top: 4px;
   padding-top: 10px;
