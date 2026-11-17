@@ -10,7 +10,7 @@
 import * as THREE from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import { fetchIllumination } from "../../api.js";
-import { escapeHtml, formatUtc, num } from "../../format.js";
+import { escapeHtml, formatUtc, num, percent } from "../../format.js";
 import { siteName } from "../../i18n.js";
 import { cellAt, cellCenter, paintLayer, pick, POLAR_LAYER_IDS, POLAR_LAYERS, polarStore, provenanceLabel } from "../../polar/layers.js";
 
@@ -507,16 +507,16 @@ export class PolarReliefView {
     const pinned = this.pinned && this.pinned.index === i;
     // El centro de una celda no la representa entera: se muestra cuánto cambia en las celdas vecinas.
     const around = this.#neighborhood(cell);
-    const range = ([low, high]) => (low === high ? `${low} %` : `${low}–${high} %`);
+    const range = ([low, high]) => (low === high ? percent(low) : `${low}–${percent(high)}`);
     box.innerHTML = `
       <p class="leg-head">${tr("cell")} · ${num(cell.lat, 2)}°, ${num(cell.lon, 1)}°</p>
       <p class="verdict ${fails.length ? "bad" : "ok"}">${fails.length ? escapeHtml(tr("optimalNo", { why: fails.join(", ") })) : tr("optimalYes")}</p>
       <dl>
         ${row(tr("height"), `${num(relief.height_m[i])} m`, "measured")}
         ${row(tr("slope"), `${num(relief.slope_deg_x10[i] / 10, 1)}°`, "measured")}
-        ${row(tr("flat", { deg: th.flat_slope_deg }), `${flat} %`, "measured")}
-        ${row(tr("sun"), `${layers.sun_pct[i]} %`, "estimated")}
-        ${row(tr("earth"), `${layers.earth_pct[i]} %`, "estimated")}
+        ${row(tr("flat", { deg: th.flat_slope_deg }), percent(flat), "measured")}
+        ${row(tr("sun"), percent(layers.sun_pct[i]), "estimated")}
+        ${row(tr("earth"), percent(layers.earth_pct[i]), "estimated")}
         ${row(tr("temp"), `${layers.temp_max_k[i]} K`, "estimated")}
       </dl>
       <p class="caption around">${escapeHtml(tr("around", { km: num(around.km, 0), sun: range(around.sun), earth: range(around.earth), slope: `${num(around.slope[0], 1)}–${num(around.slope[1], 1)}°` }))}</p>

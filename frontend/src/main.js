@@ -19,7 +19,7 @@ import {
   fetchTimeline,
   isoUtc,
 } from "./api.js";
-import { num, siteRef } from "./format.js";
+import { num, percent, siteRef } from "./format.js";
 import { hydrateIcons } from "./icons.js";
 import { getLang, LANGUAGES, onLangChange, setLang, siteName, t } from "./i18n.js";
 import { createRouter } from "./router.js";
@@ -170,13 +170,14 @@ function showTooltip(id, x, y, zone = null, point = null) {
   if (polarCell) {
     const layer = POLAR_LAYERS[state.polar.layer];
     const value = layer.value(polarCell.index, state.polar.data);
-    const shown = layer.unit ? `${num(value, state.polar.layer === "slope" ? 1 : 0)}${layer.unit}` : t(value ? "tag.yes" : "tag.no");
+    const shown = layer.unit === "%" ? percent(value)
+      : layer.unit ? `${num(value, state.polar.layer === "slope" ? 1 : 0)}${layer.unit}` : t(value ? "tag.yes" : "tag.no");
     placeTooltip([
       ["strong", t("tip.polar", { lat: num(point.lat, 2), lon: num(point.lon, 1) })],
       ["span", t("tip.polarValue", { name: pick(layer.name), value: shown, kind: t(`tag.${layer.kind}`) })],
       ["span", t("tip.polarSlope", { slope: num(state.polar.data.relief.slope_deg_x10[polarCell.index] / 10, 1) })],
       ...(state.polar.data.layers ? [["span", t(state.polar.data.layers.optimal[polarCell.index] ? "tip.polarOptimal" : "tip.polarNotOptimal", {
-        sun: state.polar.data.layers.sun_pct[polarCell.index], earth: state.polar.data.layers.earth_pct[polarCell.index],
+        sun: percent(state.polar.data.layers.sun_pct[polarCell.index]), earth: percent(state.polar.data.layers.earth_pct[polarCell.index]),
       })]] : []),
     ], x, y);
     return;
