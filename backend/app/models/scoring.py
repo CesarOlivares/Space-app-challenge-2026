@@ -237,38 +237,6 @@ def compute_landing_ease_score(
     return round(0.65 * slope_sub + 0.25 * rough_sub + 0.10 * approach_sub, 1)
 
 
-def compute_terrain_score(terrain: TerrainMetrics, max_slope_deg: float = 15.0) -> float | None:
-    """Backward-compatible alias for `compute_landing_ease_score`."""
-    return compute_landing_ease_score(terrain, max_slope_deg=max_slope_deg)
-
-
-def compute_tilt_incidence_factor(
-    sun_el_deg: float,
-    sun_az_deg: float,
-    slope_deg: float,
-    aspect_deg: float,
-) -> float:
-    """Computes cosine of the solar incidence angle on a terrain-tilted solar deck.
-
-    Implements:
-        cos(theta_i) = sin(el_sun)*cos(beta) + cos(el_sun)*sin(beta)*cos(az_sun - gamma)
-
-    Args:
-        sun_el_deg: Solar elevation above the local horizontal in degrees.
-        sun_az_deg: Solar azimuth clockwise from North in degrees.
-        slope_deg: Local terrain slope beta in degrees.
-        aspect_deg: Downslope azimuth gamma in degrees.
-
-    Returns:
-        Clamped incidence factor in [0.0, 1.0].
-    """
-    el = np.radians(sun_el_deg)
-    beta = np.radians(slope_deg)
-    d_az = np.radians(sun_az_deg - aspect_deg)
-    cos_i = float(np.sin(el) * np.cos(beta) + np.cos(el) * np.sin(beta) * np.cos(d_az))
-    return max(0.0, min(1.0, cos_i))
-
-
 def weighted_general_score(
     component_scores: dict[str, float],
     component_weights: dict[str, float],

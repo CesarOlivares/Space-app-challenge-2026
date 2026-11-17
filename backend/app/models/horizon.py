@@ -134,8 +134,6 @@ def get_dem() -> PolarDEM | None:
     return PolarDEM.open(DEM_DIR)
 
 
-_dem = get_dem  # retrocompatibilidad interna
-
 
 @lru_cache(maxsize=256)
 def terrain_mask(site_id: str, lat: float, lon: float) -> HorizonMask | None:

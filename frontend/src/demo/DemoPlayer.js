@@ -25,6 +25,8 @@ const UI = {
   },
 };
 
+const MIN_SCENE_MS = 900;
+
 class Cancelled extends Error {}
 
 export class DemoPlayer {
@@ -185,9 +187,13 @@ export class DemoPlayer {
         for (const scene of chapter.scenes) {
           alive();
           this.#say(scene.caption);
+          const began = performance.now();
           await scene.run?.();
           alive();
-          await this.#wait(scene.ms, alive, (done) => this.#markStep(index, (elapsed + done) / total));
+          // Lo que tardó la acción (cargar datos, mover la cámara) se descuenta de la escena, así el
+          // recorrido dura lo que dice el guion; siempre queda un mínimo para leer el subtítulo.
+          const left = Math.max(MIN_SCENE_MS, scene.ms - (performance.now() - began));
+          await this.#wait(left, alive, (done) => this.#markStep(index, (elapsed + scene.ms - left * (1 - done)) / total));
           elapsed += scene.ms;
         }
         // Recorrido manual: el paso se queda a la vista hasta que el usuario avance o reanude.

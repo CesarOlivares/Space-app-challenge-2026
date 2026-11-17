@@ -22,9 +22,6 @@ async function request(path, { params = {}, body } = {}) {
 
 export const isoUtc = (date) => date.toISOString().replace(/\.\d{3}Z$/, "Z");
 
-export function fetchHealth() {
-  return request("/api/health");
-}
 
 export function fetchSites() {
   return request("/api/sites").then((data) => data.sites);
@@ -144,24 +141,7 @@ export function fetchComparison(scenarios, config) {
   });
 }
 
-export function fetchTerrainCutout(ref, { size = 128, step = 1, format = "json", includeSlopes = true } = {}) {
-  return request(`/api/sites/${encodeURIComponent(ref)}/terrain`, {
-    params: { size, step, format, include_slopes: includeSlopes },
-  });
-}
 
-export function fetchScoresMatrix(startDate, { days = 30, stepHours = 12, sites = null, config = {} } = {}) {
-  const params = {
-    start: isoUtc(startDate),
-    days,
-    step_hours: stepHours,
-    ...configParams(config),
-  };
-  if (sites && sites.length) {
-    params.sites = sites.join("|");
-  }
-  return request("/api/scores/matrix", { params });
-}
 
 /**
  * Fetches the global 72x36 lunar surface risk grid for on-globe heatmap overlays.

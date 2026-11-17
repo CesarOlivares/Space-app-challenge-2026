@@ -633,9 +633,11 @@ let polarRequest = 0;
 async function syncPolarCap() {
   const polarLayer = LAYERS[state.layer]?.polar;
   const request = ++polarRequest;
+  // Mientras llega la capa nueva no se muestra la procedencia de la anterior.
+  if (state.polar?.layer !== polarLayer) state.polar = null;
   if (!polarLayer || !state.date) {
-    state.polar = null;
     globe.setPolarCap(null);
+    renderActiveLayerLegend();
     return;
   }
   try {
@@ -662,6 +664,7 @@ async function setLayer(layer, { announce = true, fly = true } = {}) {
   }
   if (LAYERS[spec].globe !== "surface") await ensureRiskGrid();
   globe.setLayerMode(LAYERS[spec].globe);
+  if (state.polar?.layer !== LAYERS[spec].polar) state.polar = null;
   renderActiveLayerLegend();
   syncUrl();
   if (fly && LAYERS[spec].focus === "south-pole") globe.focusSouthPole();

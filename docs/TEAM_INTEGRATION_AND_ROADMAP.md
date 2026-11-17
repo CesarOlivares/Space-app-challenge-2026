@@ -38,7 +38,7 @@ All subsystems share the same lunar reference frame (**Mean Earth / Polar Axis**
 
 ### 2.3 Topography & Mechanical Touchdown Safety (`T`)
 
-`compute_terrain_score(terrain, max_slope_deg=15.0)` in `backend/app/models/scoring.py` evaluates mechanical touchdown safety against lander tip-over limits (`slope_deg <= max_slope_deg`) using three spacecraft presets exposed in `frontend/src/views/SettingsPanel.js`:
+`compute_landing_ease_score(terrain, max_slope_deg, approach_clearance_pct)` in `backend/app/models/scoring.py` evaluates mechanical touchdown safety against lander tip-over limits (`slope_deg <= max_slope_deg`) using three spacecraft presets exposed in `frontend/src/views/SettingsPanel.js`:
 
 * **Crewed HLS (`5.0°`):** team assumption. The HLS 8°/5° values (HLS-R-0071) are vehicle tilt from vertical, not terrain slope; Wueller et al. (2026) use terrain slope ≤ 8° over 100 m.
 * **CLPS Robotic Lander (`10.0°`):** Commercial lunar lander envelope.
