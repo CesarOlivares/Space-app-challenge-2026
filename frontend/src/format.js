@@ -55,3 +55,13 @@ export function num(value, digits = 0) {
   }
   return numberFormatters.get(key).format(value);
 }
+
+// Porcentaje como se escribe en cada idioma: "12 %" en español, "12%" en inglés.
+const percentFormatters = new Map();
+export function percent(value, digits = 0) {
+  const key = `${t("locale")}:${digits}`;
+  if (!percentFormatters.has(key)) {
+    percentFormatters.set(key, new Intl.NumberFormat(t("locale"), { style: "percent", minimumFractionDigits: digits, maximumFractionDigits: digits }));
+  }
+  return percentFormatters.get(key).format(value / 100);
+}
