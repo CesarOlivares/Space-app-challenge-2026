@@ -11,19 +11,20 @@ Zenith: un globo lunar 3D para comparar sitios y fechas de aterrizaje según la 
 - [Cómo integrar la topografía](docs/INTEGRAR-TOPOGRAFIA.md)
 - [UX elements: elementos visuales para el frontend](UX%20elements/README.md)
 - [Guía de despliegue en producción](docs/DESPLIEGUE.md)
-- [Mejoras futuras: vistas, gráficos y próximos pasos](docs/MEJORAS-FUTURAS.md)
+- [Mejoras futuras: qué se hizo y qué queda](docs/MEJORAS-FUTURAS.md)
+- [Auditoría del repositorio (noviembre de 2026)](docs/AUDITORIA-REPO.md)
 
-## Mejoras futuras
+## Lo más nuevo
 
-Lo que probamos en el pitch y en el [video explicativo de 30 s](https://cesarolivares.github.io/Space-app-challenge-2026/explainer.html) deja varias ideas para llevar a la app. Las cinco con más impacto:
+Lo que probamos en el pitch y en el [video explicativo de 30 s](https://cesarolivares.github.io/Space-app-challenge-2026/explainer.html) ya está en la app:
 
-1. **Relieve 3D del polo sur** con capas de pendiente, luz y zonas óptimas.
-2. **Mapa de luz con sombras del relieve**, más fino que la grilla actual de 5°.
-3. **Capa "dónde aterrizar"**: solo brillan las zonas que cumplen los tres factores.
-4. **Recorrido guiado en pasos**, con subtítulos de lo que se ve en pantalla.
-5. **"+1 día" animado**, para mostrar cómo un retraso cambia la viabilidad.
+1. **Relieve 3D del polo sur** con ocho capas (pendiente, luz, Tierra, dónde aterrizar, temperatura, sombra permanente, fechas disponibles y altura).
+2. **Luz y Tierra con el relieve real** en celdas de 2,4 km, para la fecha elegida. Contra los mapas de NASA PGDA: error medio menor a 1 punto.
+3. **Capa «Dónde aterrizar»**: solo brillan las zonas que cumplen los tres factores.
+4. **Demo de 30 s** en cinco pasos, con subtítulos; `?demo=loop` la repite para un stand.
+5. **«+1 día»** en la ficha: muestra cómo un día de retraso cambia la viabilidad.
 
-Detalle, esfuerzo estimado y el resto de las ideas en [docs/MEJORAS-FUTURAS.md](docs/MEJORAS-FUTURAS.md).
+Qué se hizo de cada idea, con sus límites, y qué queda pendiente: [docs/MEJORAS-FUTURAS.md](docs/MEJORAS-FUTURAS.md).
 
 ## Requisitos
 
@@ -44,7 +45,7 @@ Todo el flujo se opera mediante el comando `./run.sh` en Bash (Linux, macOS o **
    ```
    *Notas:*
    - `./run.sh data` también procesa la textura 8K y el relieve del globo. Para omitir alta resolución y ahorrar espacio, puedes usar `./run.sh data --no-hires`.
-   - Opcional: `./run.sh data --dem` descarga además el DEM polar LOLA (116 MB), necesario para recalcular máscaras (`./run.sh horizons`) o usar relieve en coordenadas personalizadas.
+   - Opcional: `./run.sh data --dem` descarga además el DEM polar LOLA (116 MB), necesario para recalcular máscaras (`./run.sh horizons`) y las capas del polo sur (`./run.sh polar`), o para usar relieve en coordenadas personalizadas. La app no lo necesita para funcionar: las máscaras y las capas ya vienen calculadas en el repositorio.
 
 2. **Iniciar la aplicación:**
    ```bash
@@ -65,6 +66,12 @@ Una vez descargados los datos, la aplicación funciona de forma **100% offline**
 - **Copiar enlace:** la dirección guarda la fecha, el sitio elegido, los ajustes, los sitios personalizados y la comparación; al abrirla se reproduce el mismo escenario.
 - **Exportar CSV:** puntajes de todos los sitios para la fecha actual.
 - **Mejores fechas:** en el detalle de un sitio, busca las mejores fechas de aterrizaje de los próximos 30 días.
+- **+1 día:** en la ficha de un sitio, corre la fecha un día y muestra qué cambió (luz continua, enlace, puntaje y veredicto).
+- **Capas del globo:** engranaje → Globo y Capas. Al sur de 84° S las capas tienen detalle de 2,4 km; cada una dice si el dato es medido o estimado. «Dónde aterrizar» deja brillando solo las zonas que cumplen los tres factores.
+- **Relieve 3D del polo sur:** desde Globo y Capas o desde la ficha de un sitio polar. Se gira, tiene ocho capas, lectura por celda y un calendario regional de fechas disponibles.
+- **Demo:** el botón Demo recorre la herramienta en 30 s. `/?demo` la abre directo y `/?demo=loop` la repite sin fin (modo kiosko). Desde ahí se puede grabar el recorrido como video.
+- **Código QR:** en el panel del engranaje, junto a «Copiar enlace»; se genera sin conexión.
+- **Diagnóstico:** `/?debug` muestra el costo por cuadro del globo.
 
 ## Pruebas automáticas
 
@@ -84,15 +91,20 @@ backend/
     models/        lógica del dominio (Python puro, sin dependencias web)
     controllers/   rutas FastAPI
     main.py        aplicación; también sirve el frontend
-  data/            catálogo de sitios, kernels, máscaras de horizonte (ver data/README.md)
-  scripts/         descarga de datos y generación de casos de referencia de Horizons
+  data/            catálogo de sitios, kernels, máscaras de horizonte y capas del polo sur (ver data/README.md)
+  scripts/         descarga de datos, cálculo de máscaras y capas, casos de referencia de Horizons y PGDA
   tests/
 frontend/
   index.html
   src/
-    views/         componentes de la vista
+    views/         componentes de la vista (terrain/: relieve 3D del polo sur)
+    polar/         capas del polo sur: colores, leyendas y procedencia
+    demo/          recorrido guiado de 30 s (demo, kiosko y grabación)
+    share/         enlace y código QR
+    tour/          tutorial que resalta cada control
+    debug/         medidor de rendimiento (?debug)
     api.js         cliente HTTP
-    main.js
+    main.js        controlador: estado y conexión entre la API y las vistas
   public/textures/ texturas descargadas
   vendor/          Three.js descargado
 docs/

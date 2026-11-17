@@ -13,6 +13,7 @@ Cada documento separa lo que **está implementado** (con el archivo donde vive) 
 | [05 · Puntaje y viabilidad](05-puntaje.md) | Energía, comunicación, puntaje global, paneles, viabilidad | `scoring.py` |
 | [06 · Validación](06-validacion.md) | Cómo se comprobó cada parte y con qué error | `backend/tests/` |
 | [07 · Mapeo Solar y Viabilidad](07-mapa-solar-y-viabilidad.md) | Fenómeno polar vs ecuatorial, ray-casting 2.5D, hard vs soft constraints | `terrain.py`, `scores.py` |
+| [08 · Capas del polo sur](08-capas-polares.md) | Grilla polar de 2,4 km: luz y Tierra por celda, zonas óptimas, sombra permanente, temperatura y calendario regional; validación contra NASA PGDA | `polar.py`, `thermal.py` |
 | [Referencias](referencias.md) | Fuentes de datos y bibliografía | — |
 | [07 · Sitios óptimos (prototipo)](07-sitios-optimos.md) | Mapa de aptitud del polo sur, candidatos y validación contra las regiones Artemis | `prototipos/sitios_optimos/` |
 | [Investigación de fuentes y validación](investigacion/informe-fuentes-y-validacion.md) | APIs y datos disponibles, casos publicados para comparar, revisión de cada supuesto y plan de pruebas | — |

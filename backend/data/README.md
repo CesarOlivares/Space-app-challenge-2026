@@ -5,6 +5,7 @@
 | `sites.json` | Catálogo curado de sitios de aterrizaje con metadatos de misión | Sí |
 | `kernels/` | Kernels SPICE de efemérides y orientación lunar | No, se descargan con `./run.sh data` |
 | `horizons/` | Máscaras de horizonte por terreno de los sitios al sur de 80° S | Sí; se recalculan con `./run.sh horizons` |
+| `polar/south_pole.npz` | Capas del polo sur: altura, pendiente y horizonte por celda de 2,4 km (835 KB) | Sí; se recalcula con `./run.sh polar` |
 | `dem/` | DEM polar LOLA `LDEM_75S_120M` (116 MB, resolución 120 m/px) | No; opcional, con `./run.sh data --dem` |
 | `../../frontend/public/textures/ldem_16.tif` | LOLA Global DEM (16 px/grado, NASA PDS / SVS) para topografía global y relieve 3D | No, se descarga y procesa con `./run.sh data` |
 
@@ -61,3 +62,11 @@ Valores de `precision`:
 - La aplicación usa estas máscaras sin necesitar el DEM.
 - Con el DEM descargado, las coordenadas personalizadas al sur de 80° S también obtienen horizonte por terreno, calculado al vuelo (~0,3 s la primera vez).
 - Al agregar un sitio polar al catálogo, o al cambiar sus coordenadas, hay que ejecutar `./run.sh data --dem` y luego `./run.sh horizons`.
+
+## Capas del polo sur
+
+`polar/south_pole.npz` guarda, para una grilla estereográfica polar de 151 × 151 celdas de 2,4 km centrada en el polo sur (±181 km), la altura del centro de cada celda, la pendiente media a 120 m, el % de la celda con pendiente bajo 8°, el horizonte del relieve en 48 direcciones y la sombra permanente. Con eso la aplicación calcula la luz, la visibilidad de la Tierra y las zonas óptimas de cualquier fecha sin necesitar el DEM.
+
+- Se calcula con `./run.sh polar` (requiere `./run.sh data --dem`; tarda cerca de dos minutos).
+- Hay que recalcularlo solo si cambia el DEM o el tamaño de la grilla (`backend/app/models/polar.py`).
+- Formato, método y validación: [docs/modelo/08-capas-polares.md](../../docs/modelo/08-capas-polares.md).

@@ -4,8 +4,9 @@
 // leyenda es exactamente lo que se pinta. Cada capa declara si el dato es MEDIDO (LOLA) o ESTIMADO
 // (geometría de Zenith) y a qué resolución, y la interfaz lo muestra siempre junto al nombre.
 //
-// Colores: paleta de datos del sistema (Okabe-Ito, apta para daltonismo). El color nunca va solo:
-// la leyenda trae los valores y el cursor muestra la cifra de cada celda.
+// Colores: pendiente, luz y Tierra usan exactamente la escala de la capa global del globo
+// (GlobeView.riskCellColor), así el casquete polar y el resto de la Luna se leen con una sola
+// leyenda. El color nunca va solo: la leyenda trae los valores y el cursor, la cifra de cada celda.
 
 import { fetchPolarAvailability, fetchPolarLayers, fetchPolarRelief, isoUtc } from "../api.js";
 import { getLang } from "../i18n.js";
@@ -14,10 +15,8 @@ const T = (es, en) => ({ es, en });
 export const pick = (text) => (typeof text === "string" ? text : text?.[getLang()] ?? text?.es ?? "");
 
 const DARK = [12, 16, 26];
-const SKY = [86, 180, 233]; // --viable / --data-earth-high
 const AMBER = [230, 159, 0];
 const VERMILION = [213, 94, 0];
-const SUN = [255, 210, 90];
 const GREEN = [126, 224, 161];
 const ICE = [150, 190, 255];
 
@@ -40,8 +39,15 @@ const pct = (value) => (value == null ? "–" : new Intl.NumberFormat(getLang(),
 const css = ([r, g, b]) => `rgb(${Math.round(r)} ${Math.round(g)} ${Math.round(b)})`;
 const gradient = (stops) => `linear-gradient(to right, ${stops.map(([t, c]) => `${css(c)} ${Math.round(t * 100)}%`).join(", ")})`;
 
-const SUN_STOPS = [[0, DARK], [0.5, [150, 96, 40]], [1, SUN]];
-const EARTH_STOPS = [[0, DARK], [0.5, [38, 92, 130]], [1, SKY]];
+// Escalas compartidas con la capa global.
+const NO_DATA = [15, 23, 42]; // sin luz / sin señal
+const FLAT = [16, 200, 145];
+const MODERATE = [[0, [245, 197, 24]], [1, [249, 115, 22]]];
+const STEEP = [225, 45, 55];
+const SUN_STOPS = [[0, [59, 130, 246]], [0.45, [249, 115, 22]], [1, [250, 204, 21]]]; // de 20 % a 95 %
+const EARTH_STOPS = [[0, [234, 179, 8]], [0.5, [132, 204, 22]], [1, [34, 197, 94]]]; // de 15 % a 100 %
+const SUN_GRADIENT = "linear-gradient(to right, #1e293b 0%, #3b82f6 33%, #f97316 67%, #facc15 100%)";
+const EARTH_GRADIENT = "linear-gradient(to right, #1e293b 0%, #eab308 50%, #22c55e 100%)";
 const TEMP_STOPS = [[0, [40, 60, 150]], [0.2, ICE], [0.45, [235, 235, 235]], [0.7, AMBER], [1, VERMILION]];
 const HEIGHT_STOPS = [[0, [48, 18, 120]], [0.3, [32, 92, 214]], [0.5, [24, 185, 210]], [0.65, [64, 210, 110]], [0.8, [235, 220, 56]], [1, [240, 120, 32]]];
 const AVAIL_STOPS = [[0, DARK], [0.02, [40, 70, 60]], [1, GREEN]];
@@ -60,9 +66,9 @@ export const POLAR_LAYERS = {
     headline: T("Pendiente del terreno", "Terrain slope"),
     unit: "°",
     value: (i, d) => d.relief.slope_deg_x10[i] / 10,
-    color: (v, d) => (v <= 5 ? SKY : v <= d.maxSlopeDeg ? ramp([[0, AMBER], [1, [240, 130, 20]]], (v - 5) / Math.max(1, d.maxSlopeDeg - 5)) : VERMILION),
+    color: (v, d) => (v <= 5 ? FLAT : v <= d.maxSlopeDeg ? ramp(MODERATE, (v - 5) / Math.max(1, d.maxSlopeDeg - 5)) : STEEP),
     legend: (d) => ({
-      gradient: `linear-gradient(to right, ${css(SKY)} 0 33%, ${css(AMBER)} 33% 66%, ${css(VERMILION)} 66%)`,
+      gradient: `linear-gradient(to right, ${css(FLAT)} 0 33%, ${css(MODERATE[0][1])} 33%, ${css(MODERATE[1][1])} 66%, ${css(STEEP)} 66%)`,
       ticks: [T("≤ 5° plana", "≤ 5° flat"), T(`5–${d.maxSlopeDeg}° moderada`, `5–${d.maxSlopeDeg}° moderate`), T(`> ${d.maxSlopeDeg}° empinada`, `> ${d.maxSlopeDeg}° steep`)],
     }),
     note: T("Pendiente media de cada celda, medida a 120 m con el altímetro LOLA.", "Mean slope of each cell, measured at 120 m with the LOLA altimeter."),
@@ -73,8 +79,8 @@ export const POLAR_LAYERS = {
     headline: T("Recurso solar", "Solar resource"),
     unit: "%",
     value: (i, d) => d.layers.sun_pct[i],
-    color: (v) => ramp(SUN_STOPS, v / 100),
-    legend: () => ({ gradient: gradient(SUN_STOPS), ticks: [T("0 % sombra", "0% dark"), "50 %", T("100 % luz", "100% lit")] }),
+    color: (v) => (v < 20 ? NO_DATA : ramp(SUN_STOPS, (v - 20) / 75)),
+    legend: () => ({ gradient: SUN_GRADIENT, ticks: [T("< 20 % sombra", "< 20% dark"), "50 %", T("≥ 95 % luz", "≥ 95% lit")] }),
     note: T("% de la ventana con el Sol sobre el horizonte del relieve, con la declinación solar real de esa fecha.", "% of the window with the Sun above the terrain horizon, using the real solar declination for that date."),
   },
   earth: {
@@ -83,8 +89,8 @@ export const POLAR_LAYERS = {
     headline: T("Enlace con la Tierra", "Link to Earth"),
     unit: "%",
     value: (i, d) => d.layers.earth_pct[i],
-    color: (v) => ramp(EARTH_STOPS, v / 100),
-    legend: () => ({ gradient: gradient(EARTH_STOPS), ticks: [T("0 % sin enlace", "0% no link"), "50 %", T("100 % enlace", "100% link")] }),
+    color: (v) => (v < 15 ? NO_DATA : ramp(EARTH_STOPS, (v - 15) / 85)),
+    legend: () => ({ gradient: EARTH_GRADIENT, ticks: [T("< 15 % sin enlace", "< 15% no link"), T("intermitente", "intermittent"), T("100 % enlace", "100% link")] }),
     note: T("% de la ventana con la Tierra a la vista (margen de antena incluido), con la libración real de esa fecha.", "% of the window with Earth in view (antenna margin included), using the real libration for that date."),
   },
   optimal: {

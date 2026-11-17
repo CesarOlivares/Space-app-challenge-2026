@@ -166,3 +166,8 @@
 @media (prefers-reduced-motion: reduce) {
   .lfig .fg-anim { animation: none; }
 }
+
+/* En teléfono, una tarjeta abierta no puede ensanchar la página: el contenido se ajusta al ancho. */
+.learn > *, .learn-cards > * { min-width: 0; }
+.lcard-inner { grid-template-columns: minmax(0, 1fr); }
+.lcard-inner > .btn { white-space: normal; text-align: center; }

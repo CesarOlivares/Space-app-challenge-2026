@@ -2,7 +2,7 @@
 //
 // Propio y sin dependencias: la app funciona sin conexión y no carga nada de un CDN (RNF-07).
 // Solo lo necesario para codificar el enlace de un escenario: texto UTF-8, versiones 1 a 40,
-// la máscara de menor penalización. Probado contra un lector independiente (docs/modelo/06-validacion.md).
+// la máscara de menor penalización. Comprobado con un lector independiente (OpenCV): ver docs/MEJORAS-FUTURAS.md.
 //
 //   qrMatrix("https://…")  →  { size, get(x, y) }   módulo oscuro = true
 //   qrSvg("https://…")     →  "<svg …>"

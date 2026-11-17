@@ -481,3 +481,83 @@ Parámetros:
   ]
 }
 ```
+
+### `GET /api/polar/relief`
+
+Relieve del polo sur en **grilla estereográfica polar** (la proyección del DEM LOLA): 151 × 151 celdas de 2,4 km, ±181 km alrededor del polo. No depende de la fecha, así que se puede guardar en caché. Sale de `backend/data/polar/south_pole.npz`, que se versiona: no necesita el DEM. Responde `503` si ese archivo falta.
+
+Los arreglos van por filas y tienen `n × n` valores: la fila 0 es el borde hacia la longitud 0° (la Tierra) y las columnas crecen hacia el este.
+
+| Campo | Qué es | Procedencia |
+|---|---|---|
+| `n`, `cell_m`, `half_extent_km`, `min_lat` | Tamaño de la grilla | — |
+| `height_m` | Altura del centro de la celda sobre la esfera de 1737,4 km | Medido (LOLA 120 m) |
+| `slope_deg_x10` | Pendiente media de la celda a 120 m, en décimas de grado | Medido |
+| `flat_pct` | % de la celda con pendiente ≤ `flat_slope_deg` (8°) | Medido |
+| `psr` | 1 si el centro de la celda nunca ve el Sol (sombra permanente) | Estimado |
+| `provenance` | Por cada capa: `kind` (`measured` / `estimated`), `source` y `resolution_m` | — |
+
+### `GET /api/polar/layers?date=…`
+
+Luz, visibilidad de la Tierra, temperatura máxima y zonas óptimas del polo sur **para una fecha**. Para el centro de cada celda se compara el horizonte del relieve (48 direcciones, con la curvatura lunar) con la posición real del Sol y de la Tierra durante la ventana: la declinación solar y la libración de esa fecha salen de las efemérides del JPL. Es una estimación de Zenith; el método y la comparación con NASA PGDA están en [docs/modelo/08-capas-polares.md](modelo/08-capas-polares.md).
+
+Parámetros: `date`, `window_days` (14; hasta 30), `sun_margin_deg` (0) y `earth_margin_deg` (2).
+
+```json
+{
+  "n": 151, "cell_m": 2400.0, "half_extent_km": 181.2, "min_lat": -81.62,
+  "date": "2026-11-23T00:00:00Z", "window_days": 14.0, "step_hours": 2.0,
+  "sun_pct": [0, 12, 57],
+  "earth_pct": [100, 75, 0],
+  "temp_max_k": [40, 189, 215],
+  "optimal": [0, 0, 1],
+  "thresholds": { "flat_pct": 30.0, "sun_pct": 50.0, "earth_pct": 50.0, "flat_slope_deg": 8.0, "ice_stability_k": 110.0 },
+  "stats": { "optimal_pct": 2.16, "flat_pct": 61.9, "sun_pct": 24.5, "earth_pct": 9.8 },
+  "provenance": { "sun": { "kind": "estimated", "source": "…", "resolution_m": 2400.0 } }
+}
+```
+
+- `sun_pct`, `earth_pct`: % de la ventana con el cuerpo sobre el horizonte del relieve (con su margen).
+- `optimal`: 1 si la celda cumple los tres factores a la vez, con los umbrales de `thresholds`.
+- `temp_max_k`: temperatura de equilibrio con el Sol en su punto más alto de la ventana (40 K si no hay Sol). Primer orden.
+- `stats`: % del área que cumple cada umbral y los tres juntos.
+
+### `GET /api/polar/availability?date=…&days=…`
+
+**Calendario regional**: en cuántas fechas de aterrizaje cada celda cumple todos los requisitos de superficie (Sol al aterrizar y durante toda la estancia, Tierra a la vista y terreno apto). Es la disponibilidad que usa la NASA para comparar regiones, aquí por celda y por fecha. Recorre una fecha por día; para que un año completo responda en ~1 s usa una de cada dos celdas (76 × 76 de 4,8 km) y paso de 6 h. `date` se redondea al día.
+
+Parámetros: `date`, `days` (365; de 1 a 400), `stay_days` (6,5), `sun_margin_deg`, `earth_margin_deg`.
+
+```json
+{
+  "n": 76, "cell_m": 4800.0, "start": "2026-11-23T00:00:00Z", "days": 365.0, "stay_days": 6.5,
+  "evaluated": 366,
+  "available_pct": [0, 3, 14],
+  "ever_available_pct": 16.3,
+  "dates": [ { "date": "2026-11-23T00:00:00Z", "area_pct": 0.9, "sun_pct": 4.1, "earth_pct": 12.6 } ]
+}
+```
+
+- `available_pct`: por celda, % de las fechas en que cumple todo.
+- `dates[].area_pct`: % del área que cumple todo aterrizando ese día; `sun_pct` y `earth_pct`, el % que cumple cada requisito por separado (más el terreno).
+
+### `GET /api/sites/{sitio}/environment?date=…&days=…`
+
+Entorno del sitio: **temperatura estimada** de la superficie durante la ventana y **cercanía a sombra permanente** (valor científico: posible hielo de agua).
+
+Parámetros: `date`, `days` (14), `step_hours` (1), `sun_margin_deg` (0).
+
+```json
+{
+  "site_id": "mons-malapert", "start": "2026-11-23T00:00:00Z", "step_hours": 1.0, "horizon": "terreno",
+  "temperature": {
+    "kelvin": [214.9, 214.8],
+    "min_k": 113.6, "max_k": 214.9, "mean_k": 175.7,
+    "hours_below_ice_stability": 0.0, "ice_stability_k": 110.0,
+    "model": "Balance radiativo de una capa (A=0,12; ε=0,95); superficie horizontal"
+  },
+  "shadow": { "in_permanent_shadow": false, "distance_km": 9.9, "cell_flat_pct": 59.0, "resolution_m": 2400.0 }
+}
+```
+
+`shadow` es `null` fuera de la grilla polar (al norte de ~84° S). El modelo térmico es de primer orden y no reemplaza un análisis térmico: ver [docs/modelo/08-capas-polares.md](modelo/08-capas-polares.md).
