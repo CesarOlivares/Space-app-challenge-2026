@@ -45,6 +45,8 @@ La fórmula está en `backend/app/models/scoring.py` y en la sección 1 de la [p
 
 ## Rutas
 
+Qué vista usa cada ruta: `/scores`, `/scores/custom`, `/illumination`, `/sites` y `/risk-grid` alimentan el globo; `/sky`, `/timeline`, `/patch`, `/best-dates` y `/environment`, la ficha y el detalle; `/compare` y `/availability`, la comparación; `/polar/*`, las capas del polo y el relieve 3D. `/health` es para el monitoreo del despliegue.
+
 ### `GET /api/health`
 
 ```json
@@ -371,6 +373,8 @@ Content-Type: application/json
 
 ### `GET /api/scores/matrix`
 
+> **Sin uso en la interfaz.** Ninguna vista de la app la llama hoy; se mantiene para scripts y para quien use la API directamente, y tiene sus pruebas en `backend/tests/`.
+
 Matriz temporal de viabilidad y puntajes para múltiples sitios a lo largo de un rango de semanas o meses (V6).
 Respuestas masivas comprimidas automáticamente con GZip (reducción ~90% de transferencia).
 
@@ -413,6 +417,8 @@ Parámetros:
 ```
 
 ### `GET /api/sites/{sitio}/terrain`
+
+> **Sin uso en la interfaz.** Ninguna vista de la app la llama hoy; se mantiene para scripts y para quien use la API directamente, y tiene sus pruebas en `backend/tests/`.
 
 Recorte de relieve 3D LOLA (`LDEM_75S_120M`, 120 m/px) y mapa de pendientes vectorizado centrado en el sitio.
 Aplica a sitios al sur de 80° S. Incluye cabecera `Cache-Control: public, max-age=86400, immutable`.
