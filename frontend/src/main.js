@@ -175,6 +175,9 @@ function showTooltip(id, x, y, zone = null, point = null) {
       ["strong", t("tip.polar", { lat: num(point.lat, 2), lon: num(point.lon, 1) })],
       ["span", t("tip.polarValue", { name: pick(layer.name), value: shown, kind: t(`tag.${layer.kind}`) })],
       ["span", t("tip.polarSlope", { slope: num(state.polar.data.relief.slope_deg_x10[polarCell.index] / 10, 1) })],
+      ...(state.polar.data.layers ? [["span", t(state.polar.data.layers.optimal[polarCell.index] ? "tip.polarOptimal" : "tip.polarNotOptimal", {
+        sun: state.polar.data.layers.sun_pct[polarCell.index], earth: state.polar.data.layers.earth_pct[polarCell.index],
+      })]] : []),
     ], x, y);
     return;
   }

@@ -368,3 +368,13 @@
   color: var(--ink-muted);
   pointer-events: none;
 }
+
+/* ---------- Pantallas angostas: nada tapa al panel que se está usando ---------- */
+
+@media (max-width: 760px) {
+  /* El "?" de la leyenda quedaba sobre el encabezado del detalle. */
+  body.detail-open #legend-toggle,
+  body.detail-open #legend-card { display: none; }
+  /* Con el panel de ajustes abierto, la leyenda del panel ya dice qué capa es. */
+  body.drawer-open .layer-title { display: none; }
+}
