@@ -51,5 +51,7 @@ Ninguno bloquea el uso de la app. Van ordenados por cuánto conviene resolverlos
 ## Verificación
 
 - `./run.sh test`: 414 pruebas pasan (394 antes de las mejoras, 20 nuevas).
-- Navegador: portada, vista general, las seis capas del globo, relieve 3D con sus ocho capas, ficha con «+1 día», detalle con entorno, comparación, Aprender, demo completa, código QR; en español e inglés y a 375 px sin desplazamiento horizontal. Sin errores en la consola.
+- Navegador (Chromium, panel de 610 × 549 px y 375 px de ancho): portada con su botón de demo, vista general, las seis capas del globo, relieve 3D con sus ocho capas y el calendario, ficha con «+1 día», detalle con el bloque de entorno, comparación con líder, Aprender con sus animaciones, la demo completa en inglés (12 escenas, vuelve al estado inicial), el modo kiosko y el código QR. Sin errores de JavaScript; a 375 px no hay desplazamiento horizontal en la vista general, el relieve ni Aprender.
+- Código QR: tres casos (enlace de escenario, texto corto y texto con tildes y un carácter chino) decodificados con OpenCV.
+- **No verificado:** otros navegadores (Firefox, Safari), un teléfono real y el rendimiento a pantalla completa.
 - Avisos conocidos de dependencias, sin efecto: `StarletteDeprecationWarning` (cliente de pruebas) y un `DeprecationWarning` de NumPy dentro de Skyfield.

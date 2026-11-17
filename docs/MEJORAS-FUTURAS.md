@@ -46,16 +46,16 @@ Estado: **Hecho** · **Primera versión** (funciona, con límites declarados) ·
 | Idea | Estado | Qué se hizo |
 |---|---|---|
 | Precargar lo pesado | Hecho | El relieve polar, las capas de la fecha y la grilla global se piden cuando la app queda en reposo, no al abrir una vista |
-| No redibujar lo que no cambia | Hecho | El globo y el relieve 3D solo dibujan cuando algo cambia. Con la Luna quieta: de 60 cuadros por segundo a 1 |
+| No redibujar lo que no cambia | Hecho | El globo y el relieve 3D solo dibujan cuando algo cambia. Con la Luna quieta, el globo pasa de 60 cuadros por segundo a 1 (medido) |
 | Menos detalle mientras la cámara se mueve | Hecho | El globo baja la resolución de dibujo durante el movimiento y vuelve a la completa al detenerse |
 | Acercamientos con transformaciones CSS | No aplica | La app no tiene escenas 2D que se reescalen (el video sí): los acercamientos son de cámara 3D |
-| Medir el costo por cuadro | Hecho | `?debug` muestra el costo por cuadro y los cuadros dibujados y omitidos. Medido el 16-11-2026 en un portátil con gráfica integrada (AMD Radeon Vega 8), 1280 × 800, textura de 8K y relieve: 21 ms por cuadro |
+| Medir el costo por cuadro | Hecho | `?debug` muestra el costo por cuadro y los cuadros dibujados y omitidos. Medido el 16-11-2026 en un portátil con gráfica integrada (AMD Radeon Vega 8), ventana de 610 × 549 px, textura de 8K y relieve: 13 ms por cuadro; con la Luna quieta, 1 cuadro dibujado y unos 60 omitidos por segundo. Falta medirlo a pantalla completa y en un teléfono |
 
 ## 4. Ciencia y validación
 
 | Idea | Estado | Qué se hizo |
 |---|---|---|
-| Validar con sitios y misiones conocidas | Hecho | Luz y Tierra contra los mapas de NASA PGDA en toda la grilla y en las celdas de IM-2, Mons Mouton, Mons Malapert, Shackleton y Chang'e 7. [docs/modelo/08-capas-polares.md](modelo/08-capas-polares.md) |
+| Validar con sitios y misiones conocidas | Primera versión | Luz y Tierra contra los mapas de NASA PGDA en toda la grilla y en las celdas de IM-2, Mons Mouton, Mons Malapert, Shackleton y Chang'e 7 ([docs/modelo/08-capas-polares.md](modelo/08-capas-polares.md)). Falta la comparación región por región con las candidatas de Artemis III; Chandrayaan-3 (69° S) queda fuera de la grilla polar |
 | Análisis térmico | Primera versión | Temperatura de la superficie durante la ventana, por sitio (detalle → Entorno) y por celda (capa Temperatura). Es un balance radiativo de una capa: reproduce el mediodía y el fin de la noche ecuatoriales de Diviner, pero no el calor de las laderas vecinas |
 | Valor científico | Primera versión | Capa de sombra permanente y, en cada sitio, la distancia a la celda en sombra permanente más cercana. Es geometría a 2,4 km, no un mapa de hielo |
 | Disponibilidad de fechas | Hecho | Calendario regional de un año: por celda, el % de fechas que cumplen todo; por fecha, el % del área. Capa **Fechas disponibles** del relieve 3D |
@@ -66,7 +66,7 @@ Estado: **Hecho** · **Primera versión** (funciona, con límites declarados) ·
 | Idea | Estado | Qué se hizo |
 |---|---|---|
 | QR y enlace por escenario | Hecho | **Código QR** en el panel del engranaje: se genera en la misma app (sin conexión ni dependencias) y se descarga como PNG. Comprobado con un lector independiente (OpenCV) en enlaces cortos, largos y con tildes. El enlace ahora guarda también la capa |
-| Exportar el recorrido como video | Primera versión | Botón **Grabar video** del recorrido: captura la pestaña mientras corre una vez y descarga un `.webm`. El navegador pide permiso para compartir la pestaña; depende de `getDisplayMedia`, que no existe en teléfonos |
+| Exportar el recorrido como video | Pendiente | Se decidió no incluirlo en esta entrega. Para grabar, el pitch ya tiene un grabador (`presentacion/tools/grabar_video.py`, rama `presentacion/pitch-zenit`) |
 
 ## Lo que sigue pendiente
 
@@ -74,5 +74,6 @@ Estado: **Hecho** · **Primera versión** (funciona, con límites declarados) ·
 - **Sombra permanente y temperatura contra Diviner.** Hoy son estimaciones geométricas y de primer orden.
 - **Umbrales de la zona óptima.** El 30 % de terreno apto y el 50 % de luz y Tierra son supuestos del equipo.
 - **Foto polar con más detalle real.** Requiere otro producto (por ejemplo, el mosaico polar de LROC WAC), no el mosaico global.
-- **Video con resolución fija.** El grabador del navegador depende del tamaño de la ventana; el del pitch (`presentacion/tools/grabar_video.py`, rama `presentacion/pitch-zenit`) da 1920 × 1080 exactos.
+- **Exportar el recorrido como video** desde la app.
 - **Polo norte.** El producto polar solo cubre el sur.
+- **Medir el rendimiento** a pantalla completa y en un teléfono.

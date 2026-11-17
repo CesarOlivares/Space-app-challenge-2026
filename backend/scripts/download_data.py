@@ -238,9 +238,12 @@ def convert_south_pole(force: bool) -> None:
         return
     source = COLOR_8K if COLOR_8K.exists() else TEXTURES / "moon_color_4k.jpg"
     print(f"  convirtiendo {SOUTH_POLE.relative_to(ROOT)}")
+    # Solo hace falta la franja del mosaico al sur del borde de la imagen: se recorta antes de
+    # pasarla a NumPy, así el mosaico de 8K no se duplica en memoria.
     with Image.open(source) as img:
-        mosaic = np.asarray(img.convert("RGB"), dtype=np.float32)
-    height, width = mosaic.shape[:2]
+        width, height = img.size
+        first_row = int((180.0 - SOUTH_POLE_MAX_COLATITUDE_DEG * 1.5) / 180.0 * height) - 2
+        mosaic = np.asarray(img.crop((0, first_row, width, height)).convert("RGB"))
 
     half_m = 2 * MOON_RADIUS_M * np.tan(np.radians(SOUTH_POLE_MAX_COLATITUDE_DEG) / 2)
     axis = (np.arange(SOUTH_POLE_SIZE) + 0.5) / SOUTH_POLE_SIZE * 2 * half_m - half_m
@@ -250,13 +253,14 @@ def convert_south_pole(force: bool) -> None:
 
     # Muestreo bilineal del mosaico (la longitud da la vuelta; la latitud se acota).
     col = (lon + np.pi) / (2 * np.pi) * width - 0.5
-    row = np.clip((np.pi - colatitude) / np.pi * height - 0.5, 0, height - 1.001)
+    row = np.clip((np.pi - colatitude) / np.pi * height - 0.5 - first_row, 0, mosaic.shape[0] - 1.001)
     c0 = np.floor(col).astype(int)
     r0 = np.floor(row).astype(int)
     fc, fr = (col - c0)[..., None], (row - r0)[..., None]
     c0, c1 = c0 % width, (c0 + 1) % width
-    top = mosaic[r0, c0] * (1 - fc) + mosaic[r0, c1] * fc
-    bottom = mosaic[r0 + 1, c0] * (1 - fc) + mosaic[r0 + 1, c1] * fc
+    sample = lambda rows, cols: mosaic[rows, cols].astype(np.float32)  # solo los píxeles que se usan
+    top = sample(r0, c0) * (1 - fc) + sample(r0, c1) * fc
+    bottom = sample(r0 + 1, c0) * (1 - fc) + sample(r0 + 1, c1) * fc
     tile = np.rint(top * (1 - fr) + bottom * fr).astype(np.uint8)
     Image.fromarray(tile, mode="RGB").save(SOUTH_POLE, quality=90, optimize=True)
     SOUTH_POLE_META.write_text(json.dumps({

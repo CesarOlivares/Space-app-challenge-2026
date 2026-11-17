@@ -69,7 +69,7 @@ Una vez descargados los datos, la aplicación funciona de forma **100% offline**
 - **+1 día:** en la ficha de un sitio, corre la fecha un día y muestra qué cambió (luz continua, enlace, puntaje y veredicto).
 - **Capas del globo:** engranaje → Globo y Capas. Al sur de 84° S las capas tienen detalle de 2,4 km; cada una dice si el dato es medido o estimado. «Dónde aterrizar» deja brillando solo las zonas que cumplen los tres factores.
 - **Relieve 3D del polo sur:** desde Globo y Capas o desde la ficha de un sitio polar. Se gira, tiene ocho capas, lectura por celda y un calendario regional de fechas disponibles.
-- **Demo:** el botón Demo recorre la herramienta en 30 s. `/?demo` la abre directo y `/?demo=loop` la repite sin fin (modo kiosko). Desde ahí se puede grabar el recorrido como video.
+- **Demo:** el botón Demo recorre la herramienta en 30 s. `/?demo` la abre directo y `/?demo=loop` la repite sin fin (modo kiosko).
 - **Código QR:** en el panel del engranaje, junto a «Copiar enlace»; se genera sin conexión.
 - **Diagnóstico:** `/?debug` muestra el costo por cuadro del globo.
 
@@ -99,7 +99,7 @@ frontend/
   src/
     views/         componentes de la vista (terrain/: relieve 3D del polo sur)
     polar/         capas del polo sur: colores, leyendas y procedencia
-    demo/          recorrido guiado de 30 s (demo, kiosko y grabación)
+    demo/          recorrido guiado de 30 s (demo y kiosko)
     share/         enlace y código QR
     tour/          tutorial que resalta cada control
     debug/         medidor de rendimiento (?debug)

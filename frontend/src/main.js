@@ -570,7 +570,12 @@ function renderActiveLayerLegend() {
   activeLayerLegend.dataset.layer = layer;
   const polar = state.polar;
   // Procedencia del detalle polar: qué es medido y qué estimado, y a qué resolución.
-  const polarNote = polar ? [t("layers.polarDetail", { provenance: provenanceLabel(polar.layer, polar.data) })] : [];
+  // La luz y la Tierra del polo no son un promedio anual como el resto del globo: son el % de la
+  // ventana que empieza en la fecha elegida, y la leyenda lo dice.
+  const windowed = polar && (polar.layer === "sun" || polar.layer === "earth");
+  const polarNote = polar ? [t(windowed ? "layers.polarDetailWindow" : "layers.polarDetail", {
+    provenance: provenanceLabel(polar.layer, polar.data), days: state.config.windowDays,
+  })] : [];
   const spec = legendItemsForLayer(layer, state.config.maxSlopeDeg);
   if (spec) {
     activeLayerLegend.replaceChildren(...legendBlock(spec.title, spec.gradient, spec.items.map(([, label]) => label), polarNote));
@@ -778,7 +783,7 @@ function startTour(build = mainTour, { restore = true } = {}) {
   });
 }
 
-// --- Recorrido en cinco pasos: demo de 30 s, modo kiosko y grabación ----------------------
+// --- Recorrido en cinco pasos: demo de 30 s y modo kiosko --------------------------------
 // DemoPlayer mueve la app de verdad con estas acciones (el guion está en demo/script.js).
 
 const demoApp = {
@@ -818,7 +823,6 @@ const demo = new DemoPlayer({
   chapters: demoScript(demoApp),
   onStart: () => captureAppState(),
   onEnd: (before) => restoreAppState(before),
-  notify: (text) => showToast(text),
 });
 
 function startDemo(options) {
@@ -867,6 +871,9 @@ onLangChange(() => {
   learnView.render();
   renderActiveLayerLegend();
   if (state.selectedId) loadActive();
+  // Las vistas abiertas arman sus textos al montarse: se vuelven a montar en el idioma nuevo.
+  if (stage.isOpen) stage.open(stage.view, stageContext());
+  demo.refreshLanguage();
 });
 
 for (const button of document.querySelectorAll("[data-mode]")) {

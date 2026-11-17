@@ -116,27 +116,6 @@
   white-space: nowrap;
 }
 
-.demo-rec {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  font-family: var(--font-mono);
-  font-size: 0.7rem;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: var(--state-bad);
-}
-
-.demo-rec i {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: currentColor;
-  animation: demo-rec 1s steps(2) infinite;
-}
-
-@keyframes demo-rec { 50% { opacity: 0.25; } }
-
 /* ---------- La app deja sitio al recorrido ---------- */
 
 body.demo-on #legend-mini,
@@ -173,8 +152,7 @@ body.demo-on .layer-title { top: auto; bottom: 132px; }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .demo-caption.in p,
-  .demo-rec i { animation: none; }
+  .demo-caption.in p { animation: none; }
 }
 
 /* Botón de la portada y de la barra superior. */
