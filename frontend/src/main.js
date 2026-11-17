@@ -9,6 +9,7 @@ import {
   fetchBestDates,
   fetchComparison,
   fetchCustomScores,
+  fetchEnvironment,
   fetchIllumination,
   fetchRiskGrid,
   fetchScores,
@@ -37,6 +38,8 @@ import { SiteList } from "./views/SiteList.js";
 import { notViableReason } from "./views/encoding.js";
 import { POLAR_RELIEF_VIEW, registerTerrain } from "./views/terrain/index.js";
 import { cellAt, paintLayer, pick, POLAR_LAYERS, polarStore, provenanceLabel } from "./polar/layers.js";
+import { DemoPlayer } from "./demo/DemoPlayer.js";
+import { demoScript } from "./demo/script.js";
 import { Tour } from "./tour/Tour.js";
 import { compareTour, detailTour, exampleTour, mainTour } from "./tour/steps.js";
 
@@ -87,6 +90,7 @@ const state = {
   config: { ...DEFAULT_CONFIG },
   mode: "simple",
   playing: false,
+  dayShift: null, // { id, before, days }: evaluación del sitio activo antes de correr la fecha
   layer: "surface", // capa del globo elegida (ver LAYERS)
   polar: null, // { layer, data }: capa de alta resolución pintada sobre el polo sur
   selected: [], // ids elegidos, en orden de elección (máximo MAX_SELECTED)
@@ -261,6 +265,7 @@ const card = new SiteCard(document.getElementById("sitecard"), {
   onRemove: () => deselect(state.selectedId),
   onDeletePin: () => removeCustomSite(state.selectedId),
   onOpenView: (id) => openStageView(id),
+  onNextDay: () => shiftDays(1),
 });
 
 const compareStory = new CompareStory(document.getElementById("story-root"), {
@@ -700,16 +705,41 @@ document.addEventListener("keydown", (event) => {
 const tour = new Tour({ lang: getLang });
 
 // `build(ctx)` arma los pasos; `restore: false` deja la app donde quedó el recorrido (p. ej. tras un ejemplo guiado).
-function startTour(build = mainTour, { restore = true } = {}) {
-  if (tour.active) return;
-  const before = {
+// Lo que un recorrido (tutorial o demo) puede cambiar, para dejar la app como estaba al terminar.
+function captureAppState() {
+  return {
     section: router.current,
+    date: state.date,
+    layer: state.layer,
     selected: [...state.selected],
     drawerOpen: !drawer.hidden,
     drawerTab: activeDrawerTab,
     legendOpen: !legendCard.hidden,
     detailOpen: state.detailOpen,
   };
+}
+
+async function restoreAppState(before) {
+  stage.close();
+  card.highlight(null);
+  setDrawerTab(before.drawerTab);
+  setDrawer(before.drawerOpen);
+  setLegend(before.legendOpen);
+  if (!before.detailOpen && state.detailOpen) closeDetail();
+  if (before.layer !== state.layer) setLayer(before.layer, { announce: false, fly: false });
+  if (before.date && before.date.getTime() !== state.date?.getTime()) {
+    controls.setDate(before.date);
+    await loadDate(before.date);
+  }
+  state.selected = before.selected.filter((id) => state.sites.has(id));
+  applySelection();
+  // Quien lo lanzó desde la portada se queda en la vista general; los demás vuelven a su sección.
+  if (before.section && before.section !== "intro" && router.current !== before.section) router.go(before.section);
+}
+
+function startTour(build = mainTour, { restore = true } = {}) {
+  if (tour.active || demo.active) return;
+  const before = captureAppState();
   setLegend(false);
   const openedFolds = []; // pliegues del detalle que abrió el recorrido: se cierran al terminar
   const ctx = {
@@ -739,16 +769,62 @@ function startTour(build = mainTour, { restore = true } = {}) {
         const fold = document.querySelector(`#detail [data-fold="${name}"]`);
         if (fold) fold.open = false;
       }
-      if (!restore) return;
-      setDrawerTab(before.drawerTab);
-      setDrawer(before.drawerOpen);
-      setLegend(before.legendOpen);
-      if (!before.detailOpen && state.detailOpen) closeDetail();
-      state.selected = before.selected.filter((id) => state.sites.has(id));
-      applySelection();
-      // Quien lo lanzó desde la portada se queda en la vista general; los demás vuelven a su sección.
-      if (before.section && before.section !== "intro" && router.current !== before.section) router.go(before.section);
+      if (restore) await restoreAppState(before);
     },
+  });
+}
+
+// --- Recorrido en cinco pasos: demo de 30 s, modo kiosko y grabación ----------------------
+// DemoPlayer mueve la app de verdad con estas acciones (el guion está en demo/script.js).
+
+const demoApp = {
+  explore: async () => {
+    if (router.current === "explorar") return;
+    router.go("explorar");
+    await sleep(reducedMotion.matches ? 50 : 500);
+  },
+  setDate: (date) => {
+    if (state.date?.getTime() === date.getTime()) return null;
+    controls.stop();
+    controls.setDate(date);
+    return loadDate(date);
+  },
+  layer: (id) => (state.layer === id ? null : setLayer(id, { announce: false, fly: false })),
+  select: (ids, options) => {
+    state.selected = ids.filter((id) => state.sites.has(id));
+    return applySelection(options);
+  },
+  compare: () => openCompare(),
+  highlight: (factor) => card.highlight(factor),
+  relief: (layer) => {
+    if (stage.isOpen) getExploreView(POLAR_RELIEF_VIEW).setLayer(layer);
+    else openStageView(POLAR_RELIEF_VIEW, { layer });
+  },
+  closeViews: () => {
+    stage.close();
+    closeDetail();
+    setDrawer(false);
+    setLegend(false);
+  },
+  nextDay: () => shiftDays(1),
+  learn: () => router.go("aprender"),
+};
+
+const demo = new DemoPlayer({
+  chapters: demoScript(demoApp),
+  onStart: () => captureAppState(),
+  onEnd: (before) => restoreAppState(before),
+  notify: (text) => showToast(text),
+});
+
+function startDemo(options) {
+  if (tour.active || demo.active || !state.sites.size) return;
+  demo.start(options);
+}
+for (const button of document.querySelectorAll("[data-demo-start]")) {
+  button.addEventListener("click", (event) => {
+    event.preventDefault();
+    startDemo();
   });
 }
 document.getElementById("tour-btn").addEventListener("click", () => startTour());
@@ -845,10 +921,10 @@ function applySelection({ fly = false } = {}) {
     card.hide();
     closeDetail();
     state.current = null;
-    return;
+    return Promise.resolve();
   }
   if (fly) globe.focusSite(state.selectedId, { zoomTo: state.selected.length === 1 ? 2.4 : Infinity });
-  loadActive();
+  return loadActive(); // quien necesite la ficha ya dibujada puede esperar
 }
 
 // Barra de abajo: aparece con 2 o más sitios elegidos.
@@ -895,16 +971,20 @@ async function loadActive() {
   if (state.detailOpen) detail.showLoading(site);
   try {
     const ref = siteRef(id);
-    const [sky, timeline, patch] = await Promise.all([
+    const [sky, timeline, patch, environment] = await Promise.all([
       fetchSky(ref, state.date, state.config),
       fetchTimeline(ref, state.date, state.config),
       fetchTerrainPatch(ref, 25, state.date, state.config.windowDays).catch(() => null),
+      fetchEnvironment(ref, state.date, state.config).catch(() => null),
     ]);
     if (request !== state.detailRequest) return;
     sky.site = { ...sky.site, ...site }; // conserva nombres y traducciones del lado del cliente
-    state.current = { id, sky, timeline, patch };
-    card.render(sky, { selectedCount: state.selected.length, views: exploreViewsFor(site) });
-    if (state.detailOpen) detail.render(sky, timeline, { patch });
+    state.current = { id, sky, timeline, patch, environment };
+    // Si la fecha se acaba de correr desde la ficha, se muestra qué cambió respecto de antes.
+    const previous = state.dayShift?.id === id ? state.dayShift : null;
+    state.dayShift = null;
+    card.render(sky, { selectedCount: state.selected.length, views: exploreViewsFor(site), previous });
+    if (state.detailOpen) detail.render(sky, timeline, { patch, environment });
     if (stage.isOpen) stage.update(stageContext());
   } catch (error) {
     if (request !== state.detailRequest) return;
@@ -913,13 +993,22 @@ async function loadActive() {
   }
 }
 
+// Corre la fecha `days` días y deja anotado el estado anterior del sitio activo: la ficha lo compara.
+function shiftDays(days) {
+  const before = state.current?.id === state.selectedId ? state.current.sky : null;
+  state.dayShift = before ? { id: state.selectedId, before, days } : null;
+  const date = new Date(state.date.getTime() + days * 864e5);
+  controls.setDate(date);
+  return loadDate(date);
+}
+
 function openDetail() {
   if (!state.selectedId) return;
   state.detailOpen = true;
   document.body.classList.add("detail-open");
   const site = state.sites.get(state.selectedId);
   detail.showLoading(site);
-  if (state.current?.id === state.selectedId) detail.render(state.current.sky, state.current.timeline, { patch: state.current.patch });
+  if (state.current?.id === state.selectedId) detail.render(state.current.sky, state.current.timeline, state.current);
   else loadActive();
 }
 
@@ -1220,6 +1309,7 @@ function preloadHeavy() {
 
 async function start() {
   const fromUrl = readUrlState();
+  const demoParam = new URLSearchParams(window.location.search).get("demo"); // se lee antes de reescribir la URL
   const browserLang = navigator.language?.toLowerCase().startsWith("es") ? "es" : "en";
   applyLang(fromUrl.lang ?? stored.get("lang") ?? browserLang);
   applyMode(fromUrl.mode ?? stored.get("mode") ?? "simple");
@@ -1250,6 +1340,8 @@ async function start() {
     }
     if (fromUrl.layer && LAYERS[fromUrl.layer]) setLayer(fromUrl.layer, { announce: false, fly: !state.selected.length });
     preloadHeavy();
+    // ?demo abre el recorrido de 30 s; ?demo=loop lo repite sin fin (modo kiosko, para una feria).
+    if (demoParam !== null) startDemo({ loop: demoParam === "loop" });
   } catch (error) {
     setStatus("status.offline", { message: error.message }, "error");
   }

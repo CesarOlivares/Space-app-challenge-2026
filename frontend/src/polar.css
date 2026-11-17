@@ -294,3 +294,18 @@
 }
 
 .stage-head .btn { flex: none; width: auto; }
+
+/* ---------- Entorno del sitio: temperatura estimada ---------- */
+
+.env-chart {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.env-line { fill: none; stroke: var(--data-sun); stroke-width: 1.6; stroke-linejoin: round; }
+.env-frame { stroke: var(--line-strong); stroke-width: 1; }
+.env-guide { stroke: var(--line-strong); stroke-width: 1; stroke-dasharray: 3 3; }
+.env-axis, .env-guide-label { fill: var(--ink-muted); font-family: var(--font-mono); font-size: 8px; }
+.env-shadow { margin: 12px 0 0; font-size: 0.84rem; }
+.bar .factor-learn { position: static; display: inline-grid; margin-left: 4px; vertical-align: middle; }

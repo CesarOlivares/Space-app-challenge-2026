@@ -1363,3 +1363,111 @@ a:focus-visible, button:focus-visible, summary:focus-visible, select:focus-visib
   outline-offset: 2px;
 }
 body.detail-open #legend-mini { display: none; }
+
+/* ---------- Ficha: factores sincronizados y "+1 día" ---------- */
+
+#sitecard .counters--3 {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+#sitecard .counter {
+  position: relative;
+  padding-right: 22px;
+  transition: border-color 0.2s, background-color 0.2s, box-shadow 0.2s;
+}
+
+#sitecard .counter > .icon {
+  display: block;
+  width: 16px;
+  height: 16px;
+  margin-bottom: 4px;
+  color: var(--ink-muted);
+  transition: color 0.2s;
+}
+
+/* Factor resaltado: contorno de acento en el contador y en su ícono. */
+#sitecard .counter.is-focus {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+  box-shadow: 0 0 0 1px var(--accent);
+}
+
+#sitecard .counter.is-focus > .icon,
+#sitecard .mini .is-focus b {
+  color: var(--accent);
+}
+
+#sitecard .mini [data-factor] {
+  cursor: default;
+}
+
+.factor-learn {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  display: grid;
+  place-items: center;
+  width: 16px;
+  height: 16px;
+  border: 1px solid var(--line-strong);
+  border-radius: 50%;
+  color: var(--ink-muted);
+  font-size: 0.62rem;
+  font-weight: 700;
+  line-height: 1;
+  text-decoration: none;
+}
+
+.factor-learn:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.daydiff {
+  display: grid;
+  gap: 6px;
+  padding: 9px 11px;
+  border: 1px solid var(--accent);
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--accent) 9%, transparent);
+  animation: rise-card 0.35s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+
+.daydiff-title {
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+
+.daydiff ul {
+  display: grid;
+  gap: 3px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.daydiff li {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  align-items: baseline;
+  gap: 8px;
+  font-size: 0.8rem;
+}
+
+.daydiff li span { color: var(--ink-muted); }
+.daydiff s { color: var(--ink-muted); font-family: var(--font-mono); font-size: 0.74rem; }
+.daydiff li b { min-width: 7ch; font-family: var(--font-mono); text-align: right; }
+.daydiff li.down b::after { content: " ↓"; color: var(--state-bad); }
+.daydiff li.up b::after { content: " ↑"; color: var(--state-ok); }
+.daydiff-verdict { font-size: 0.84rem; }
+.daydiff-verdict.bad b { color: var(--state-bad); }
+.daydiff-verdict.ok b { color: var(--state-ok); }
+
+@media (max-width: 599px) {
+  #sitecard .counters--3 { grid-template-columns: 1fr; }
+}
+
+#sitecard:has(.counters--3) { flex-basis: 430px; }
