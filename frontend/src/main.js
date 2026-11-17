@@ -35,7 +35,8 @@ import { SettingsPanel, DEFAULT_CONFIG } from "./views/SettingsPanel.js";
 import { SiteCard } from "./views/SiteCard.js";
 import { SiteList } from "./views/SiteList.js";
 import { notViableReason } from "./views/encoding.js";
-import { registerTerrain } from "./views/terrain/index.js";
+import { POLAR_RELIEF_VIEW, registerTerrain } from "./views/terrain/index.js";
+import { cellAt, paintLayer, pick, POLAR_LAYERS, polarStore, provenanceLabel } from "./polar/layers.js";
 import { Tour } from "./tour/Tour.js";
 import { compareTour, detailTour, exampleTour, mainTour } from "./tour/steps.js";
 
@@ -86,6 +87,8 @@ const state = {
   config: { ...DEFAULT_CONFIG },
   mode: "simple",
   playing: false,
+  layer: "surface", // capa del globo elegida (ver LAYERS)
+  polar: null, // { layer, data }: capa de alta resolución pintada sobre el polo sur
   selected: [], // ids elegidos, en orden de elección (máximo MAX_SELECTED)
   selectedId: null, // el último elegido: el de la ficha y el detalle
   detailOpen: false,
@@ -119,6 +122,7 @@ function syncUrl() {
     selected: state.selected.map(siteRef),
     mode: state.mode,
     lang: getLang(),
+    layer: state.layer,
     config: state.config,
     custom: [...state.sites.values()]
       .filter((s) => s.category === "personalizado")
@@ -154,6 +158,19 @@ function showTooltip(id, x, y, zone = null, point = null) {
     tooltip.hidden = false;
     tooltip.style.left = `${Math.min(x + 14, window.innerWidth - tooltip.offsetWidth - 8)}px`;
     tooltip.style.top = `${y + 14}px`;
+    return;
+  }
+  // Sobre el polo sur con una capa activa: la cifra de la celda de 2,4 km, con su procedencia.
+  const polarCell = !id && state.polar && point ? cellAt(state.polar.data.relief, point.lat, point.lon) : null;
+  if (polarCell) {
+    const layer = POLAR_LAYERS[state.polar.layer];
+    const value = layer.value(polarCell.index, state.polar.data);
+    const shown = layer.unit ? `${num(value, state.polar.layer === "slope" ? 1 : 0)}${layer.unit}` : t(value ? "tag.yes" : "tag.no");
+    placeTooltip([
+      ["strong", t("tip.polar", { lat: num(point.lat, 2), lon: num(point.lon, 1) })],
+      ["span", t("tip.polarValue", { name: pick(layer.name), value: shown, kind: t(`tag.${layer.kind}`) })],
+      ["span", t("tip.polarSlope", { slope: num(state.polar.data.relief.slope_deg_x10[polarCell.index] / 10, 1) })],
+    ], x, y);
     return;
   }
   if (!id && zone?.cell) {
@@ -282,6 +299,7 @@ const controls = new Controls(explore, {
     if (!playing) {
       syncUrl();
       if (state.selectedId) loadActive();
+      syncPolarCap(); // durante la animación el detalle polar no se recalcula: se pone al día al pausar
     }
   },
   onView: (view) => {
@@ -296,6 +314,7 @@ const settings = new SettingsPanel(document.getElementById("settings"), {
     loadDate(state.date);
     if (globe.layerMode !== "surface") ensureRiskGrid();
     renderActiveLayerLegend();
+    syncPolarCap();
   },
 });
 
@@ -315,12 +334,28 @@ registerTerrain({ registerExploreView });
 
 function stageContext() {
   const { sky } = state.current ?? {};
-  return { site: sky?.site ?? state.sites.get(state.selectedId), sky, date: state.date, config: state.config, globe };
+  return {
+    site: sky?.site ?? state.sites.get(state.selectedId) ?? null,
+    sky,
+    date: state.date,
+    config: state.config,
+    globe,
+    sites: [...state.sites.values()],
+    // Lo que una vista puede pedirle a la app.
+    actions: {
+      setDate: (date) => { controls.setDate(date); return loadDate(date); },
+      placePin: (lat, lon) => {
+        stage.close();
+        return addCustomSite(lat, lon, "").catch((error) => showToast(t("pin.failed", { reason: error.message })));
+      },
+    },
+  };
 }
 
-function openStageView(id) {
+// `extra` se suma al contexto (p. ej. la capa con que abre el relieve). No hace falta un sitio elegido.
+function openStageView(id, extra = {}) {
   const view = getExploreView(id);
-  if (view && state.current) stage.open(view, stageContext());
+  if (view && state.date) stage.open(view, { ...stageContext(), ...extra });
 }
 
 // --- Portada y navegación ---------------------------------------------------------
@@ -511,38 +546,42 @@ function legendItemsForLayer(layer, maxSlopeDeg) {
   }
 }
 
+function legendBlock(title, gradient, ticks, notes = []) {
+  const head = Object.assign(document.createElement("div"), { className: "leg-head", textContent: title });
+  const bar = Object.assign(document.createElement("div"), { className: "leg-bar" });
+  bar.setAttribute("aria-hidden", "true");
+  bar.style.background = gradient;
+  const row = Object.assign(document.createElement("div"), { className: "leg-ticks" });
+  row.style.setProperty("--cols", String(ticks.length));
+  row.append(...ticks.map((label) => Object.assign(document.createElement("span"), { className: "leg-tick", textContent: label })));
+  return [head, bar, row, ...notes.map((text) => Object.assign(document.createElement("p"), { className: "leg-note", textContent: text }))];
+}
+
 function renderActiveLayerLegend() {
   if (!activeLayerLegend) return;
-  const layer = globe.layerMode ?? "surface";
+  const layer = state.layer;
   const surface = globe.surfaceMode ?? "lroc";
   activeLayerLegend.dataset.layer = layer;
+  const polar = state.polar;
+  // Procedencia del detalle polar: qué es medido y qué estimado, y a qué resolución.
+  const polarNote = polar ? [t("layers.polarDetail", { provenance: provenanceLabel(polar.layer, polar.data) })] : [];
   const spec = legendItemsForLayer(layer, state.config.maxSlopeDeg);
-  if (!spec) {
-    const msg = document.createElement("span");
-    msg.className = "leg-surface";
-    msg.textContent = t(surface === "lola" ? "layers.legendSurfaceLola" : "layers.legendSurfaceLroc");
-    activeLayerLegend.replaceChildren(msg);
+  if (spec) {
+    activeLayerLegend.replaceChildren(...legendBlock(spec.title, spec.gradient, spec.items.map(([, label]) => label), polarNote));
     return;
   }
-  const head = document.createElement("div");
-  head.className = "leg-head";
-  head.textContent = spec.title;
-
-  const bar = document.createElement("div");
-  bar.className = "leg-bar";
-  bar.setAttribute("aria-hidden", "true");
-  bar.style.background = spec.gradient;
-
-  const ticks = document.createElement("div");
-  ticks.className = "leg-ticks";
-  ticks.style.setProperty("--cols", String(spec.items.length));
-  for (const [, label] of spec.items) {
-    const tick = document.createElement("span");
-    tick.className = "leg-tick";
-    tick.textContent = label;
-    ticks.append(tick);
+  if (polar) {
+    // Capa que solo existe en el polo ("Dónde aterrizar"): su leyenda sale del catálogo polar.
+    const def = POLAR_LAYERS[polar.layer];
+    const legend = def.legend(polar.data);
+    const note = pick(typeof def.note === "function" ? def.note(polar.data) : def.note);
+    activeLayerLegend.replaceChildren(...legendBlock(pick(def.headline), legend.gradient, legend.ticks.map(pick), [note, ...polarNote]));
+    return;
   }
-  activeLayerLegend.replaceChildren(head, bar, ticks);
+  const msg = document.createElement("span");
+  msg.className = "leg-surface";
+  msg.textContent = t(surface === "lola" ? "layers.legendSurfaceLola" : "layers.legendSurfaceLroc");
+  activeLayerLegend.replaceChildren(msg);
 }
 
 let riskGridLoadedForSlope = null;
@@ -558,23 +597,90 @@ async function ensureRiskGrid() {
   }
 }
 
-const layerBar = document.getElementById("moon-layer-bar");
-if (layerBar) {
-  layerBar.addEventListener("click", async (e) => {
-    const btn = e.target.closest("button[data-layer]");
-    if (!btn) return;
-    setDrawerTab("layers");
-    const layer = btn.dataset.layer;
-    for (const b of layerBar.querySelectorAll("button[data-layer]")) {
-      const active = b === btn;
-      b.classList.toggle("active", active);
-      b.setAttribute("aria-pressed", String(active));
-    }
-    if (layer !== "surface") await ensureRiskGrid();
-    globe.setLayerMode(layer);
-    renderActiveLayerLegend();
-  });
+// Capas del globo. `globe`: la capa global (grilla de 5°); `polar`: la misma magnitud en la grilla
+// polar de 2,4 km, que se pinta encima al sur de 84° S (null = esa capa no tiene versión polar).
+const LAYERS = {
+  surface: { globe: "surface", polar: null },
+  "risk-a": { globe: "risk-a", polar: "slope" },
+  solar: { globe: "solar", polar: "sun" },
+  comm: { globe: "comm", polar: "earth" },
+  suitability: { globe: "suitability", polar: null },
+  optimal: { globe: "surface", polar: "optimal", focus: "south-pole" },
+};
+
+// Titular breve al cambiar de capa: deja claro qué se está mirando.
+const layerTitle = document.getElementById("layer-title");
+let layerTitleTimer = 0;
+function announceLayer(title, detail = "") {
+  layerTitle.querySelector("b").textContent = title;
+  layerTitle.querySelector("span").textContent = detail;
+  layerTitle.hidden = false;
+  layerTitle.classList.remove("show");
+  void layerTitle.offsetWidth; // reinicia la animación
+  layerTitle.classList.add("show");
+  clearTimeout(layerTitleTimer);
+  layerTitleTimer = setTimeout(() => { layerTitle.hidden = true; }, 3200);
 }
+
+// Pinta (o quita) el detalle polar de la capa elegida, para la fecha y los ajustes actuales.
+let polarRequest = 0;
+async function syncPolarCap() {
+  const polarLayer = LAYERS[state.layer]?.polar;
+  const request = ++polarRequest;
+  if (!polarLayer || !state.date) {
+    state.polar = null;
+    globe.setPolarCap(null);
+    return;
+  }
+  try {
+    const data = await polarStore.dataFor(polarLayer, state.date, state.config);
+    if (request !== polarRequest) return;
+    const { rgba, n } = paintLayer(polarLayer, data);
+    globe.setPolarCap({ rgba, n, halfExtentKm: data.relief.half_extent_km, dims: Boolean(POLAR_LAYERS[polarLayer].dims) });
+    state.polar = { layer: polarLayer, data };
+  } catch {
+    if (request !== polarRequest) return;
+    state.polar = null; // sin el producto polar queda la capa global
+    globe.setPolarCap(null);
+  }
+  renderActiveLayerLegend();
+}
+
+async function setLayer(layer, { announce = true, fly = true } = {}) {
+  const spec = LAYERS[layer] ? layer : "surface";
+  state.layer = spec;
+  for (const b of layerBar.querySelectorAll("button[data-layer]")) {
+    const active = b.dataset.layer === spec;
+    b.classList.toggle("active", active);
+    b.setAttribute("aria-pressed", String(active));
+  }
+  if (LAYERS[spec].globe !== "surface") await ensureRiskGrid();
+  globe.setLayerMode(LAYERS[spec].globe);
+  renderActiveLayerLegend();
+  syncUrl();
+  if (fly && LAYERS[spec].focus === "south-pole") globe.focusSouthPole();
+  const polarLayer = LAYERS[spec].polar;
+  if (announce) {
+    const button = layerBar.querySelector(`button[data-layer="${spec}"]`);
+    announceLayer(
+      polarLayer ? pick(POLAR_LAYERS[polarLayer].headline) : button?.textContent ?? "",
+      polarLayer ? t(`tag.${POLAR_LAYERS[polarLayer].kind}`) : "",
+    );
+  }
+  await syncPolarCap();
+}
+
+const layerBar = document.getElementById("moon-layer-bar");
+layerBar.addEventListener("click", (e) => {
+  const btn = e.target.closest("button[data-layer]");
+  if (!btn) return;
+  setDrawerTab("layers");
+  setLayer(btn.dataset.layer);
+});
+document.getElementById("open-relief").addEventListener("click", () => {
+  setDrawer(false);
+  openStageView(POLAR_RELIEF_VIEW, { layer: LAYERS[state.layer]?.polar ?? undefined });
+});
 legendToggle.addEventListener("click", () => setLegend(legendCard.hidden));
 document.addEventListener("keydown", (event) => {
   if (event.key !== "Escape") return;
@@ -852,6 +958,7 @@ for (const button of surfaceButtons) {
       b.setAttribute("aria-pressed", String(active));
     }
     renderActiveLayerLegend();
+    announceLayer(t(mode === "lola" ? "layers.title.lola" : "layers.title.surface"), mode === "lola" ? t("tag.measured") : "");
   });
 }
 
@@ -1092,10 +1199,23 @@ async function loadDate(date) {
     if (!state.playing) {
       syncUrl();
       if (state.selectedId) loadActive();
+      syncPolarCap();
+      if (stage.isOpen) stage.update(stageContext());
     }
   } catch (error) {
     if (request === state.request) setStatus("status.error", { message: error.message }, "error");
   }
+}
+
+// Lo pesado se pide mientras se mira la portada (o apenas la app queda en reposo), no en medio de
+// una transición: el relieve polar, las capas de la fecha y la grilla global quedan en memoria.
+function preloadHeavy() {
+  const idle = window.requestIdleCallback ?? ((run) => setTimeout(run, 600));
+  idle(() => {
+    polarStore.relief().catch(() => {});
+    polarStore.layers(state.date, state.config).catch(() => {});
+    ensureRiskGrid();
+  }, { timeout: 4000 });
 }
 
 async function start() {
@@ -1128,6 +1248,8 @@ async function start() {
       if (state.selected.length >= 2) loadCompare();
       else compareStory.showEmpty();
     }
+    if (fromUrl.layer && LAYERS[fromUrl.layer]) setLayer(fromUrl.layer, { announce: false, fly: !state.selected.length });
+    preloadHeavy();
   } catch (error) {
     setStatus("status.offline", { message: error.message }, "error");
   }

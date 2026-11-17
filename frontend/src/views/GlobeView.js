@@ -17,6 +17,13 @@ const HERO_OFFSET_X = 0.26; // fracción del ancho que la Luna se corre hacia la
 const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
 
 const SOUTH_POLE_DIRECTION = new THREE.Vector3(0, -1, 0.03).normalize();
+const MOON_RADIUS_KM = 1737.4;
+// Mientras la cámara se mueve se dibuja con menos píxeles; al detenerse vuelve la nitidez completa.
+const MOVING_PIXEL_RATIO = 1.25;
+const KEEPALIVE_MS = 1000; // sin cambios, se redibuja como mucho una vez por segundo
+// La foto polar (sin el estiramiento del mosaico en el polo) se pide al acercarse al polo sur.
+const POLE_PHOTO = "moon_south_pole.jpg";
+const POLE_PHOTO_DISTANCE = 2.6;
 
 // Coordenadas lunares (ME, longitud este) → escena. El eje +y es el polo norte
 // y la longitud 0 mira hacia +x, que coincide con la textura equirectangular
@@ -497,9 +504,17 @@ export class GlobeView {
     this.quality = "auto"; // auto | standard | high
     this.colors = { standard: null, high: null, highLoading: false };
     this.onReliefStatus = onReliefStatus;
+    this.polarCap = null; // { texture, layer } del casquete polar de alta resolución
+    this.polePhoto = { status: "idle", meta: null };
+    // Dibujo a demanda: solo se renderiza cuando algo cambió (cámara, datos, tamaño).
+    this.dirty = true;
+    this.moving = false;
+    this.lastRender = 0;
+    this.stats = { rendered: 0, skipped: 0 };
+    this.pixelRatio = Math.min(window.devicePixelRatio, 2);
 
     this.renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
-    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    this.renderer.setPixelRatio(this.pixelRatio);
     this.scene = new THREE.Scene();
     this.camera = new THREE.PerspectiveCamera(40, 1, 0.01, 100);
     this.camera.position.set(DEFAULT_DISTANCE, 0, 0);
@@ -511,6 +526,7 @@ export class GlobeView {
     this.controls.maxDistance = 12;
     this.controls.rotateSpeed = 0.5;
     this.controls.zoomSpeed = 0.8;
+    this.controls.addEventListener("change", () => this.invalidate());
 
     this.#buildStars();
     this.#buildMoon();
@@ -590,6 +606,7 @@ export class GlobeView {
   setActive(active) {
     if (active === this.active) return;
     this.active = active;
+    this.dirty = true;
     this.canvas.dataset.active = String(active);
     this.renderer.setAnimationLoop(active ? (time) => this.#frame(time) : null);
     if (active) this.refreshLayout();
@@ -597,12 +614,20 @@ export class GlobeView {
 
   // ---- Moon: progressive texture (4K -> 8K) and real LOLA relief ----
 
+  // El material de la Luna suma tres cosas al sombreado estándar:
+  //  - la capa global (grilla equirectangular, gruesa),
+  //  - el casquete polar: una imagen en proyección estereográfica polar, la misma del DEM, que
+  //    se ubica con la dirección real de cada punto y no con las coordenadas del mosaico, así no
+  //    se deforma en abanico al llegar al polo,
+  //  - la foto polar de alta resolución, con la misma proyección.
   #setupOverlayShader(material) {
-    material.customProgramCacheKey = () => "moon_surface_with_overlay";
+    material.customProgramCacheKey = () => "moon_surface_with_polar_cap";
     material.onBeforeCompile = (shader) => {
-      shader.uniforms.uOverlayMap = this.overlayUniforms.uOverlayMap;
-      shader.uniforms.uOverlayOpacity = this.overlayUniforms.uOverlayOpacity;
-      shader.uniforms.uHasOverlay = this.overlayUniforms.uHasOverlay;
+      Object.assign(shader.uniforms, this.overlayUniforms);
+
+      shader.vertexShader = shader.vertexShader
+        .replace("#include <common>", "#include <common>\nvarying vec3 vMoonDir;")
+        .replace("#include <begin_vertex>", "#include <begin_vertex>\nvMoonDir = normalize(position);");
 
       shader.fragmentShader = shader.fragmentShader.replace(
         "#include <map_pars_fragment>",
@@ -610,28 +635,66 @@ export class GlobeView {
         uniform sampler2D uOverlayMap;
         uniform float uOverlayOpacity;
         uniform float uHasOverlay;
-        vec4 vCustomOverlay = vec4(0.0);`
+        uniform sampler2D uCapMap;
+        uniform float uCapOn;
+        uniform float uCapHalf;
+        uniform float uDim;
+        uniform sampler2D uPoleMap;
+        uniform float uPoleOn;
+        uniform float uPoleHalf;
+        varying vec3 vMoonDir;
+        vec3 vOverlayGlow = vec3(0.0);
+        float vCapAlpha = 0.0;
+        // Estereográfica polar sur sobre la esfera unitaria: (este, hacia la longitud 0°).
+        vec2 southPolePlane(vec3 d) { return 2.0 / (1.0 - d.y) * vec2(-d.z, d.x); }
+        vec2 planeUv(vec2 p, float halfExtent) { return vec2(0.5 + p.x / (2.0 * halfExtent), 0.5 - p.y / (2.0 * halfExtent)); }
+        // 1 dentro del círculo inscrito en la imagen, con borde suave.
+        float insideDisc(vec2 p, float halfExtent, float feather) {
+          return 1.0 - smoothstep(halfExtent * (1.0 - feather), halfExtent, length(p));
+        }`
       );
 
       shader.fragmentShader = shader.fragmentShader.replace(
         "#include <map_fragment>",
         `#include <map_fragment>
+        vec3 moonDir = normalize(vMoonDir);
+        vec2 polePlane = southPolePlane(moonDir);
+        if (uPoleOn > 0.5 && moonDir.y < -0.9) {
+          vec2 uv = planeUv(polePlane, uPoleHalf);
+          diffuseColor.rgb = mix(diffuseColor.rgb, texture2D(uPoleMap, uv).rgb, insideDisc(polePlane, uPoleHalf, 0.3) * uPoleOn);
+        }
         if (uHasOverlay > 0.5) {
-          vCustomOverlay = texture2D(uOverlayMap, vMapUv);
-          float overlayAlpha = vCustomOverlay.a * uOverlayOpacity;
-          diffuseColor.rgb = mix(diffuseColor.rgb, vCustomOverlay.rgb, overlayAlpha);
-        }`
+          vec4 overlay = texture2D(uOverlayMap, vMapUv);
+          float overlayAlpha = overlay.a * uOverlayOpacity;
+          diffuseColor.rgb = mix(diffuseColor.rgb, overlay.rgb, overlayAlpha);
+          vOverlayGlow = overlay.rgb * overlayAlpha * 0.35;
+        }
+        float capCover = 0.0;
+        if (uCapOn > 0.5 && moonDir.y < -0.9) {
+          vec2 uv = planeUv(polePlane, uCapHalf);
+          vec4 cap = texture2D(uCapMap, uv);
+          capCover = insideDisc(polePlane, uCapHalf, 0.03);
+          vCapAlpha = cap.a * capCover;
+          diffuseColor.rgb = mix(diffuseColor.rgb, cap.rgb, vCapAlpha);
+          vOverlayGlow = mix(vOverlayGlow, cap.rgb * 0.5, vCapAlpha);
+        }
+        // "Dónde aterrizar": fuera del casquete todo se oscurece.
+        diffuseColor.rgb *= mix(1.0, 1.0 - uDim, 1.0 - capCover);`
+      );
+
+      // El mapa de normales global se raya en abanico al llegar al polo: bajo el casquete se usa la
+      // normal de la malla, así el dato se lee limpio.
+      shader.fragmentShader = shader.fragmentShader.replace(
+        "#include <normal_fragment_maps>",
+        `#include <normal_fragment_maps>
+        normal = normalize(mix(normal, nonPerturbedNormal, vCapAlpha));`
       );
 
       shader.fragmentShader = shader.fragmentShader.replace(
         "#include <emissivemap_fragment>",
         `#include <emissivemap_fragment>
-        if (uHasOverlay > 0.5) {
-          totalEmissiveRadiance += vCustomOverlay.rgb * (vCustomOverlay.a * uOverlayOpacity * 0.35);
-        }`
+        totalEmissiveRadiance += vOverlayGlow;`
       );
-
-      material.userData.shader = shader;
     };
   }
 
@@ -647,6 +710,13 @@ export class GlobeView {
       uOverlayMap: { value: emptyTex },
       uOverlayOpacity: { value: 0.0 },
       uHasOverlay: { value: 0.0 },
+      uCapMap: { value: emptyTex },
+      uCapOn: { value: 0.0 },
+      uCapHalf: { value: 0.1 },
+      uDim: { value: 0.0 },
+      uPoleMap: { value: emptyTex },
+      uPoleOn: { value: 0.0 },
+      uPoleHalf: { value: 0.1 },
     };
 
     const material = new THREE.MeshStandardMaterial({ map: color, roughness: 1, metalness: 0 });
@@ -664,7 +734,7 @@ export class GlobeView {
   }
 
   #loadColor(file) {
-    const texture = this.loader.load(`${TEXTURES}/${file}`);
+    const texture = this.loader.load(`${TEXTURES}/${file}`, () => this.invalidate());
     texture.colorSpace = THREE.SRGBColorSpace;
     texture.anisotropy = Math.min(8, this.renderer.capabilities.getMaxAnisotropy());
     return texture;
@@ -720,6 +790,7 @@ export class GlobeView {
     // El mapa guarda las pendientes multiplicadas por normal_gain: se compensa aquí.
     material.normalScale.setScalar((on / meta.normal_gain) || 0);
     this.#placeMarkers();
+    this.invalidate();
   }
 
   // Radio (en radios lunares) al que flota un sitio: sobre el terreno desplazado.
@@ -786,6 +857,7 @@ export class GlobeView {
     }
     material.needsUpdate = true;
     this.canvas.dataset.tier = material.map === this.colors.high ? "8k" : "4k";
+    this.invalidate();
   }
 
   // Datos para diagnóstico: qué textura se usa y en qué GPU.
@@ -798,6 +870,8 @@ export class GlobeView {
       maxTextureSize: this.renderer.capabilities.maxTextureSize,
       gpu: debug ? gl.getParameter(debug.UNMASKED_RENDERER_WEBGL) : "desconocida",
       triangles: this.renderer.info.render.triangles,
+      polePhoto: this.polePhoto.status,
+      frames: { ...this.stats },
     };
   }
 
@@ -831,6 +905,7 @@ export class GlobeView {
     } else {
       this.#applyQuality();
     }
+    this.#applyPolePhoto();
   }
 
   /**
@@ -863,16 +938,12 @@ export class GlobeView {
    */
   setLayerMode(mode) {
     this.layerMode = mode;
+    const uniforms = this.overlayUniforms;
+    this.invalidate();
     if (mode === "surface" || !this.riskGrid) {
-      this.overlayUniforms.uHasOverlay.value = 0.0;
-      this.overlayUniforms.uOverlayOpacity.value = 0.0;
-      this.overlayUniforms.uOverlayMap.value = this.emptyOverlayTexture;
-      if (this.moon?.material?.userData?.shader) {
-        const s = this.moon.material.userData.shader;
-        s.uniforms.uHasOverlay.value = 0.0;
-        s.uniforms.uOverlayOpacity.value = 0.0;
-        s.uniforms.uOverlayMap.value = this.emptyOverlayTexture;
-      }
+      uniforms.uHasOverlay.value = 0.0;
+      uniforms.uOverlayOpacity.value = 0.0;
+      uniforms.uOverlayMap.value = this.emptyOverlayTexture;
       return;
     }
 
@@ -881,16 +952,70 @@ export class GlobeView {
       tex = buildRiskOverlayTexture(this.riskGrid, mode, this.relief?.field, this.maxSlopeDeg ?? 15);
       this.riskTextures.set(mode, tex);
     }
+    uniforms.uOverlayMap.value = tex;
+    uniforms.uOverlayOpacity.value = 0.82;
+    uniforms.uHasOverlay.value = 1.0;
+  }
 
-    this.overlayUniforms.uOverlayMap.value = tex;
-    this.overlayUniforms.uOverlayOpacity.value = 0.82;
-    this.overlayUniforms.uHasOverlay.value = 1.0;
-    if (this.moon?.material?.userData?.shader) {
-      const s = this.moon.material.userData.shader;
-      s.uniforms.uOverlayMap.value = tex;
-      s.uniforms.uOverlayOpacity.value = 0.82;
-      s.uniforms.uHasOverlay.value = 1.0;
+  /**
+   * Casquete polar de alta resolución: pinta sobre el polo sur una capa en la grilla
+   * estereográfica polar (ver polar/layers.js). `null` lo quita.
+   * @param {{ rgba: Uint8ClampedArray, n: number, halfExtentKm: number, dims?: boolean }|null} cap
+   */
+  setPolarCap(cap) {
+    const uniforms = this.overlayUniforms;
+    this.polarCap?.dispose();
+    this.polarCap = null;
+    this.invalidate();
+    if (!cap) {
+      uniforms.uCapOn.value = 0.0;
+      uniforms.uDim.value = 0.0;
+      uniforms.uCapMap.value = this.emptyOverlayTexture;
+      return;
     }
+    // Fila 0 de los datos = borde hacia la Tierra; sin voltear, coincide con v = 0.
+    const texture = new THREE.DataTexture(new Uint8Array(cap.rgba.buffer), cap.n, cap.n, THREE.RGBAFormat);
+    texture.colorSpace = THREE.SRGBColorSpace;
+    texture.magFilter = THREE.LinearFilter;
+    texture.minFilter = THREE.LinearFilter;
+    texture.needsUpdate = true;
+    this.polarCap = texture;
+    uniforms.uCapMap.value = texture;
+    uniforms.uCapHalf.value = cap.halfExtentKm / MOON_RADIUS_KM;
+    uniforms.uCapOn.value = 1.0;
+    uniforms.uDim.value = cap.dims ? 0.86 : 0.0;
+  }
+
+  // Foto del polo sur en proyección polar (la genera ./run.sh data): evita el estiramiento del
+  // mosaico equirectangular justo en el polo. Se pide recién cuando la cámara se acerca.
+  async #maybeLoadPolePhoto() {
+    if (this.polePhoto.status !== "idle") return;
+    const lookingSouth = this.camera.position.y < -0.55 * this.camera.position.length();
+    if (!lookingSouth || this.camera.position.length() > POLE_PHOTO_DISTANCE) return;
+    this.polePhoto.status = "loading";
+    try {
+      const response = await fetch(`${TEXTURES}/moon_south_pole.json`);
+      if (!response.ok) throw new Error("sin foto polar");
+      const meta = await response.json();
+      const texture = await this.loader.loadAsync(`${TEXTURES}/${meta.file ?? POLE_PHOTO}`);
+      texture.colorSpace = THREE.SRGBColorSpace;
+      texture.flipY = false; // fila 0 = hacia la Tierra, igual que el casquete
+      texture.anisotropy = Math.min(8, this.renderer.capabilities.getMaxAnisotropy());
+      texture.needsUpdate = true;
+      this.polePhoto = { status: "ready", meta, texture };
+      this.overlayUniforms.uPoleMap.value = texture;
+      this.overlayUniforms.uPoleHalf.value = meta.half_extent_km / MOON_RADIUS_KM;
+      this.#applyPolePhoto();
+    } catch {
+      this.polePhoto.status = "unavailable"; // ./run.sh data --no-hires: queda el mosaico global
+    }
+  }
+
+  // La foto polar solo reemplaza a la foto LROC: con la topografía de colores no corresponde.
+  #applyPolePhoto() {
+    this.overlayUniforms.uPoleOn.value = this.polePhoto.status === "ready" && this.surfaceMode === "lroc" ? 1.0 : 0.0;
+    this.canvas.dataset.polePhoto = this.polePhoto.status;
+    this.invalidate();
   }
 
   removeSite(id) {
@@ -902,6 +1027,7 @@ export class GlobeView {
       node.material?.dispose();
     });
     this.markers.delete(id);
+    this.invalidate();
   }
 
   addSites(sites) {
@@ -937,6 +1063,7 @@ export class GlobeView {
         site, group, reticle, track, arc, dashed, ticks, dot, outline, hit, size: MARKER_SIZE,
       });
     }
+    this.invalidate();
   }
 
   /**
@@ -959,12 +1086,14 @@ export class GlobeView {
       }
       marker.ticks.material.opacity = viable ? 0.9 : 0.5;
     }
+    this.invalidate();
   }
 
   // Ubica el Sol según el punto subsolar: el terminador queda donde corresponde.
   setIllumination(illumination) {
     this.illumination = illumination;
     this.sun.position.copy(latLonToVector(illumination.subsolar.lat, illumination.subsolar.lon, 10));
+    this.invalidate();
     // La portada mira de modo que el terminador quede a la izquierda: se reapunta al cambiar la fecha.
     if (this.framing === "hero" && !this.transition) this.setFraming("hero", { animate: false });
   }
@@ -975,9 +1104,11 @@ export class GlobeView {
     for (const [markerId, marker] of this.markers) {
       marker.outline.visible = this.selectedIds.has(markerId);
     }
+    this.invalidate();
   }
 
   setHover(id) {
+    if (id !== this.hoveredId) this.invalidate();
     this.hoveredId = id;
   }
 
@@ -1018,6 +1149,7 @@ export class GlobeView {
       this.frame.y = target.y;
       this.markerFade = target.fade;
       this.#applyViewOffset();
+      this.invalidate();
       return;
     }
     this.#flyTo(target.direction, target.distance, durationMs, target);
@@ -1108,10 +1240,31 @@ export class GlobeView {
     }
   }
 
+  /** Pide un cuadro nuevo: lo llama todo lo que cambia lo que se ve. */
+  invalidate() {
+    this.dirty = true;
+  }
+
+  // Un cuadro: solo se dibuja si algo cambió. Con la Luna quieta el costo es casi nulo.
   #frame(time) {
-    this.stars.position.copy(this.camera.position); // las estrellas están "en el infinito": no hay paralaje
+    const flying = Boolean(this.transition);
     this.#updateTransition(time);
-    this.controls.update();
+    const orbiting = this.controls.update(); // true mientras el arrastre o su inercia mueven la cámara
+    const moving = flying || orbiting;
+    if (moving !== this.moving) {
+      // Menos píxeles en movimiento, nitidez completa al detenerse.
+      this.moving = moving;
+      this.renderer.setPixelRatio(moving ? Math.min(this.pixelRatio, MOVING_PIXEL_RATIO) : this.pixelRatio);
+      if (!moving) this.#maybeLoadPolePhoto();
+    }
+    if (!moving && !this.dirty && time - this.lastRender < KEEPALIVE_MS) {
+      this.stats.skipped += 1;
+      return;
+    }
+    this.dirty = false;
+    this.lastRender = time;
+    this.stats.rendered += 1;
+    this.stars.position.copy(this.camera.position); // las estrellas están "en el infinito": no hay paralaje
     this.#updateMarkerScale();
     this.renderer.render(this.scene, this.camera);
   }
@@ -1126,6 +1279,7 @@ export class GlobeView {
     if (!width || !height) return;
     this.renderer.setSize(width, height, false);
     this.camera.aspect = width / height;
+    this.invalidate();
     // Al girar el teléfono o cambiar el tamaño de la ventana, la portada se vuelve a componer.
     if (this.framing === "hero" && !this.transition) this.setFraming("hero", { animate: false });
     this.#applyViewOffset();
@@ -1190,11 +1344,13 @@ export class GlobeView {
       const { id, zone, point } = this.#pick(e);
       if (id !== this.hoveredId) {
         this.hoveredId = id;
+        this.invalidate();
       }
       this.canvas.style.cursor = id ? "pointer" : (this.placeMode && point ? "crosshair" : "");
       this.onHover(id, e.clientX, e.clientY, zone, point);
     });
     this.canvas.addEventListener("pointerleave", () => {
+      if (this.hoveredId) this.invalidate();
       this.hoveredId = null;
       this.canvas.style.cursor = "";
       this.onHover(null);

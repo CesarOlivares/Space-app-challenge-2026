@@ -1,5 +1,5 @@
 // Estado compartible en la URL (RF-17): fecha, sitio elegido, ajustes, sitios
-// personalizados, comparación, modo e idioma. Así un enlace reproduce el escenario.
+// personalizados, comparación, capa del globo, modo e idioma. Así un enlace reproduce el escenario.
 
 import { DEFAULT_CONFIG } from "./views/SettingsPanel.js";
 
@@ -46,17 +46,19 @@ export function readUrlState() {
     selected: [...new Set(selected)],
     mode: params.get("mode"),
     lang: params.get("lang"),
+    layer: params.get("layer"),
     config,
     custom,
   };
 }
 
-export function writeUrlState({ date, selected, mode, lang, config, custom }) {
+export function writeUrlState({ date, selected, mode, lang, layer, config, custom }) {
   const params = new URLSearchParams();
   if (date) params.set("date", isoUtc(date));
   if (selected?.length) params.set("sel", selected.join("|"));
   if (mode) params.set("mode", mode);
   if (lang) params.set("lang", lang);
+  if (layer && layer !== "surface") params.set("layer", layer);
   for (const [key, [param, , format]] of Object.entries(CONFIG_KEYS)) {
     if (config[key] !== DEFAULT_CONFIG[key]) params.set(param, format(config[key]));
   }

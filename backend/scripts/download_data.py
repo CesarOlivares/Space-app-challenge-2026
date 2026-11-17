@@ -8,6 +8,8 @@ Textura y relieve del globo (V3): además de la textura de 4K, baja el mosaico d
 y el relieve global de LOLA (16 píxeles por grado) y genera los archivos que usa el globo en
 frontend/public/textures/: moon_color_8k.jpg, moon_height_2k.png, moon_normal_4k.jpg y
 moon_relief.json. --no-hires los omite (el globo queda con la textura de 4K y sin relieve).
+También genera moon_south_pole.jpg: la foto del polo sur en proyección polar, sin el
+estiramiento del mosaico global (sale de la textura de 8K si está; si no, de la de 4K).
 """
 
 import argparse
@@ -215,6 +217,56 @@ def convert_relief(force: bool) -> None:
     }, indent=2) + "\n", encoding="utf-8")
 
 
+SOUTH_POLE = TEXTURES / "moon_south_pole.jpg"
+SOUTH_POLE_META = TEXTURES / "moon_south_pole.json"
+SOUTH_POLE_SIZE = 1024
+SOUTH_POLE_MAX_COLATITUDE_DEG = 12.0
+
+
+def convert_south_pole(force: bool) -> None:
+    """Foto del polo sur en proyección estereográfica polar (la misma del DEM LOLA).
+
+    El mosaico equirectangular estira el polo en abanico: al acercarse, el globo usa esta
+    imagen. La fila 0 mira a la longitud 0° (la Tierra) y las columnas crecen hacia el este.
+    """
+    import numpy as np
+    from PIL import Image
+
+    Image.MAX_IMAGE_PIXELS = None
+    if not force and SOUTH_POLE.exists() and SOUTH_POLE_META.exists():
+        print(f"  ok      {SOUTH_POLE.relative_to(ROOT)}")
+        return
+    source = COLOR_8K if COLOR_8K.exists() else TEXTURES / "moon_color_4k.jpg"
+    print(f"  convirtiendo {SOUTH_POLE.relative_to(ROOT)}")
+    with Image.open(source) as img:
+        mosaic = np.asarray(img.convert("RGB"), dtype=np.float32)
+    height, width = mosaic.shape[:2]
+
+    half_m = 2 * MOON_RADIUS_M * np.tan(np.radians(SOUTH_POLE_MAX_COLATITUDE_DEG) / 2)
+    axis = (np.arange(SOUTH_POLE_SIZE) + 0.5) / SOUTH_POLE_SIZE * 2 * half_m - half_m
+    x, y = np.meshgrid(axis, -axis)  # x al este; y hacia la longitud 0° (fila 0 arriba)
+    colatitude = 2 * np.arctan(np.hypot(x, y) / (2 * MOON_RADIUS_M))
+    lon = np.arctan2(x, y)
+
+    # Muestreo bilineal del mosaico (la longitud da la vuelta; la latitud se acota).
+    col = (lon + np.pi) / (2 * np.pi) * width - 0.5
+    row = np.clip((np.pi - colatitude) / np.pi * height - 0.5, 0, height - 1.001)
+    c0 = np.floor(col).astype(int)
+    r0 = np.floor(row).astype(int)
+    fc, fr = (col - c0)[..., None], (row - r0)[..., None]
+    c0, c1 = c0 % width, (c0 + 1) % width
+    top = mosaic[r0, c0] * (1 - fc) + mosaic[r0, c1] * fc
+    bottom = mosaic[r0 + 1, c0] * (1 - fc) + mosaic[r0 + 1, c1] * fc
+    tile = np.rint(top * (1 - fr) + bottom * fr).astype(np.uint8)
+    Image.fromarray(tile, mode="RGB").save(SOUTH_POLE, quality=90, optimize=True)
+    SOUTH_POLE_META.write_text(json.dumps({
+        "source": f"{source.name} (NASA SVS, CGI Moon Kit), reproyectado a estereográfica polar sur",
+        "file": SOUTH_POLE.name,
+        "half_extent_km": round(half_m / 1000.0, 2),
+        "size_px": SOUTH_POLE_SIZE,
+    }, indent=2) + "\n", encoding="utf-8")
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--force", action="store_true", help="volver a descargar todo")
@@ -229,6 +281,7 @@ def main() -> int:
     if not args.no_hires:
         convert_color_8k(args.force)
         convert_relief(args.force)
+    convert_south_pole(args.force)
     print("Datos listos.")
     return 0
 

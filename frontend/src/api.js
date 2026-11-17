@@ -171,3 +171,42 @@ export function fetchScoresMatrix(startDate, { days = 30, stepHours = 12, sites 
 export function fetchRiskGrid(maxSlopeDeg = 8.0) {
   return request("/api/risk-grid", { params: { max_slope_deg: maxSlopeDeg } });
 }
+
+// --- Capas del polo sur (grilla estereográfica polar de 2,4 km) -------------------------------
+
+/** Relieve del polo sur: altura, pendiente y sombra permanente por celda. No cambia con la fecha. */
+export function fetchPolarRelief() {
+  return request("/api/polar/relief");
+}
+
+/** Luz, Tierra, temperatura máxima y zonas óptimas del polo sur para una fecha. */
+export function fetchPolarLayers(date, config) {
+  return request("/api/polar/layers", {
+    params: {
+      date: isoUtc(date),
+      window_days: Math.min(config.windowDays, 30),
+      sun_margin_deg: config.sunMarginDeg,
+      earth_margin_deg: config.earthMarginDeg,
+    },
+  });
+}
+
+/** Calendario regional: en cuántas fechas de un año cada celda cumple todos los requisitos. */
+export function fetchPolarAvailability(date, config, { days = 365 } = {}) {
+  return request("/api/polar/availability", {
+    params: {
+      date: isoUtc(date),
+      days,
+      stay_days: Math.min(config.stayDays, 30),
+      sun_margin_deg: config.sunMarginDeg,
+      earth_margin_deg: config.earthMarginDeg,
+    },
+  });
+}
+
+/** Entorno de un sitio: temperatura estimada durante la ventana y cercanía a sombra permanente. */
+export function fetchEnvironment(ref, date, config) {
+  return request(`/api/sites/${encodeURIComponent(ref)}/environment`, {
+    params: { date: isoUtc(date), days: config.windowDays, sun_margin_deg: config.sunMarginDeg },
+  });
+}

@@ -14,7 +14,7 @@ export const sectionOf = (hash) => hash.replace(/^#/, "").split("/")[0];
 
 // Parámetros que describen un escenario. Un enlace con alguno abre directo en la vista general:
 // así siguen funcionando los enlaces del ciclo 1, que no traían hash.
-const SCENARIO_PARAMS = ["date", "site", "sel", "cmp", "custom", "we", "win", "sm", "em", "panel"];
+const SCENARIO_PARAMS = ["date", "site", "sel", "cmp", "custom", "layer", "we", "win", "sm", "em", "panel"];
 
 // `fallback` es la sección cuando la dirección no dice nada (la intro la primera vez; la vista
 // general si el visitante ya la vio). `?intro` fuerza la intro, p. ej. para volver a ver el gancho.

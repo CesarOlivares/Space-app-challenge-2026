@@ -13,6 +13,7 @@
     <link rel="stylesheet" href="src/story.css" />
     <link rel="stylesheet" href="src/learn.css" />
     <link rel="stylesheet" href="src/tour.css" />
+    <link rel="stylesheet" href="src/polar.css" />
     <script type="importmap">
       {
         "imports": {
@@ -115,6 +116,9 @@
             <li><svg class="reticle-key" viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="6" fill="none" stroke="var(--off)" stroke-width="2.4" stroke-dasharray="2.2 2.4"/><circle cx="10" cy="10" r="1.6" fill="var(--off)"/></svg><span data-i18n="legmini.off">Gris punteado: no viable</span></li>
           </ul>
         </div>
+
+        <!-- Titular breve al cambiar de capa: deja claro qué se está mirando. -->
+        <p id="layer-title" class="layer-title" role="status" hidden><b></b><span></span></p>
 
         <!-- Panel del engranaje: todo lo configurable. -->
         <aside id="drawer" class="drawer glass" hidden aria-labelledby="drawer-title">
@@ -238,8 +242,10 @@
                   <button type="button" data-layer="solar" aria-pressed="false" data-i18n="layer.solar">Mapa solar</button>
                   <button type="button" data-layer="comm" aria-pressed="false" data-i18n="layer.comm">Señal Tierra</button>
                   <button type="button" data-layer="suitability" class="btn-suitability" aria-pressed="false" data-i18n="layer.suitability">Aptitud global</button>
+                  <button type="button" data-layer="optimal" class="btn-optimal" aria-pressed="false" data-i18n="layer.optimal">Dónde aterrizar</button>
                 </div>
                 <div id="active-layer-legend" class="layer-legend-inline caption" aria-live="polite"></div>
+                <button type="button" id="open-relief" class="btn open-relief"><span class="icon" data-icon="kpiTerrain"></span><span data-i18n="layer.relief3d">Relieve 3D del polo sur</span></button>
                 <div class="relief" id="relief" role="group" data-i18n-attr="aria-label: relief.group">
                   <label class="check"><input type="checkbox" id="relief-on" checked /> <span data-i18n="relief.show">Mostrar relieve</span></label>
                   <label class="range tech-only"><span data-i18n="relief.exaggeration">Exageración vertical</span>

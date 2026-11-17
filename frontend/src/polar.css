@@ -1,0 +1,296 @@
+/* Capas del polo sur: relieve 3D, titular de capa y etiquetas de procedencia (medido / estimado). */
+
+/* ---------- Procedencia: siempre junto al dato ---------- */
+
+.tag {
+  display: inline-block;
+  padding: 1px 6px;
+  border: 1px solid var(--line-strong);
+  border-radius: 999px;
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  line-height: 1.5;
+  text-transform: uppercase;
+  white-space: nowrap;
+  color: var(--ink-muted);
+  vertical-align: middle;
+}
+
+/* Medido: contorno continuo. Estimado: punteado. La forma acompaña a la palabra. */
+.tag--measured { border-style: solid; color: var(--ink); }
+.tag--estimated { border-style: dashed; }
+
+.leg-note {
+  margin: 6px 0 0;
+  color: var(--ink-muted);
+  font-size: 0.72rem;
+  line-height: 1.4;
+}
+
+/* ---------- Titular al cambiar de capa ---------- */
+
+.layer-title {
+  position: fixed;
+  top: calc(var(--nav-h) + 14px);
+  left: 50%;
+  z-index: 4;
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  margin: 0;
+  padding: 8px 16px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--bg) 72%, transparent);
+  backdrop-filter: blur(10px);
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+
+.layer-title b {
+  font-family: var(--font-display);
+  font-stretch: 112%;
+  font-size: 1rem;
+  font-weight: 800;
+  letter-spacing: 0.01em;
+}
+
+.layer-title span {
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-muted);
+}
+
+.layer-title span:empty { display: none; }
+
+.layer-title.show { animation: layer-title 3.2s ease both; }
+
+@keyframes layer-title {
+  0% { opacity: 0; transform: translate(-50%, -8px); }
+  9%, 82% { opacity: 1; transform: translate(-50%, 0); }
+  100% { opacity: 0; transform: translate(-50%, 0); }
+}
+
+.open-relief {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  margin-top: 10px;
+}
+
+#moon-layer-bar .btn-optimal { grid-column: 1 / -1; }
+
+/* ---------- Relieve 3D del polo sur (vista en #stage) ---------- */
+
+.relief3d {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) min(340px, 36vw);
+  height: 100%;
+  min-height: 0;
+}
+
+.relief3d-scene {
+  position: relative;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  background: radial-gradient(120% 90% at 50% 100%, #0c1220 0%, var(--bg) 70%);
+}
+
+.relief3d-scene canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  touch-action: none;
+}
+
+.relief3d-labels {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.relief3d-label {
+  position: absolute;
+  top: 0;
+  left: 0;
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: color-mix(in srgb, var(--bg) 70%, transparent);
+  font-family: var(--font-mono);
+  font-size: 0.66rem;
+  white-space: nowrap;
+  color: var(--ink-muted);
+  will-change: transform;
+}
+
+.relief3d-label.on { color: var(--ink); outline: 1px solid var(--line-strong); }
+.relief3d-label.earth { background: none; color: var(--data-earth-high); letter-spacing: 0.06em; text-transform: uppercase; }
+
+.relief3d-headline {
+  position: absolute;
+  top: 18px;
+  left: 22px;
+  margin: 0;
+  font-family: var(--font-display);
+  font-stretch: 118%;
+  font-size: clamp(1.4rem, 3.2vw, 2.4rem);
+  font-weight: 900;
+  letter-spacing: -0.01em;
+  line-height: 1;
+  opacity: 0.92;
+  pointer-events: none;
+}
+
+.relief3d-headline.show:not(.still) { animation: relief-headline 0.7s cubic-bezier(0.2, 0.7, 0.2, 1) both; }
+
+@keyframes relief-headline {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 0.92; transform: none; }
+}
+
+.relief3d-status {
+  position: absolute;
+  bottom: 14px;
+  left: 22px;
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: 0.74rem;
+  color: var(--ink-muted);
+}
+
+.relief3d-status.error { color: var(--state-bad); }
+
+.relief3d-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-height: 0;
+  padding: 4px 18px 20px;
+  overflow-y: auto;
+  border-left: 1px solid var(--line);
+}
+
+.relief3d-panel h3 {
+  margin: 0 0 -6px;
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-muted);
+}
+
+.relief3d-date {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 8px;
+  text-align: center;
+  font-size: 0.78rem;
+}
+
+.relief3d-layers {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+}
+
+.relief3d-layers .btn {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 3px;
+  padding: 7px 10px;
+  text-align: left;
+  font-size: 0.8rem;
+}
+
+.relief3d-layers .btn[aria-pressed="true"] { border-color: var(--accent); }
+
+.relief3d .leg-head {
+  margin: 0 0 6px;
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.relief3d .leg-bar {
+  height: 8px;
+  border-radius: 4px;
+}
+
+.relief3d .leg-ticks {
+  display: grid;
+  grid-template-columns: repeat(var(--cols, 3), 1fr);
+  margin-top: 4px;
+  font-family: var(--font-mono);
+  font-size: 0.64rem;
+  color: var(--ink-muted);
+}
+
+.relief3d .leg-tick:last-child { text-align: right; }
+.relief3d .leg-tick:not(:first-child):not(:last-child) { text-align: center; }
+.relief3d .caption { margin: 8px 0 0; }
+.relief3d .provenance { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+
+.relief3d-readout dl {
+  display: grid;
+  gap: 4px;
+  margin: 8px 0;
+}
+
+.relief3d-readout dl div {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  padding-bottom: 4px;
+  border-bottom: 1px solid var(--line);
+  font-size: 0.78rem;
+}
+
+.relief3d-readout dt { color: var(--ink-muted); }
+.relief3d-readout dd { margin: 0; }
+.relief3d-readout .verdict { margin: 0; font-size: 0.82rem; }
+.relief3d-readout .btn { width: 100%; margin-top: 4px; }
+
+/* Calendario regional: una barra por fecha de aterrizaje. */
+.cal-bars {
+  display: flex;
+  align-items: flex-end;
+  gap: 0;
+  height: 56px;
+  border-bottom: 1px solid var(--line-strong);
+}
+
+.cal-bars button {
+  flex: 1 1 0;
+  min-width: 0;
+  height: 100%;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: linear-gradient(to top, var(--state-ok) var(--h), transparent var(--h));
+  cursor: pointer;
+}
+
+.cal-bars button:hover,
+.cal-bars button:focus-visible { background: linear-gradient(to top, var(--ink) var(--h), color-mix(in srgb, var(--ink) 14%, transparent) var(--h)); outline: 0; }
+.cal-bars button.now { background: linear-gradient(to top, var(--accent) max(var(--h), 12%), color-mix(in srgb, var(--accent) 22%, transparent) 0); }
+
+@media (max-width: 760px) {
+  .relief3d { grid-template-columns: 1fr; grid-template-rows: minmax(260px, 46vh) auto; height: auto; }
+  .relief3d-panel { border-left: 0; border-top: 1px solid var(--line); overflow: visible; padding-top: 14px; }
+  .layer-title { top: auto; bottom: 96px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .layer-title.show { animation: none; }
+}
+
+.stage-head .btn { flex: none; width: auto; }
