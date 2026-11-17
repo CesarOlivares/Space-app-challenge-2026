@@ -4,6 +4,7 @@
 #   ./run.sh test   corre las pruebas
 #   ./run.sh data   descarga kernels, texturas (4K y 8K), relieve y Three.js (--dem: también el DEM polar LOLA, 116 MB; --no-hires: sin 8K ni relieve)
 #   ./run.sh horizons  recalcula las máscaras de horizonte con el DEM
+#   ./run.sh polar     recalcula las capas del polo sur (relieve, pendiente y horizonte por celda) con el DEM
 set -euo pipefail
 
 cd "$(dirname "$0")/backend"
@@ -89,6 +90,7 @@ case "${1:-}" in
   test) exec "$VENV_PYTHON" -m pytest "${@:2}" ;;
   data) exec "$VENV_PYTHON" scripts/download_data.py "${@:2}" ;;
   horizons) exec "$VENV_PYTHON" scripts/compute_horizons.py "${@:2}" ;;
+  polar) exec "$VENV_PYTHON" scripts/compute_polar_layers.py "${@:2}" ;;
 esac
 
 # 6. Comprobar que los datos existen antes de levantar el servidor

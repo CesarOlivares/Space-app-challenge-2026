@@ -8,7 +8,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
 
-from app.controllers import health, illumination, scores, sites
+from app.controllers import health, illumination, polar, scores, sites
 from app.models.ephemeris import Ephemeris
 from app.models.site import load_catalog
 
@@ -55,6 +55,7 @@ app.include_router(health.router)
 app.include_router(sites.router)
 app.include_router(scores.router)
 app.include_router(illumination.router)
+app.include_router(polar.router)
 
 # Se monta al final para que las rutas de la API tengan prioridad.
 app.mount("/", StaticFiles(directory=FRONTEND_DIR, html=True), name="frontend")
