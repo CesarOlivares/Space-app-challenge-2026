@@ -39,6 +39,7 @@ import { notViableReason } from "./views/encoding.js";
 import { POLAR_RELIEF_VIEW, registerTerrain } from "./views/terrain/index.js";
 import { cellAt, paintLayer, pick, POLAR_LAYERS, polarStore, provenanceLabel } from "./polar/layers.js";
 import { DemoPlayer } from "./demo/DemoPlayer.js";
+import { ShareDialog } from "./share/ShareDialog.js";
 import { demoScript } from "./demo/script.js";
 import { Tour } from "./tour/Tour.js";
 import { compareTour, detailTour, exampleTour, mainTour } from "./tour/steps.js";
@@ -1219,9 +1220,18 @@ applyRelief();
 globe.setQuality(qualitySelect.value);
 
 // Diagnóstico (?debug): expone el globo para medir el tiempo por cuadro y ver qué textura usa.
-if (new URLSearchParams(window.location.search).has("debug")) window.lunarDebug = { globe };
+if (new URLSearchParams(window.location.search).has("debug")) {
+  window.lunarDebug = { globe };
+  import("./debug/perfHud.js").then(({ mountPerfHud }) => mountPerfHud(globe));
+}
 
 // --- Compartir y exportar -----------------------------------------------------
+
+const shareDialog = new ShareDialog();
+document.getElementById("share-qr").addEventListener("click", () => {
+  syncUrl();
+  shareDialog.open();
+});
 
 document.getElementById("copy-link").addEventListener("click", async () => {
   syncUrl();

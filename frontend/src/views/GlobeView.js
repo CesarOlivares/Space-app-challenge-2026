@@ -885,10 +885,15 @@ export class GlobeView {
       this.renderer.render(this.scene, this.camera);
       gl.readPixels(0, 0, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, pixel);
     };
+    const rotation = this.moon.rotation.y;
     drawOnce();
     const start = performance.now();
     for (let i = 0; i < frames; i++) drawOnce();
-    return (performance.now() - start) / frames;
+    const cost = (performance.now() - start) / frames;
+    // La medición gira la Luna para que cada cuadro sea distinto: se deja como estaba.
+    this.moon.rotation.y = rotation;
+    this.invalidate();
+    return cost;
   }
 
   /**

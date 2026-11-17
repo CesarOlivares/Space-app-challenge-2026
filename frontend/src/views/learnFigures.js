@@ -12,6 +12,40 @@ const dot = (n, x, y) =>
   `<g class="fg-call"><circle cx="${x}" cy="${y}" r="9"/><text x="${x}" y="${y + 3.6}" text-anchor="middle">${n}</text></g>`;
 
 const FIGS = {
+  // Mini animaciones de concepto (se detienen con "reducir movimiento"; el dibujo quieto se entiende igual).
+  "why-grazing": {
+    alt: T("Animación: el Sol, muy bajo sobre el horizonte, sube y baja unos grados; la sombra de una montaña se alarga hasta cubrir un módulo de aterrizaje y luego se acorta.", "Animation: the Sun, very low over the horizon, rises and drops a few degrees; a mountain's shadow stretches until it covers a lander, then shrinks."),
+    key: [
+      T("En el polo el Sol nunca sube más de unos pocos grados.", "At the pole the Sun never climbs more than a few degrees."),
+      T("Con luz tan rasante, una montaña proyecta una sombra de muchos kilómetros.", "With light this low, a mountain casts a shadow many kilometres long."),
+      T("Basta que el Sol baje un poco para que la sombra alcance el sitio: sin luz no hay energía.", "The Sun only has to drop a little for the shadow to reach the site: no light, no power."),
+    ],
+    svg: () => `
+      <line x1="0" y1="118" x2="${W}" y2="118" class="fg-axis"/>
+      <g class="fg-anim fg-anim-sun"><circle cx="26" cy="92" r="9" class="fg-sun"/></g>
+      <polygon points="92,66 122,118 300,118" class="fg-shadow fg-anim fg-anim-shadow"/>
+      <path d="M52 118 L92 66 L122 118 Z" class="fg-terrain"/>
+      <g class="fg-lander"><path d="M232 118 l6 -14 h10 l6 14 z M238 104 h10 v-8 h-10 z" class="fg-lander-body"/>
+        <path d="M232 118 l6 -14 h10 l6 14 z M238 104 h10 v-8 h-10 z" class="fg-lander-dark fg-anim fg-anim-dark"/></g>
+      ${dot(1, 26, 62)}${dot(2, 150, 96)}${dot(3, 262, 92)}`,
+  },
+
+  "why-earth": {
+    alt: T("Animación: la Tierra sube y baja unos grados junto al horizonte; cuando queda detrás del relieve, la línea de enlace con el módulo se corta.", "Animation: Earth bobs a few degrees next to the horizon; when it drops behind the terrain, the link line to the lander is cut."),
+    key: [
+      T("Desde la Luna, la Tierra casi no se mueve en el cielo: siempre está en el mismo sector.", "From the Moon, Earth barely moves in the sky: it always sits in the same patch."),
+      T("La libración (el cabeceo de la Luna) la hace subir y bajar unos 6,5° cada mes.", "Libration (the Moon's nodding) lifts and lowers it by about 6.5° each month."),
+      T("Cerca del polo la Tierra está pegada al horizonte: ese vaivén basta para que el relieve la tape y se corte el enlace.", "Near the pole Earth hugs the horizon: that swing is enough for the terrain to hide it and cut the link."),
+    ],
+    svg: () => `
+      <g class="fg-anim fg-anim-earth"><circle cx="70" cy="84" r="13" class="fg-earth"/>
+        <path d="M61 79 q6 -6 12 0 q-2 6 -8 5 z M68 90 q6 -2 9 2 q-5 4 -9 -2 z" class="fg-land"/></g>
+      <line x1="83" y1="86" x2="246" y2="100" class="fg-line earth fg-anim fg-anim-link"/>
+      <path d="M0 118 L0 104 L40 96 L96 100 L140 110 L${W} 112 L${W} 150 L0 150 Z" class="fg-terrain"/>
+      <path d="M240 112 l6 -14 h10 l6 14 z M246 98 h10 v-8 h-10 z" class="fg-lander-body"/>
+      ${dot(1, 70, 40)}${dot(2, 118, 62)}${dot(3, 170, 124)}`,
+  },
+
   "chart-reticle": {
     alt: T("Tres miras de ejemplo: una viable casi llena, una viable llena y una no viable punteada, con un anillo blanco en la elegida.", "Three example crosshairs: a nearly full viable one, a full viable one and a dashed non-viable one, with a white ring on the chosen one."),
     key: [

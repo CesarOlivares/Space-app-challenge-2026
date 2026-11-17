@@ -141,3 +141,28 @@
 .lfig .fg-bar.a { fill: var(--viable); }
 .lfig .fg-bar.b, .lfig .fg-bar.c { fill: var(--off); }
 .lfig .fg-scale { fill: color-mix(in srgb, var(--accent) 35%, var(--line)); }
+
+/* Mini animaciones de concepto (luz rasante, libración). */
+.lfig .fg-shadow { fill: #000; opacity: 0.62; }
+.lfig .fg-earth { fill: var(--data-earth-high); }
+.lfig .fg-land { fill: var(--state-ok); opacity: 0.8; }
+.lfig .fg-lander-body { fill: var(--ink); }
+.lfig .fg-lander-dark { fill: var(--bg); opacity: 0; }
+.lfig .fg-anim { animation-duration: 6s; animation-timing-function: ease-in-out; animation-iteration-count: infinite; animation-direction: alternate; }
+.lfig .fg-anim-sun { animation-name: fg-sun; }
+.lfig .fg-anim-shadow { transform-box: fill-box; transform-origin: left bottom; animation-name: fg-shadow; }
+.lfig .fg-anim-dark { animation-name: fg-dark; }
+.lfig .fg-anim-earth { animation-name: fg-earth; }
+.lfig .fg-anim-link { animation-name: fg-link; }
+/* Solo se anima la tarjeta abierta: una cerrada no gasta nada. */
+.lcard:not(.open) .fg-anim { animation-play-state: paused; }
+
+@keyframes fg-sun { from { transform: translateY(-6px); } to { transform: translateY(12px); } }
+@keyframes fg-shadow { from { transform: scaleX(0.42); } to { transform: scaleX(1); } }
+@keyframes fg-dark { 0%, 55% { opacity: 0; } 75%, 100% { opacity: 0.82; } }
+@keyframes fg-earth { from { transform: translateY(-10px); } to { transform: translateY(26px); } }
+@keyframes fg-link { 0%, 48% { opacity: 1; } 62%, 100% { opacity: 0; } }
+
+@media (prefers-reduced-motion: reduce) {
+  .lfig .fg-anim { animation: none; }
+}
