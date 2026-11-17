@@ -70,7 +70,7 @@ Estado: **Hecho** · **Primera versión** (funciona, con límites declarados) ·
 
 ## Lo que sigue pendiente
 
-- **Detalle dentro de la celda.** El centro de una celda de 2,4 km no representa a toda la celda: dentro, la luz puede variar decenas de puntos. Falta mostrar esa dispersión o bajar a 240 m en torno a un sitio.
+- **Detalle dentro de la celda.** El centro de una celda de 2,4 km no representa a toda la celda: dentro, la luz puede variar decenas de puntos. El relieve 3D ya muestra el rango de luz, Tierra y pendiente entre la celda y sus vecinas (7 km), que avisa cuándo el lugar exacto importa; falta bajar a 240 m en torno a un sitio.
 - **Sombra permanente y temperatura contra Diviner.** Hoy son estimaciones geométricas y de primer orden.
 - **Umbrales de la zona óptima.** El 30 % de terreno apto y el 50 % de luz y Tierra son supuestos del equipo.
 - **Foto polar con más detalle real.** Requiere otro producto (por ejemplo, el mosaico polar de LROC WAC), no el mosaico global.

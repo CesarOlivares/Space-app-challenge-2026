@@ -29,6 +29,10 @@ const TXT = {
   earth: T("Tierra en la ventana", "Earth in the window"),
   temp: T("Temperatura máxima", "Peak temperature"),
   psrYes: T("En sombra permanente", "In permanent shadow"),
+  around: T(
+    "En {km} km a la redonda (esta celda y sus vecinas): luz {sun}, Tierra {earth}, pendiente media {slope}. Si el rango es amplio, el lugar exacto importa mucho.",
+    "Within {km} km (this cell and its neighbours): sunlight {sun}, Earth {earth}, mean slope {slope}. A wide range means the exact spot matters a lot.",
+  ),
   optimalYes: T("Cumple los tres factores", "Meets all three factors"),
   optimalNo: T("No cumple: {why}", "Fails: {why}"),
   whyFlat: T("terreno", "terrain"),
@@ -471,6 +475,23 @@ export class PolarReliefView {
     this.#readout(cell ?? this.pinned);
   }
 
+  // Mínimo y máximo de luz, Tierra y pendiente en la celda y sus ocho vecinas.
+  #neighborhood({ row, col }) {
+    const { relief, layers } = this.data;
+    const n = relief.n;
+    const span = (values) => [Math.min(...values), Math.max(...values)];
+    const cells = [];
+    for (let r = Math.max(0, row - 1); r <= Math.min(n - 1, row + 1); r++) {
+      for (let c = Math.max(0, col - 1); c <= Math.min(n - 1, col + 1); c++) cells.push(r * n + c);
+    }
+    return {
+      km: (3 * relief.cell_m) / 1000,
+      sun: span(cells.map((i) => layers.sun_pct[i])),
+      earth: span(cells.map((i) => layers.earth_pct[i])),
+      slope: span(cells.map((i) => relief.slope_deg_x10[i] / 10)),
+    };
+  }
+
   #readout(cell) {
     const box = this.q(".relief3d-readout");
     if (!this.data || !cell) {
@@ -484,6 +505,9 @@ export class PolarReliefView {
     const fails = [flat < th.flat_pct && tr("whyFlat"), layers.sun_pct[i] < th.sun_pct && tr("whySun"), layers.earth_pct[i] < th.earth_pct && tr("whyEarth")].filter(Boolean);
     const row = (label, value, kind) => `<div><dt>${escapeHtml(label)} <span class="tag tag--${kind}">${tr(kind)}</span></dt><dd class="mono">${escapeHtml(value)}</dd></div>`;
     const pinned = this.pinned && this.pinned.index === i;
+    // El centro de una celda no la representa entera: se muestra cuánto cambia en las celdas vecinas.
+    const around = this.#neighborhood(cell);
+    const range = ([low, high]) => (low === high ? `${low} %` : `${low}–${high} %`);
     box.innerHTML = `
       <p class="leg-head">${tr("cell")} · ${num(cell.lat, 2)}°, ${num(cell.lon, 1)}°</p>
       <p class="verdict ${fails.length ? "bad" : "ok"}">${fails.length ? escapeHtml(tr("optimalNo", { why: fails.join(", ") })) : tr("optimalYes")}</p>
@@ -495,6 +519,7 @@ export class PolarReliefView {
         ${row(tr("earth"), `${layers.earth_pct[i]} %`, "estimated")}
         ${row(tr("temp"), `${layers.temp_max_k[i]} K`, "estimated")}
       </dl>
+      <p class="caption around">${escapeHtml(tr("around", { km: num(around.km, 0), sun: range(around.sun), earth: range(around.earth), slope: `${num(around.slope[0], 1)}–${num(around.slope[1], 1)}°` }))}</p>
       ${relief.psr[i] ? `<p class="caption">${tr("psrYes")}</p>` : ""}
       ${pinned && this.ctx.actions?.placePin ? `<button type="button" class="btn btn--primary" data-pin>${tr("pin")}</button>` : ""}`;
   }
