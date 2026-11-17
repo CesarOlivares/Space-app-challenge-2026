@@ -13,6 +13,8 @@
     <link rel="stylesheet" href="src/story.css" />
     <link rel="stylesheet" href="src/learn.css" />
     <link rel="stylesheet" href="src/tour.css" />
+    <link rel="stylesheet" href="src/polar.css" />
+    <link rel="stylesheet" href="src/demo.css" />
     <script type="importmap">
       {
         "imports": {
@@ -41,6 +43,9 @@
         <button type="button" data-lang="es" aria-pressed="true" lang="es">ES</button>
         <button type="button" data-lang="en" aria-pressed="false" lang="en">EN</button>
       </div>
+      <button type="button" id="demo-btn" class="nav-tour nav-demo" data-demo-start data-i18n-attr="aria-label: demo.btnTitle; title: demo.btnTitle">
+        <span aria-hidden="true">▶</span><span data-i18n="demo.btn">Demo</span>
+      </button>
       <button type="button" id="tour-btn" class="nav-tour" data-i18n-attr="aria-label: tour.btn; title: tour.btn">
         <span class="icon" data-icon="tutorial"></span><span data-i18n="tour.btn">Tutorial</span>
       </button>
@@ -59,6 +64,7 @@
           <p class="hero-purpose" data-i18n="hero.purpose"></p>
           <div class="hero-actions">
             <a class="cta" href="#explorar" data-hero-start><span data-i18n="hero.start">Comenzar</span></a>
+            <button type="button" class="hero-link" data-demo-start><span aria-hidden="true">▶ </span><span data-i18n="hero.demo">Ver demo de 30 s</span></button>
             <a class="hero-link" href="#aprender" data-i18n="hero.learn">Aprender cómo funciona</a>
           </div>
         </div>
@@ -115,6 +121,9 @@
             <li><svg class="reticle-key" viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="6" fill="none" stroke="var(--off)" stroke-width="2.4" stroke-dasharray="2.2 2.4"/><circle cx="10" cy="10" r="1.6" fill="var(--off)"/></svg><span data-i18n="legmini.off">Gris punteado: no viable</span></li>
           </ul>
         </div>
+
+        <!-- Titular breve al cambiar de capa: deja claro qué se está mirando. -->
+        <p id="layer-title" class="layer-title" role="status" hidden><b></b><span></span></p>
 
         <!-- Panel del engranaje: todo lo configurable. -->
         <aside id="drawer" class="drawer glass" hidden aria-labelledby="drawer-title">
@@ -238,8 +247,10 @@
                   <button type="button" data-layer="solar" aria-pressed="false" data-i18n="layer.solar">Mapa solar</button>
                   <button type="button" data-layer="comm" aria-pressed="false" data-i18n="layer.comm">Señal Tierra</button>
                   <button type="button" data-layer="suitability" class="btn-suitability" aria-pressed="false" data-i18n="layer.suitability">Aptitud global</button>
+                  <button type="button" data-layer="optimal" class="btn-optimal" aria-pressed="false" data-i18n="layer.optimal">Dónde aterrizar</button>
                 </div>
                 <div id="active-layer-legend" class="layer-legend-inline caption" aria-live="polite"></div>
+                <button type="button" id="open-relief" class="btn open-relief"><span class="icon" data-icon="kpiTerrain"></span><span data-i18n="layer.relief3d">Relieve 3D del polo sur</span></button>
                 <div class="relief" id="relief" role="group" data-i18n-attr="aria-label: relief.group">
                   <label class="check"><input type="checkbox" id="relief-on" checked /> <span data-i18n="relief.show">Mostrar relieve</span></label>
                   <label class="range tech-only"><span data-i18n="relief.exaggeration">Exageración vertical</span>
@@ -263,6 +274,7 @@
             <div class="drawer-footer-actions">
               <a class="btn learn-link" href="#aprender" data-i18n="learn.more">Aprender más</a>
               <button type="button" id="copy-link" data-i18n="controls.copyLink">Copiar enlace</button>
+              <button type="button" id="share-qr" data-i18n="controls.qr">Código QR</button>
             </div>
             <details class="custom credits">
               <summary data-i18n="credits.title">Créditos y fuentes</summary>

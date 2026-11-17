@@ -32,15 +32,6 @@ body.compare-zoom #legend-toggle {
   color: var(--ink-muted);
 }
 
-.story-spinner {
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
-  border: 2px solid var(--line);
-  border-top-color: var(--accent);
-  animation: spin 0.8s linear infinite;
-}
-
 @keyframes spin { to { transform: rotate(360deg); } }
 
 .story {
@@ -216,7 +207,7 @@ body.compare-zoom #legend-toggle {
   }
 
 @media (prefers-reduced-motion: reduce) {
-  .page--compare, .story-spinner { animation: none !important; }
+  .page--compare { animation: none !important; }
   .cell .meter i { transition: none !important; }
 }
 
@@ -367,3 +358,32 @@ body.compare-zoom #zoom-reticle { animation: lock 1.5s ease-out both; }
 .data-table td { color: var(--ink-muted); }
 .x-patch { min-height: 40px; }
 .x-patch canvas { max-width: 100%; height: auto; }
+
+/* ---------- Ganador claro: frase de resumen y columna del líder destacada ---------- */
+
+.lead-line {
+  margin: 0 0 12px;
+  padding: 10px 14px;
+  border: 1px solid var(--accent);
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--accent) 9%, transparent);
+  font-size: 0.92rem;
+  line-height: 1.4;
+}
+
+.lead-mark { color: var(--accent); }
+
+/* La columna del líder se lee como una franja: mismo fondo en el encabezado y en cada fila. */
+.board .b-head.lead,
+.board .cell.lead {
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
+  box-shadow: inset 2px 0 0 var(--accent), inset -2px 0 0 var(--accent);
+}
+
+.board .b-head.lead { box-shadow: inset 2px 0 0 var(--accent), inset -2px 0 0 var(--accent), inset 0 2px 0 var(--accent); }
+.board .b-head.lead em { color: var(--accent); font-weight: 700; }
+.board .b-head.lead,
+.board .cell.lead {
+  margin: -8px -10px;
+  padding: 8px 10px;
+}

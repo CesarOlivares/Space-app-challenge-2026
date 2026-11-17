@@ -129,6 +129,23 @@ class Ephemeris:
         x, y, z = direction / np.linalg.norm(direction)
         return float(np.degrees(np.arcsin(z))), float(np.degrees(np.arctan2(y, x)))
 
+    def direction_track(self, body: str, start: datetime, duration_h: float,
+                        step_h: float) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+        """Dirección de `body` desde el centro de la Luna, en el marco ME, a lo largo del tiempo.
+
+        Devuelve (horas desde `start`, vectores unitarios (n, 3), distancia en km (n,)). Sirve para
+        evaluar muchos puntos de la superficie a la vez sin recalcular las efemérides por punto.
+        """
+        if body not in BODIES:
+            raise ValueError(f"cuerpo desconocido: {body}; opciones: {', '.join(BODIES)}")
+        if step_h <= 0 or duration_h < 0:
+            raise ValueError("step_h debe ser positivo y duration_h no negativo")
+        count = int(np.floor(duration_h / step_h + 1e-9)) + 1
+        moon, bodies, rotation = self._geometry(as_utc(start), count, step_h)
+        vector = np.einsum("ijn,jn->ni", rotation, bodies[body] - moon)
+        distance = np.linalg.norm(vector, axis=1)
+        return np.arange(count) * step_h, vector / distance[:, None], distance
+
     @lru_cache(maxsize=64)
     def _geometry(self, start: datetime, count: int, step_h: float):
         """Parte independiente del sitio; se reutiliza para todos los sitios de una fecha."""

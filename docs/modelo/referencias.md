@@ -38,3 +38,5 @@ Citas verificadas contra la fuente (DOI, autores, volumen y páginas): ver [inve
 - Chavers, G. et al. *NASA's Human Landing System: The Strategy for the 2024 Mission and Future Sustainability*. NTRS 20200001606. https://ntrs.nasa.gov/api/citations/20200001606/downloads/20200001606.pdf
 - NASA (2022, 19 de agosto). *NASA Identifies Candidate Regions for Landing Next Americans on Moon*. https://www.nasa.gov/news-release/nasa-identifies-candidate-regions-for-landing-next-americans-on-moon/
 - NASA (2024, 28 de octubre). *NASA Provides Update on Artemis III Moon Landing Regions*. https://www.nasa.gov/news-release/nasa-provides-update-on-artemis-iii-moon-landing-regions/
+- Williams, J.-P., Paige, D. A., Greenhagen, B. T., & Sefton-Nash, E. (2017). The global surface temperatures of the Moon as measured by the Diviner Lunar Radiometer Experiment. *Icarus, 283*, 300–325. https://doi.org/10.1016/j.icarus.2016.08.012
+- Paige, D. A. et al. (2010). Diviner Lunar Radiometer observations of cold traps in the Moon's south polar region. *Science, 330*(6003), 479–482. https://doi.org/10.1126/science.1187726

@@ -9,6 +9,7 @@ import {
   fetchBestDates,
   fetchComparison,
   fetchCustomScores,
+  fetchEnvironment,
   fetchIllumination,
   fetchRiskGrid,
   fetchScores,
@@ -35,7 +36,11 @@ import { SettingsPanel, DEFAULT_CONFIG } from "./views/SettingsPanel.js";
 import { SiteCard } from "./views/SiteCard.js";
 import { SiteList } from "./views/SiteList.js";
 import { notViableReason } from "./views/encoding.js";
-import { registerTerrain } from "./views/terrain/index.js";
+import { POLAR_RELIEF_VIEW, registerTerrain } from "./views/terrain/index.js";
+import { cellAt, paintLayer, pick, POLAR_LAYERS, polarStore, provenanceLabel } from "./polar/layers.js";
+import { DemoPlayer } from "./demo/DemoPlayer.js";
+import { ShareDialog } from "./share/ShareDialog.js";
+import { demoScript } from "./demo/script.js";
 import { Tour } from "./tour/Tour.js";
 import { compareTour, detailTour, exampleTour, mainTour } from "./tour/steps.js";
 
@@ -86,6 +91,9 @@ const state = {
   config: { ...DEFAULT_CONFIG },
   mode: "simple",
   playing: false,
+  dayShift: null, // { id, before, days }: evaluación del sitio activo antes de correr la fecha
+  layer: "surface", // capa del globo elegida (ver LAYERS)
+  polar: null, // { layer, data }: capa de alta resolución pintada sobre el polo sur
   selected: [], // ids elegidos, en orden de elección (máximo MAX_SELECTED)
   selectedId: null, // el último elegido: el de la ficha y el detalle
   detailOpen: false,
@@ -119,6 +127,7 @@ function syncUrl() {
     selected: state.selected.map(siteRef),
     mode: state.mode,
     lang: getLang(),
+    layer: state.layer,
     config: state.config,
     custom: [...state.sites.values()]
       .filter((s) => s.category === "personalizado")
@@ -154,6 +163,19 @@ function showTooltip(id, x, y, zone = null, point = null) {
     tooltip.hidden = false;
     tooltip.style.left = `${Math.min(x + 14, window.innerWidth - tooltip.offsetWidth - 8)}px`;
     tooltip.style.top = `${y + 14}px`;
+    return;
+  }
+  // Sobre el polo sur con una capa activa: la cifra de la celda de 2,4 km, con su procedencia.
+  const polarCell = !id && state.polar && point ? cellAt(state.polar.data.relief, point.lat, point.lon) : null;
+  if (polarCell) {
+    const layer = POLAR_LAYERS[state.polar.layer];
+    const value = layer.value(polarCell.index, state.polar.data);
+    const shown = layer.unit ? `${num(value, state.polar.layer === "slope" ? 1 : 0)}${layer.unit}` : t(value ? "tag.yes" : "tag.no");
+    placeTooltip([
+      ["strong", t("tip.polar", { lat: num(point.lat, 2), lon: num(point.lon, 1) })],
+      ["span", t("tip.polarValue", { name: pick(layer.name), value: shown, kind: t(`tag.${layer.kind}`) })],
+      ["span", t("tip.polarSlope", { slope: num(state.polar.data.relief.slope_deg_x10[polarCell.index] / 10, 1) })],
+    ], x, y);
     return;
   }
   if (!id && zone?.cell) {
@@ -244,6 +266,7 @@ const card = new SiteCard(document.getElementById("sitecard"), {
   onRemove: () => deselect(state.selectedId),
   onDeletePin: () => removeCustomSite(state.selectedId),
   onOpenView: (id) => openStageView(id),
+  onNextDay: () => shiftDays(1),
 });
 
 const compareStory = new CompareStory(document.getElementById("story-root"), {
@@ -282,6 +305,7 @@ const controls = new Controls(explore, {
     if (!playing) {
       syncUrl();
       if (state.selectedId) loadActive();
+      syncPolarCap(); // durante la animación el detalle polar no se recalcula: se pone al día al pausar
     }
   },
   onView: (view) => {
@@ -296,6 +320,7 @@ const settings = new SettingsPanel(document.getElementById("settings"), {
     loadDate(state.date);
     if (globe.layerMode !== "surface") ensureRiskGrid();
     renderActiveLayerLegend();
+    syncPolarCap();
   },
 });
 
@@ -315,12 +340,28 @@ registerTerrain({ registerExploreView });
 
 function stageContext() {
   const { sky } = state.current ?? {};
-  return { site: sky?.site ?? state.sites.get(state.selectedId), sky, date: state.date, config: state.config, globe };
+  return {
+    site: sky?.site ?? state.sites.get(state.selectedId) ?? null,
+    sky,
+    date: state.date,
+    config: state.config,
+    globe,
+    sites: [...state.sites.values()],
+    // Lo que una vista puede pedirle a la app.
+    actions: {
+      setDate: (date) => { controls.setDate(date); return loadDate(date); },
+      placePin: (lat, lon) => {
+        stage.close();
+        return addCustomSite(lat, lon, "").catch((error) => showToast(t("pin.failed", { reason: error.message })));
+      },
+    },
+  };
 }
 
-function openStageView(id) {
+// `extra` se suma al contexto (p. ej. la capa con que abre el relieve). No hace falta un sitio elegido.
+function openStageView(id, extra = {}) {
   const view = getExploreView(id);
-  if (view && state.current) stage.open(view, stageContext());
+  if (view && state.date) stage.open(view, { ...stageContext(), ...extra });
 }
 
 // --- Portada y navegación ---------------------------------------------------------
@@ -511,38 +552,47 @@ function legendItemsForLayer(layer, maxSlopeDeg) {
   }
 }
 
+function legendBlock(title, gradient, ticks, notes = []) {
+  const head = Object.assign(document.createElement("div"), { className: "leg-head", textContent: title });
+  const bar = Object.assign(document.createElement("div"), { className: "leg-bar" });
+  bar.setAttribute("aria-hidden", "true");
+  bar.style.background = gradient;
+  const row = Object.assign(document.createElement("div"), { className: "leg-ticks" });
+  row.style.setProperty("--cols", String(ticks.length));
+  row.append(...ticks.map((label) => Object.assign(document.createElement("span"), { className: "leg-tick", textContent: label })));
+  return [head, bar, row, ...notes.map((text) => Object.assign(document.createElement("p"), { className: "leg-note", textContent: text }))];
+}
+
 function renderActiveLayerLegend() {
   if (!activeLayerLegend) return;
-  const layer = globe.layerMode ?? "surface";
+  const layer = state.layer;
   const surface = globe.surfaceMode ?? "lroc";
   activeLayerLegend.dataset.layer = layer;
+  const polar = state.polar;
+  // Procedencia del detalle polar: qué es medido y qué estimado, y a qué resolución.
+  // La luz y la Tierra del polo no son un promedio anual como el resto del globo: son el % de la
+  // ventana que empieza en la fecha elegida, y la leyenda lo dice.
+  const windowed = polar && (polar.layer === "sun" || polar.layer === "earth");
+  const polarNote = polar ? [t(windowed ? "layers.polarDetailWindow" : "layers.polarDetail", {
+    provenance: provenanceLabel(polar.layer, polar.data), days: state.config.windowDays,
+  })] : [];
   const spec = legendItemsForLayer(layer, state.config.maxSlopeDeg);
-  if (!spec) {
-    const msg = document.createElement("span");
-    msg.className = "leg-surface";
-    msg.textContent = t(surface === "lola" ? "layers.legendSurfaceLola" : "layers.legendSurfaceLroc");
-    activeLayerLegend.replaceChildren(msg);
+  if (spec) {
+    activeLayerLegend.replaceChildren(...legendBlock(spec.title, spec.gradient, spec.items.map(([, label]) => label), polarNote));
     return;
   }
-  const head = document.createElement("div");
-  head.className = "leg-head";
-  head.textContent = spec.title;
-
-  const bar = document.createElement("div");
-  bar.className = "leg-bar";
-  bar.setAttribute("aria-hidden", "true");
-  bar.style.background = spec.gradient;
-
-  const ticks = document.createElement("div");
-  ticks.className = "leg-ticks";
-  ticks.style.setProperty("--cols", String(spec.items.length));
-  for (const [, label] of spec.items) {
-    const tick = document.createElement("span");
-    tick.className = "leg-tick";
-    tick.textContent = label;
-    ticks.append(tick);
+  if (polar) {
+    // Capa que solo existe en el polo ("Dónde aterrizar"): su leyenda sale del catálogo polar.
+    const def = POLAR_LAYERS[polar.layer];
+    const legend = def.legend(polar.data);
+    const note = pick(typeof def.note === "function" ? def.note(polar.data) : def.note);
+    activeLayerLegend.replaceChildren(...legendBlock(pick(def.headline), legend.gradient, legend.ticks.map(pick), [note, ...polarNote]));
+    return;
   }
-  activeLayerLegend.replaceChildren(head, bar, ticks);
+  const msg = document.createElement("span");
+  msg.className = "leg-surface";
+  msg.textContent = t(surface === "lola" ? "layers.legendSurfaceLola" : "layers.legendSurfaceLroc");
+  activeLayerLegend.replaceChildren(msg);
 }
 
 let riskGridLoadedForSlope = null;
@@ -558,23 +608,93 @@ async function ensureRiskGrid() {
   }
 }
 
-const layerBar = document.getElementById("moon-layer-bar");
-if (layerBar) {
-  layerBar.addEventListener("click", async (e) => {
-    const btn = e.target.closest("button[data-layer]");
-    if (!btn) return;
-    setDrawerTab("layers");
-    const layer = btn.dataset.layer;
-    for (const b of layerBar.querySelectorAll("button[data-layer]")) {
-      const active = b === btn;
-      b.classList.toggle("active", active);
-      b.setAttribute("aria-pressed", String(active));
-    }
-    if (layer !== "surface") await ensureRiskGrid();
-    globe.setLayerMode(layer);
-    renderActiveLayerLegend();
-  });
+// Capas del globo. `globe`: la capa global (grilla de 5°); `polar`: la misma magnitud en la grilla
+// polar de 2,4 km, que se pinta encima al sur de 84° S (null = esa capa no tiene versión polar).
+const LAYERS = {
+  surface: { globe: "surface", polar: null },
+  "risk-a": { globe: "risk-a", polar: "slope" },
+  solar: { globe: "solar", polar: "sun" },
+  comm: { globe: "comm", polar: "earth" },
+  suitability: { globe: "suitability", polar: null },
+  optimal: { globe: "surface", polar: "optimal", focus: "south-pole" },
+};
+
+// Titular breve al cambiar de capa: deja claro qué se está mirando.
+const layerTitle = document.getElementById("layer-title");
+let layerTitleTimer = 0;
+function announceLayer(title, detail = "") {
+  layerTitle.querySelector("b").textContent = title;
+  layerTitle.querySelector("span").textContent = detail;
+  layerTitle.hidden = false;
+  layerTitle.classList.remove("show");
+  void layerTitle.offsetWidth; // reinicia la animación
+  layerTitle.classList.add("show");
+  clearTimeout(layerTitleTimer);
+  layerTitleTimer = setTimeout(() => { layerTitle.hidden = true; }, 3200);
 }
+
+// Pinta (o quita) el detalle polar de la capa elegida, para la fecha y los ajustes actuales.
+let polarRequest = 0;
+async function syncPolarCap() {
+  const polarLayer = LAYERS[state.layer]?.polar;
+  const request = ++polarRequest;
+  // Mientras llega la capa nueva no se muestra la procedencia de la anterior.
+  if (state.polar?.layer !== polarLayer) state.polar = null;
+  if (!polarLayer || !state.date) {
+    globe.setPolarCap(null);
+    renderActiveLayerLegend();
+    return;
+  }
+  try {
+    const data = await polarStore.dataFor(polarLayer, state.date, state.config);
+    if (request !== polarRequest) return;
+    const { rgba, n } = paintLayer(polarLayer, data);
+    globe.setPolarCap({ rgba, n, halfExtentKm: data.relief.half_extent_km, dims: Boolean(POLAR_LAYERS[polarLayer].dims) });
+    state.polar = { layer: polarLayer, data };
+  } catch {
+    if (request !== polarRequest) return;
+    state.polar = null; // sin el producto polar queda la capa global
+    globe.setPolarCap(null);
+  }
+  renderActiveLayerLegend();
+}
+
+async function setLayer(layer, { announce = true, fly = true } = {}) {
+  const spec = LAYERS[layer] ? layer : "surface";
+  state.layer = spec;
+  for (const b of layerBar.querySelectorAll("button[data-layer]")) {
+    const active = b.dataset.layer === spec;
+    b.classList.toggle("active", active);
+    b.setAttribute("aria-pressed", String(active));
+  }
+  if (LAYERS[spec].globe !== "surface") await ensureRiskGrid();
+  globe.setLayerMode(LAYERS[spec].globe);
+  if (state.polar?.layer !== LAYERS[spec].polar) state.polar = null;
+  renderActiveLayerLegend();
+  syncUrl();
+  if (fly && LAYERS[spec].focus === "south-pole") globe.focusSouthPole();
+  const polarLayer = LAYERS[spec].polar;
+  if (announce) {
+    const button = layerBar.querySelector(`button[data-layer="${spec}"]`);
+    announceLayer(
+      polarLayer ? pick(POLAR_LAYERS[polarLayer].headline) : button?.textContent ?? "",
+      polarLayer ? t(`tag.${POLAR_LAYERS[polarLayer].kind}`) : "",
+    );
+  }
+  await syncPolarCap();
+}
+
+const layerBar = document.getElementById("moon-layer-bar");
+layerBar.addEventListener("click", (e) => {
+  const btn = e.target.closest("button[data-layer]");
+  if (!btn) return;
+  setDrawerTab("layers");
+  setLayer(btn.dataset.layer);
+});
+document.getElementById("open-relief").addEventListener("click", () => {
+  setDrawer(false);
+  openStageView(POLAR_RELIEF_VIEW, { layer: LAYERS[state.layer]?.polar ?? undefined });
+});
 legendToggle.addEventListener("click", () => setLegend(legendCard.hidden));
 document.addEventListener("keydown", (event) => {
   if (event.key !== "Escape") return;
@@ -594,16 +714,41 @@ document.addEventListener("keydown", (event) => {
 const tour = new Tour({ lang: getLang });
 
 // `build(ctx)` arma los pasos; `restore: false` deja la app donde quedó el recorrido (p. ej. tras un ejemplo guiado).
-function startTour(build = mainTour, { restore = true } = {}) {
-  if (tour.active) return;
-  const before = {
+// Lo que un recorrido (tutorial o demo) puede cambiar, para dejar la app como estaba al terminar.
+function captureAppState() {
+  return {
     section: router.current,
+    date: state.date,
+    layer: state.layer,
     selected: [...state.selected],
     drawerOpen: !drawer.hidden,
     drawerTab: activeDrawerTab,
     legendOpen: !legendCard.hidden,
     detailOpen: state.detailOpen,
   };
+}
+
+async function restoreAppState(before) {
+  stage.close();
+  card.highlight(null);
+  setDrawerTab(before.drawerTab);
+  setDrawer(before.drawerOpen);
+  setLegend(before.legendOpen);
+  if (!before.detailOpen && state.detailOpen) closeDetail();
+  if (before.layer !== state.layer) setLayer(before.layer, { announce: false, fly: false });
+  if (before.date && before.date.getTime() !== state.date?.getTime()) {
+    controls.setDate(before.date);
+    await loadDate(before.date);
+  }
+  state.selected = before.selected.filter((id) => state.sites.has(id));
+  applySelection();
+  // Quien lo lanzó desde la portada se queda en la vista general; los demás vuelven a su sección.
+  if (before.section && before.section !== "intro" && router.current !== before.section) router.go(before.section);
+}
+
+function startTour(build = mainTour, { restore = true } = {}) {
+  if (tour.active || demo.active) return;
+  const before = captureAppState();
   setLegend(false);
   const openedFolds = []; // pliegues del detalle que abrió el recorrido: se cierran al terminar
   const ctx = {
@@ -633,16 +778,61 @@ function startTour(build = mainTour, { restore = true } = {}) {
         const fold = document.querySelector(`#detail [data-fold="${name}"]`);
         if (fold) fold.open = false;
       }
-      if (!restore) return;
-      setDrawerTab(before.drawerTab);
-      setDrawer(before.drawerOpen);
-      setLegend(before.legendOpen);
-      if (!before.detailOpen && state.detailOpen) closeDetail();
-      state.selected = before.selected.filter((id) => state.sites.has(id));
-      applySelection();
-      // Quien lo lanzó desde la portada se queda en la vista general; los demás vuelven a su sección.
-      if (before.section && before.section !== "intro" && router.current !== before.section) router.go(before.section);
+      if (restore) await restoreAppState(before);
     },
+  });
+}
+
+// --- Recorrido en cinco pasos: demo de 30 s y modo kiosko --------------------------------
+// DemoPlayer mueve la app de verdad con estas acciones (el guion está en demo/script.js).
+
+const demoApp = {
+  explore: async () => {
+    if (router.current === "explorar") return;
+    router.go("explorar");
+    await sleep(reducedMotion.matches ? 50 : 500);
+  },
+  setDate: (date) => {
+    if (state.date?.getTime() === date.getTime()) return null;
+    controls.stop();
+    controls.setDate(date);
+    return loadDate(date);
+  },
+  layer: (id) => (state.layer === id ? null : setLayer(id, { announce: false, fly: false })),
+  select: (ids, options) => {
+    state.selected = ids.filter((id) => state.sites.has(id));
+    return applySelection(options);
+  },
+  compare: () => openCompare(),
+  highlight: (factor) => card.highlight(factor),
+  relief: (layer) => {
+    if (stage.isOpen) getExploreView(POLAR_RELIEF_VIEW).setLayer(layer);
+    else openStageView(POLAR_RELIEF_VIEW, { layer });
+  },
+  closeViews: () => {
+    stage.close();
+    closeDetail();
+    setDrawer(false);
+    setLegend(false);
+  },
+  nextDay: () => shiftDays(1),
+  learn: () => router.go("aprender"),
+};
+
+const demo = new DemoPlayer({
+  chapters: demoScript(demoApp),
+  onStart: () => captureAppState(),
+  onEnd: (before) => restoreAppState(before),
+});
+
+function startDemo(options) {
+  if (tour.active || demo.active || !state.sites.size) return;
+  demo.start(options);
+}
+for (const button of document.querySelectorAll("[data-demo-start]")) {
+  button.addEventListener("click", (event) => {
+    event.preventDefault();
+    startDemo();
   });
 }
 document.getElementById("tour-btn").addEventListener("click", () => startTour());
@@ -681,6 +871,9 @@ onLangChange(() => {
   learnView.render();
   renderActiveLayerLegend();
   if (state.selectedId) loadActive();
+  // Las vistas abiertas arman sus textos al montarse: se vuelven a montar en el idioma nuevo.
+  if (stage.isOpen) stage.open(stage.view, stageContext());
+  demo.refreshLanguage();
 });
 
 for (const button of document.querySelectorAll("[data-mode]")) {
@@ -739,10 +932,10 @@ function applySelection({ fly = false } = {}) {
     card.hide();
     closeDetail();
     state.current = null;
-    return;
+    return Promise.resolve();
   }
   if (fly) globe.focusSite(state.selectedId, { zoomTo: state.selected.length === 1 ? 2.4 : Infinity });
-  loadActive();
+  return loadActive(); // quien necesite la ficha ya dibujada puede esperar
 }
 
 // Barra de abajo: aparece con 2 o más sitios elegidos.
@@ -789,16 +982,20 @@ async function loadActive() {
   if (state.detailOpen) detail.showLoading(site);
   try {
     const ref = siteRef(id);
-    const [sky, timeline, patch] = await Promise.all([
+    const [sky, timeline, patch, environment] = await Promise.all([
       fetchSky(ref, state.date, state.config),
       fetchTimeline(ref, state.date, state.config),
       fetchTerrainPatch(ref, 25, state.date, state.config.windowDays).catch(() => null),
+      fetchEnvironment(ref, state.date, state.config).catch(() => null),
     ]);
     if (request !== state.detailRequest) return;
     sky.site = { ...sky.site, ...site }; // conserva nombres y traducciones del lado del cliente
-    state.current = { id, sky, timeline, patch };
-    card.render(sky, { selectedCount: state.selected.length, views: exploreViewsFor(site) });
-    if (state.detailOpen) detail.render(sky, timeline, { patch });
+    state.current = { id, sky, timeline, patch, environment };
+    // Si la fecha se acaba de correr desde la ficha, se muestra qué cambió respecto de antes.
+    const previous = state.dayShift?.id === id ? state.dayShift : null;
+    state.dayShift = null;
+    card.render(sky, { selectedCount: state.selected.length, views: exploreViewsFor(site), previous });
+    if (state.detailOpen) detail.render(sky, timeline, { patch, environment });
     if (stage.isOpen) stage.update(stageContext());
   } catch (error) {
     if (request !== state.detailRequest) return;
@@ -807,13 +1004,22 @@ async function loadActive() {
   }
 }
 
+// Corre la fecha `days` días y deja anotado el estado anterior del sitio activo: la ficha lo compara.
+function shiftDays(days) {
+  const before = state.current?.id === state.selectedId ? state.current.sky : null;
+  state.dayShift = before ? { id: state.selectedId, before, days } : null;
+  const date = new Date(state.date.getTime() + days * 864e5);
+  controls.setDate(date);
+  return loadDate(date);
+}
+
 function openDetail() {
   if (!state.selectedId) return;
   state.detailOpen = true;
   document.body.classList.add("detail-open");
   const site = state.sites.get(state.selectedId);
   detail.showLoading(site);
-  if (state.current?.id === state.selectedId) detail.render(state.current.sky, state.current.timeline, { patch: state.current.patch });
+  if (state.current?.id === state.selectedId) detail.render(state.current.sky, state.current.timeline, state.current);
   else loadActive();
 }
 
@@ -852,6 +1058,7 @@ for (const button of surfaceButtons) {
       b.setAttribute("aria-pressed", String(active));
     }
     renderActiveLayerLegend();
+    announceLayer(t(mode === "lola" ? "layers.title.lola" : "layers.title.surface"), mode === "lola" ? t("tag.measured") : "");
   });
 }
 
@@ -1023,9 +1230,18 @@ applyRelief();
 globe.setQuality(qualitySelect.value);
 
 // Diagnóstico (?debug): expone el globo para medir el tiempo por cuadro y ver qué textura usa.
-if (new URLSearchParams(window.location.search).has("debug")) window.lunarDebug = { globe };
+if (new URLSearchParams(window.location.search).has("debug")) {
+  window.lunarDebug = { globe };
+  import("./debug/perfHud.js").then(({ mountPerfHud }) => mountPerfHud(globe));
+}
 
 // --- Compartir y exportar -----------------------------------------------------
+
+const shareDialog = new ShareDialog();
+document.getElementById("share-qr").addEventListener("click", () => {
+  syncUrl();
+  shareDialog.open();
+});
 
 document.getElementById("copy-link").addEventListener("click", async () => {
   syncUrl();
@@ -1092,14 +1308,28 @@ async function loadDate(date) {
     if (!state.playing) {
       syncUrl();
       if (state.selectedId) loadActive();
+      syncPolarCap();
+      if (stage.isOpen) stage.update(stageContext());
     }
   } catch (error) {
     if (request === state.request) setStatus("status.error", { message: error.message }, "error");
   }
 }
 
+// Lo pesado se pide mientras se mira la portada (o apenas la app queda en reposo), no en medio de
+// una transición: el relieve polar, las capas de la fecha y la grilla global quedan en memoria.
+function preloadHeavy() {
+  const idle = window.requestIdleCallback ?? ((run) => setTimeout(run, 600));
+  idle(() => {
+    polarStore.relief().catch(() => {});
+    polarStore.layers(state.date, state.config).catch(() => {});
+    ensureRiskGrid();
+  }, { timeout: 4000 });
+}
+
 async function start() {
   const fromUrl = readUrlState();
+  const demoParam = new URLSearchParams(window.location.search).get("demo"); // se lee antes de reescribir la URL
   const browserLang = navigator.language?.toLowerCase().startsWith("es") ? "es" : "en";
   applyLang(fromUrl.lang ?? stored.get("lang") ?? browserLang);
   applyMode(fromUrl.mode ?? stored.get("mode") ?? "simple");
@@ -1128,6 +1358,10 @@ async function start() {
       if (state.selected.length >= 2) loadCompare();
       else compareStory.showEmpty();
     }
+    if (fromUrl.layer && LAYERS[fromUrl.layer]) setLayer(fromUrl.layer, { announce: false, fly: !state.selected.length });
+    preloadHeavy();
+    // ?demo abre el recorrido de 30 s; ?demo=loop lo repite sin fin (modo kiosko, para una feria).
+    if (demoParam !== null) startDemo({ loop: demoParam === "loop" });
   } catch (error) {
     setStatus("status.offline", { message: error.message }, "error");
   }

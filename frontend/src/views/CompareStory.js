@@ -26,6 +26,10 @@ const SERIES_COLORS = ["#56b4e9", "#e69f00", "#46c878", "#cc79a7"];
 const TXT = {
   es: {
     back: "Volver al globo",
+    leads: "lidera",
+    leadTag: "Lidera",
+    behind: "{name}: {what}",
+    inMetric: "{gap} en {metric}",
     howRead: "¿Cómo leer esto?",
     eyebrow: "Lectura preliminar",
     titleTwo: "{a} frente a {b}",
@@ -181,6 +185,10 @@ const TXT = {
   },
   en: {
     back: "Back to the globe",
+    leads: "leads",
+    leadTag: "Leads",
+    behind: "{name}: {what}",
+    inMetric: "{gap} in {metric}",
     howRead: "How to read this",
     eyebrow: "Preliminary reading",
     titleTwo: "{a} vs {b}",
@@ -518,7 +526,10 @@ function buildExplanation(results) {
       : `<li>${tr("nextNone", { name: label, days: 30 })}</li>`;
   }) : [];
 
-  return { title, headline, reasons, aside, notComparable, problems, next, eligible: new Set(pool.map((x) => x.i)) };
+  // Hay líder cuando un sitio viable gana con claridad (o es el único) y los totales son comparables.
+  const leader = !incomplete.length && first && (pool.length === 1 || delta >= 1) ? first.i : -1;
+
+  return { title, headline, reasons, aside, notComparable, problems, next, leader, eligible: new Set(pool.map((x) => x.i)) };
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -584,11 +595,12 @@ export class CompareStory {
     const n = results.length;
     const days = results[0].config.window_days;
 
+    const lead = (i) => (i === exp.leader ? " lead" : "");
     const head = results.map((r, i) => `
-      <div class="b-head${r.viable ? "" : " off"}">
+      <div class="b-head${r.viable ? "" : " off"}${lead(i)}">
         <span class="s-dot" style="--c:${SERIES_COLORS[i % SERIES_COLORS.length]}"></span>
         <b>${escapeHtml(shortName(r.site))}</b>
-        <em>${r.viable ? tr("viableTag") : tr("notViableTag")}</em>
+        <em>${i === exp.leader ? tr("leadTag") : r.viable ? tr("viableTag") : tr("notViableTag")}</em>
       </div>`).join("");
 
     const rows = METRICS.map((metric) => {
@@ -605,7 +617,7 @@ export class CompareStory {
       const cells = results.map((r, i) => {
         const v = values[i];
         if (v == null) {
-          return `<div class="cell nodata" title="${escapeHtml(tr("noDataWhy"))}"><div class="c-top"><b>${tr("noData")}</b></div><span class="meter"><i></i></span></div>`;
+          return `<div class="cell nodata${lead(i)}" title="${escapeHtml(tr("noDataWhy"))}"><div class="c-top"><b>${tr("noData")}</b></div><span class="meter"><i></i></span></div>`;
         }
         const isBest = competing && ranked.includes(i) && v === top;
         const state = !exp.eligible.has(i) ? "off" : isBest ? "best" : "";
@@ -615,7 +627,7 @@ export class CompareStory {
           : "";
         const { big, unit } = metric.show(r);
         return `
-          <div class="cell ${state}">
+          <div class="cell ${state}${lead(i)}">
             <div class="c-top">
               <b>${escapeHtml(big)}${isBest ? `<span class="star" aria-hidden="true"> ★</span><span class="sr-only"> (${tr("best")})</span>` : ""}</b>
               <span class="c-unit">${escapeHtml(unit)}</span>
@@ -656,6 +668,7 @@ export class CompareStory {
           <details class="learn"><summary>${tr("learn")}</summary><ul>${glossary}</ul></details>
         </aside>
         <div class="story-main">
+          ${this.#summaryHtml(results, exp)}
           <div class="board">
             <div class="b-row b-heads"><div></div><div class="b-cells" style="--n:${n}">${head}</div></div>
             ${rows}
@@ -670,6 +683,25 @@ export class CompareStory {
     // Una sola animación de entrada: las barras crecen.
     const story = this.root.querySelector(".story");
     requestAnimationFrame(() => requestAnimationFrame(() => story.classList.add("go")));
+  }
+
+  // Resumen de una línea sobre el tablero: quién lidera y qué le pasa a cada uno de los demás
+  // ("IM-2 lidera · Mons Mouton: −2 d 3 h" o el motivo por el que no es viable).
+  #summaryHtml(results, exp) {
+    if (exp.leader < 0) return "";
+    const leader = results[exp.leader];
+    const name = (r) => `<b>${escapeHtml(shortName(r.site))}</b>`;
+    const others = results.map((r, i) => ({ r, i })).filter((x) => x.i !== exp.leader).map(({ r }) => {
+      if (!r.viable) return tr("behind", { name: name(r), what: escapeHtml(notViableReason(r)) });
+      // El indicador donde más se despega el líder, dicho en unidades reales.
+      const widest = METRICS.filter((m) => !m.main)
+        .map((m) => ({ m, gap: (m.value(leader) ?? 0) - (m.value(r) ?? 0), ok: m.value(leader) != null && m.value(r) != null }))
+        .filter((x) => x.ok && x.gap > 0)
+        .sort((a, b) => b.gap - a.gap)[0];
+      const gap = widest?.m.delta(leader, r, false);
+      return gap ? tr("behind", { name: name(r), what: escapeHtml(tr("inMetric", { gap, metric: tr(widest.m.label).toLowerCase() })) }) : "";
+    }).filter(Boolean);
+    return `<p class="lead-line"><span class="lead-mark" aria-hidden="true">★</span> ${name(leader)} ${tr("leads")}${others.length ? ` · ${others.join(" · ")}` : ""}</p>`;
   }
 
   // ¿Cambia el ganador si cambian los pesos? Se calcula aquí con los puntajes que ya tenemos.

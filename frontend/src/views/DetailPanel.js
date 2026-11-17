@@ -7,6 +7,7 @@
 import { escapeHtml, formatDegrees, formatDuration, formatUtc, num } from "../format.js";
 import { siteName, siteNotes, t } from "../i18n.js";
 import { notViableReason } from "./encoding.js";
+import { environmentHtml, environmentSummary } from "./EnvironmentView.js";
 import { renderSky } from "./SkyView.js";
 import { renderTerrainPatch } from "./TerrainPatchView.js";
 import { renderTimeline } from "./TimelineView.js";
@@ -78,19 +79,25 @@ function horizonText(horizon) {
   }));
 }
 
-function scoreBar(labelKey, value, hintKey) {
+// Enlace del indicador a su tarjeta de Aprender (#aprender/kpi-…).
+function learnLink(labelKey, learnId) {
+  const label = escapeHtml(t("card.learnFactor", { name: t(labelKey) }));
+  return learnId ? ` <a class="factor-learn" href="#aprender/${learnId}" title="${label}" aria-label="${label}">?</a>` : "";
+}
+
+function scoreBar(labelKey, value, hintKey, learnId = null) {
   return `
     <div class="bar" title="${escapeHtml(t(hintKey))}">
-      <span>${t(labelKey)}</span>
+      <span>${t(labelKey)}${learnLink(labelKey, learnId)}</span>
       <span class="track"><span style="width:${value}%"></span></span>
       <b>${Math.round(value)}</b>
     </div>`;
 }
 
-function scoreBarRaw(label, value, hint) {
+function scoreBarRaw(label, value, hint, learn = "") {
   return `
     <div class="bar" title="${escapeHtml(hint)}">
-      <span>${escapeHtml(label)}</span>
+      <span>${escapeHtml(label)}${learn}</span>
       <span class="track"><span style="width:${value}%"></span></span>
       <b>${Math.round(value)}</b>
     </div>`;
@@ -135,7 +142,7 @@ export class DetailPanel {
     this.body.innerHTML = `<p class="error">${escapeHtml(t("detail.error", { message }))}</p>`;
   }
 
-  render(sky, timeline, { patch = null } = {}) {
+  render(sky, timeline, { patch = null, environment = null } = {}) {
     const { site, config } = sky;
     const days = config.window_days;
     const topo = sky.topography ?? {};
@@ -182,7 +189,7 @@ export class DetailPanel {
     const dataNotes = provenance.join("");
     const terrainBar = ease == null
       ? `<div class="bar nodata-bar" title="${escapeHtml(t("detail.terrainNone"))}"><span>${t("detail.terrain")}</span><span class="track"></span><b>${t("detail.noData")}</b></div>`
-      : scoreBarRaw(t("detail.terrain"), ease, t("detail.terrainHint"));
+      : scoreBarRaw(t("detail.terrain"), ease, t("detail.terrainHint"), learnLink("detail.terrain", "kpi-terrain"));
     const slopeNote = !hasSlope ? t("detail.terrainNone") : t("detail.slopeScale");
 
     // Orden por preguntas: ¿sirve? → ¿cuándo sirve? → ¿por qué? → detalle plegado.
@@ -206,10 +213,10 @@ export class DetailPanel {
       </div>
 
       <h3>${t("detail.score")}</h3>
-      ${scoreBar("detail.energy", sky.scores.energy, "detail.energyHint")}
-      ${scoreBar("detail.communication", sky.scores.communication, "detail.communicationHint")}
+      ${scoreBar("detail.energy", sky.scores.energy, "detail.energyHint", "kpi-energy")}
+      ${scoreBar("detail.communication", sky.scores.communication, "detail.communicationHint", "kpi-comms")}
       ${terrainBar}
-      ${scoreBar("detail.total", sky.scores.total, "detail.totalHint")}
+      ${scoreBar("detail.total", sky.scores.total, "detail.totalHint", "kpi-total")}
       ${sky.viable ? "" : `<p class="caption">${t("detail.refNote")}</p>`}
       ${dataNotes}
 
@@ -250,6 +257,12 @@ export class DetailPanel {
           <p class="caption">${t("detail.patchCaption", { size: patch.size, spacing: patch.spacing_m })}</p>` : ""}
         </div>
       </details>
+
+      ${environment ? `
+      <details class="fold" data-fold="env">
+        <summary>${escapeHtml(environmentSummary())}</summary>
+        <div class="fold-body">${environmentHtml(environment)}</div>
+      </details>` : ""}
 
       <div class="tech-only">
         <h3>${t("detail.metrics", { days })}</h3>

@@ -29,6 +29,6 @@ export class HeroView {
   render() {
     if (!this.illumination) return;
     const { lat, lon } = this.illumination.subsolar;
-    this.coords.textContent = `${formatCoordinate(lat, "N", "S")}  ${formatCoordinate(lon, "E", "O")}`;
+    this.coords.textContent = `${formatCoordinate(lat, t("sky.north"), t("sky.south"))}  ${formatCoordinate(lon, t("sky.east"), t("sky.west"))}`;
   }
 }

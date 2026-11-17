@@ -2,6 +2,8 @@
 
 Guía para quien suma la visualización de topografía. La vista general ya tiene un **punto de enganche**: una vista nueva se registra con una función y aparece sola como un botón en la ficha del sitio. No hace falta tocar `main.js`.
 
+> **Ya hay una vista integrada con este contrato:** el relieve 3D del polo sur (`frontend/src/views/terrain/PolarReliefView.js`, registrada en `terrain/index.js`). Sirve de ejemplo completo: escena Three.js propia, capas, lectura por celda y liberación de recursos en `unmount()`.
+
 ## En 3 pasos
 
 1. **Crear tu archivo** en `frontend/src/views/terrain/` (por ejemplo `TerrainView.js`), con la lógica de dibujo.
@@ -39,6 +41,11 @@ export function registerTerrain({ registerExploreView }) {
 | `date` | Fecha de aterrizaje elegida (`Date`, UTC) |
 | `config` | Ajustes del puntaje (ventana, márgenes, pesos) |
 | `globe` | El globo (`GlobeView`), por si necesitas su relieve o su cámara |
+| `sites` | Todos los sitios cargados (catálogo y pines propios) |
+| `actions.setDate(date)` | Cambia la fecha de aterrizaje de toda la app |
+| `actions.placePin(lat, lon)` | Cierra la vista y agrega un pin en ese punto |
+
+`site` y `sky` pueden ser `null`: una vista también se puede abrir sin sitio elegido (el relieve 3D se abre así desde el panel de capas).
 
 Qué hace la aplicación por ti:
 

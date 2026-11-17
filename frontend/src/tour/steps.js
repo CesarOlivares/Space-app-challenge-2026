@@ -74,12 +74,12 @@ export function mainTour(ctx) {
       before: async () => { await ctx.explore(); ctx.select([A]); },
       title: T("La ficha del sitio", "The site card"),
       body: T(
-        "Al elegir un sitio aparece su ficha: si es viable, las dos cajas dicen si el Sol y la Tierra se ven al aterrizar, y abajo van el puntaje global y los de energía y comunicación.",
-        "Choosing a site opens its card: if viable, the two boxes say whether the Sun and Earth are in view at landing, and below are the overall, energy and communication scores.",
+        "Al elegir un sitio aparece su ficha: si es viable y una caja por factor (cuánto dura el Sol, cuánto la Tierra a la vista y la pendiente, donde hay dato). Abajo van el puntaje global y los de energía y comunicación.",
+        "Choosing a site opens its card: whether it is viable and one box per factor (how long the Sun lasts, how long Earth stays in view and the slope, where there is data). Below are the overall, energy and communication scores.",
       ),
       read: T(
-        "Los números van de 0 a 100 y más es mejor. «Ver detalle» abre el cielo, la línea de tiempo y las mejores fechas.",
-        "Numbers run from 0 to 100 and higher is better. “Details” opens the sky view, timeline and best dates.",
+        "Los números van de 0 a 100 y más es mejor. «+1 día» corre la fecha y muestra qué cambió; el «?» de cada caja lleva a su explicación en Aprender; «Ver detalle» abre el cielo, la línea de tiempo y las mejores fechas.",
+        "Numbers run from 0 to 100 and higher is better. “+1 day” shifts the date and shows what changed; the “?” on each box opens its explanation in Learn; “Details” opens the sky view, timeline and best dates.",
       ),
     },
     {
@@ -127,12 +127,12 @@ export function mainTour(ctx) {
       },
       title: T("Capas del globo", "Globe layers"),
       body: T(
-        "Pinta la Luna con un mapa de color: Pendiente, Mapa solar, Señal de la Tierra o Aptitud global. «Superficie real» vuelve a la foto.",
-        "Paints the Moon with a colour map: Slope, Solar map, Earth signal or Overall suitability. “True surface” returns to the photo.",
+        "Pinta la Luna con un mapa de color: Pendiente, Mapa solar, Señal de la Tierra o Aptitud global. «Dónde aterrizar» deja brillando solo las zonas del polo sur que cumplen los tres factores. «Superficie real» vuelve a la foto.",
+        "Paints the Moon with a colour map: Slope, Solar map, Earth signal or Overall suitability. “Where to land” leaves glowing only the south-pole zones that meet all three factors. “True surface” returns to the photo.",
       ),
       read: T(
-        "Al sur de 75° S la pendiente usa el DEM polar LOLA; en el resto se estima a partir del mapa de altura global. El Sol, la señal y la aptitud son una estimación geométrica, con leyenda de colores debajo.",
-        "South of 75° S, slope uses the LOLA polar DEM; elsewhere it is estimated from the global heightmap. Sun, signal and suitability are geometric estimates, with the colour key below.",
+        "Al sur de 84° S las capas tienen detalle de 2,4 km: la pendiente es medida (LOLA) y la luz y la Tierra se estiman con el relieve real para la fecha elegida. En el resto del globo son una estimación gruesa. La leyenda dice siempre qué es medido y qué estimado, y «Relieve 3D del polo sur» abre esa zona en relieve.",
+        "South of 84° S the layers have 2.4 km detail: slope is measured (LOLA) and sunlight and Earth are estimated with the real terrain for the chosen date. Elsewhere on the globe they are coarse estimates. The key always says what is measured and what is estimated, and “3D relief of the south pole” opens that zone in relief.",
       ),
     },
     {
